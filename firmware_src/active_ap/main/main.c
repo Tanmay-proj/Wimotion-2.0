@@ -76,6 +76,7 @@ void app_main(void) {
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE
     };
     ESP_ERROR_CHECK(uart_param_config(UART_NUM_0, &uart_config));
+    ESP_ERROR_CHECK(uart_driver_install(UART_NUM_0, 4096, 4096, 0, NULL, 0));
 
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -97,7 +98,12 @@ void app_main(void) {
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &wifi_config));
 
+    ESP_ERROR_CHECK(esp_wifi_start());
+    esp_wifi_set_ps(WIFI_PS_NONE);
+
     // Enable CSI callback
+    ESP_ERROR_CHECK(esp_wifi_set_csi(1));
+
     wifi_csi_config_t csi_config = {
         .lltf_en           = 1,
         .htltf_en          = 1,
@@ -109,8 +115,6 @@ void app_main(void) {
     };
     ESP_ERROR_CHECK(esp_wifi_set_csi_config(&csi_config));
     ESP_ERROR_CHECK(esp_wifi_set_csi_rx_cb(_wifi_csi_cb, NULL));
-    ESP_ERROR_CHECK(esp_wifi_set_csi(1));
 
-    ESP_ERROR_CHECK(esp_wifi_start());
     ESP_LOGI(TAG, "WiMotion CSI AP Initialized on Channel %d (Baud: %d)", WIFI_CHANNEL, UART_BAUD_RATE);
 }
