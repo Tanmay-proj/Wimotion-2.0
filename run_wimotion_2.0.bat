@@ -15,17 +15,19 @@ echo   [2] Run Synthetic 3-Stage Replay (0 -> 1 -> 2 Persons Simulation)
 echo   [3] Hardware Diagnostics & Auto-Discovery (Scans COM ports & TX MACs)
 echo   [4] Start Live Multi-Person HUD Server (FastAPI @ http://127.0.0.1:8000)
 echo   [5] Record Multi-Link Training Dataset Session
-echo   [6] Exit
+echo   [6] ESP32 Firmware Management (Clone & Flash Boards)
+echo   [7] Exit
 echo.
 echo ==============================================================================
-set /p opt="Select an option [1-6]: "
+set /p opt="Select an option [1-7]: "
 
 if "%opt%"=="1" goto TESTS
 if "%opt%"=="2" goto REPLAY
 if "%opt%"=="3" goto DIAG
 if "%opt%"=="4" goto SERVER
 if "%opt%"=="5" goto RECORD
-if "%opt%"=="6" goto EXIT
+if "%opt%"=="6" goto FLASH
+if "%opt%"=="7" goto EXIT
 goto MENU
 
 :TESTS
@@ -65,6 +67,13 @@ set /p z="Enter Zone (Z1, Z2, Z3, Z4, CLEAR): "
 set /p cnt="Enter Person Count (0, 1, 2): "
 set /p dur="Enter Duration in seconds (e.g. 20): "
 py -3.10 scripts/record_multilink_dataset.py --session %sess% --zone %z% --count %cnt% --duration %dur%
+pause
+goto MENU
+
+:FLASH
+echo.
+echo [*] Launching ESP32 Firmware Management and Flashing Utility...
+py -3.10 scripts/flash_tool.py
 pause
 goto MENU
 
