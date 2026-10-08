@@ -36,8 +36,8 @@ FIRMWARE_DIR = WORKSPACE_ROOT / "firmware"
 CONFIG_FILE = WORKSPACE_ROOT / "config" / "nodes.json"
 TX_IMAGE = FIRMWARE_DIR / "golden_tx_sta.bin"
 RX_IMAGE = FIRMWARE_DIR / "golden_rx_ap.bin"
-DEFAULT_BAUD = "921600"
-FLASH_SIZE = "0x400000"  # 4MB standard for ESP32-WROOM-32
+DEFAULT_BAUD = "460800"
+FLASH_SIZE = "0x6A000"  # Exact factory firmware footprint (Bootloader + Partitions + App = 424 KB)
 
 # Check for native ESP-IDF v4.3 installation
 IDF_DIR = Path(r"E:\Espressif")
