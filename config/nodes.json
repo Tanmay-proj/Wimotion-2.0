@@ -9,10 +9,9 @@
       "baud": 921600
     }
   },
-
   "transmitters": {
     "TX1": {
-      "mac": "REPLACE_TX1_MAC"
+      "mac": "BC:DD:C2:CC:49:F5"
     },
     "TX2": {
       "mac": "REPLACE_TX2_MAC"
@@ -24,14 +23,12 @@
       "mac": "REPLACE_TX4_MAC"
     }
   },
-
   "zones": [
     "Z1",
     "Z2",
     "Z3",
     "Z4"
   ],
-
   "sampling": {
     "target_hz": 20.0,
     "minimum_hz": 4.0,

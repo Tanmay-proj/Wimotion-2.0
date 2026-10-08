@@ -52,7 +52,13 @@ class SerialReceiverWorker(threading.Thread):
         while self.running:
             try:
                 print(f"[*] {self.receiver_id}: Connecting to {self.port} @ {self.baud} baud...")
-                self.serial_conn = serial.Serial(self.port, self.baud, timeout=1.0)
+                self.serial_conn = serial.Serial()
+                self.serial_conn.port = self.port
+                self.serial_conn.baudrate = self.baud
+                self.serial_conn.timeout = 1.0
+                self.serial_conn.dtr = False
+                self.serial_conn.rts = False
+                self.serial_conn.open()
                 print(f"[+] {self.receiver_id}: Connected successfully to {self.port}")
                 self.serial_conn.reset_input_buffer()
 

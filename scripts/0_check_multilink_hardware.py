@@ -47,7 +47,13 @@ def list_esp32_ports():
 def audit_port(port: str, baud: int = 921600, duration: float = 6.0):
     print(f"\n[*] Auditing {port} @ {baud} baud for {duration:.1f} seconds...")
     try:
-        ser = serial.Serial(port, baud, timeout=1.0)
+        ser = serial.Serial()
+        ser.port = port
+        ser.baudrate = baud
+        ser.timeout = 1.0
+        ser.dtr = False
+        ser.rts = False
+        ser.open()
         ser.reset_input_buffer()
     except Exception as e:
         print(f"[!] Could not open {port}: {e}")
@@ -140,7 +146,7 @@ def main():
         print(f"  {rx_name} [{p:<5}] | Total: {r['aggregate_rate_hz']:5.1f} Hz | Status: {status}")
         for mac, rate in r["per_tx_rates"].items():
             all_discovered_macs.add(mac)
-            print(f"      ├─ {rx_name} -> {mac:<17} : {rate:4.1f} Hz (RSSI: {r['per_tx_rssi'].get(mac, 'N/A')} dBm)")
+            print(f"      --> {rx_name} -> {mac:<17} : {rate:4.1f} Hz (RSSI: {r['per_tx_rssi'].get(mac, 'N/A')} dBm)")
 
     print("-" * 70)
     total_candidate_links = len(results) * len(all_discovered_macs)
