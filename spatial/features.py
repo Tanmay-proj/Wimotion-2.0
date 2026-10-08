@@ -68,22 +68,31 @@ def extract_link_features(records: List[CSIRecord]) -> List[Dict[str, Any]]:
     return features
 
 
-def fuse_features(features: List[Dict[str, Any]]) -> Tuple[np.ndarray, int]:
+def fuse_features(features: List[Dict[str, Any]], include_validity_mask: bool = True) -> Tuple[np.ndarray, int]:
+    """
+    Fuses 8 candidate links into a structured vector:
+    - 48 continuous features (6 features per link)
+    - 8 link-validity flags (1.0 = link active, 0.0 = link disconnected)
+    Total dimensions: 56
+    """
     lookup = {
         (f["receiver"], f["tx"]): f
         for f in features
     }
 
     vector = []
+    mask = []
     active_links = 0
 
     for link in LINKS:
         feature = lookup.get(link)
         if feature is None:
             vector.extend([0.0] * 6)
+            mask.append(0.0)
             continue
 
         active_links += 1
+        mask.append(1.0)
         vector.extend([
             feature["mean_amp"],
             feature["std_amp"],
@@ -92,5 +101,8 @@ def fuse_features(features: List[Dict[str, Any]]) -> Tuple[np.ndarray, int]:
             feature["p95_delta"],
             feature["energy"]
         ])
+
+    if include_validity_mask:
+        vector.extend(mask)
 
     return np.asarray(vector, dtype=np.float32), active_links

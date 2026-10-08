@@ -336,17 +336,17 @@
       <h1>WIMOTION <span>2.0</span> HUD</h1>
     </div>
     <div class="header-telemetry">
-      <div class="tele-chip">
-        <div class="pulse-dot"></div>
-        <span>RF ENGINE: ONLINE</span>
+      <div class="tele-chip" id="chip-mode" style="border-color: rgba(255, 170, 0, 0.4);">
+        <div class="pulse-dot" id="dot-mode" style="background: var(--accent-amber); box-shadow: 0 0 8px var(--accent-amber);"></div>
+        <span id="hdr-mode" style="font-weight: 700; color: var(--accent-amber);">MODE: STANDBY / DEMO</span>
       </div>
       <div class="tele-chip">
         <span style="color:var(--text-muted)">LINKS:</span>
-        <strong id="hdr-links" style="color:var(--accent-cyan)">8 / 8 ACTIVE</strong>
+        <strong id="hdr-links" style="color:var(--accent-cyan)">0 / 8 ACTIVE</strong>
       </div>
       <div class="tele-chip">
         <span style="color:var(--text-muted)">RATE:</span>
-        <strong id="hdr-rate" style="color:var(--accent-neon-green)">20.0 Hz</strong>
+        <strong id="hdr-rate" style="color:var(--text-muted)">-- Hz</strong>
       </div>
     </div>
   </header>
@@ -461,12 +461,42 @@
         if (!res.ok) return;
         const data = await res.json();
 
+        // Mode & Status chip update
+        const modeStr = data.mode || 'STANDBY / DEMO';
+        const hdrMode = document.getElementById('hdr-mode');
+        const dotMode = document.getElementById('dot-mode');
+        const chipMode = document.getElementById('chip-mode');
+
+        if (modeStr.includes('LIVE')) {
+          hdrMode.textContent = 'MODE: LIVE HARDWARE (ONLINE)';
+          hdrMode.style.color = 'var(--accent-neon-green)';
+          dotMode.style.background = 'var(--accent-neon-green)';
+          dotMode.style.boxShadow = '0 0 8px var(--accent-neon-green)';
+          chipMode.style.borderColor = 'rgba(0, 255, 136, 0.4)';
+        } else if (modeStr.includes('INJECTION')) {
+          hdrMode.textContent = 'MODE: DEMO INJECTION';
+          hdrMode.style.color = 'var(--accent-cyan)';
+          dotMode.style.background = 'var(--accent-cyan)';
+          dotMode.style.boxShadow = '0 0 8px var(--accent-cyan)';
+          chipMode.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+        } else {
+          hdrMode.textContent = 'MODE: STANDBY / DEMO';
+          hdrMode.style.color = 'var(--accent-amber)';
+          dotMode.style.background = 'var(--accent-amber)';
+          dotMode.style.boxShadow = '0 0 8px var(--accent-amber)';
+          chipMode.style.borderColor = 'rgba(255, 170, 0, 0.4)';
+        }
+
         // Occupancy hero
         document.getElementById('hero-count').textContent = data.count || 0;
         document.getElementById('val-zone').textContent = data.zone || 'CLEAR';
-        document.getElementById('hdr-links').textContent = `${data.active_links || 8} / ${data.link_count || 8} ACTIVE`;
-        document.getElementById('val-conf').textContent = `${((data.confidence || 0.85) * 100).toFixed(1)}%`;
-        document.getElementById('val-status').textContent = data.signal_ok ? 'ACTIVE' : 'DEGRADED';
+        document.getElementById('hdr-links').textContent = `${data.active_links || 0} / ${data.link_count || 8} ACTIVE`;
+        document.getElementById('val-conf').textContent = `${((data.confidence || 0.0) * 100).toFixed(1)}%`;
+        document.getElementById('val-status').textContent = data.signal_ok ? 'ACTIVE' : (data.active_links > 0 ? 'PARTIAL' : 'STANDBY');
+        
+        const rateVal = data.rate_hz || (data.mode && data.mode.includes('LIVE') ? 20.0 : null);
+        document.getElementById('hdr-rate').textContent = rateVal ? `${rateVal.toFixed(1)} Hz` : '-- Hz';
+        document.getElementById('hdr-rate').style.color = rateVal ? 'var(--accent-neon-green)' : 'var(--text-muted)';
 
         // Clear all zone active states and trays
         ['Z1', 'Z2', 'Z3', 'Z4'].forEach(z => {

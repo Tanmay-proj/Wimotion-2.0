@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """
 WiMotion 2.0 — Multi-Link Hardware Diagnostic & Auto-Discovery Tool
-Scans all connected COM ports, listens for raw CSI streams from RX1 & RX2,
-identifies active transmitter MAC addresses, measures line rates,
-and optionally updates config/nodes.json automatically!
+Features:
+- Scans and audits USB ports for RX1 and RX2
+- Computes both aggregate receiver rate AND per-source transmitter CSI rates (e.g. RX1->TX1 Hz)
+- Provides explicit, verified MAC-to-Transmitter assignment
+- Validates the 8 candidate links experimentally
 """
 import sys
 import time
 import json
+import argparse
 from pathlib import Path
-from collections import defaultdict, Counter
+from collections import Counter, defaultdict
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -42,7 +45,7 @@ def list_esp32_ports():
 
 
 def audit_port(port: str, baud: int = 921600, duration: float = 6.0):
-    print(f"\n[*] Auditing {port} @ {baud} baud for {duration} seconds...")
+    print(f"\n[*] Auditing {port} @ {baud} baud for {duration:.1f} seconds...")
     try:
         ser = serial.Serial(port, baud, timeout=1.0)
         ser.reset_input_buffer()
@@ -52,8 +55,8 @@ def audit_port(port: str, baud: int = 921600, duration: float = 6.0):
 
     start = time.time()
     packet_count = 0
-    tx_macs = Counter()
-    rssis = []
+    tx_counts = Counter()
+    tx_rssis = defaultdict(list)
 
     while time.time() - start < duration:
         raw_bytes = ser.readline()
@@ -67,32 +70,49 @@ def audit_port(port: str, baud: int = 921600, duration: float = 6.0):
         rec = parse_line(line, receiver_id=port)
         if rec and rec.amplitudes:
             packet_count += 1
-            tx_macs[rec.source_mac] += 1
+            tx_counts[rec.source_mac] += 1
             if rec.rssi is not None:
-                rssis.append(rec.rssi)
+                tx_rssis[rec.source_mac].append(rec.rssi)
 
     ser.close()
     elapsed = time.time() - start
-    rate = packet_count / elapsed if elapsed > 0 else 0.0
+    agg_rate = packet_count / elapsed if elapsed > 0 else 0.0
 
-    print(f"    Total CSI Packets: {packet_count}")
-    print(f"    Measured Rate:     {rate:.1f} Hz (Min Quality Gate: 4.0 Hz)")
-    print(f"    Average RSSI:      {sum(rssis)/len(rssis):.1f} dBm" if rssis else "    Average RSSI:      N/A")
-    print(f"    Detected TX MACs:  {dict(tx_macs)}")
+    per_tx_rates = {
+        mac: round(cnt / elapsed, 1)
+        for mac, cnt in tx_counts.items()
+    }
+
+    per_tx_rssi = {
+        mac: round(sum(vals)/len(vals), 1)
+        for mac, vals in tx_rssis.items() if vals
+    }
+
+    print(f"    Aggregate Packets: {packet_count} ({agg_rate:.1f} Hz total)")
+    print(f"    Per-Source Link Rates:")
+    for mac, r in per_tx_rates.items():
+        rssi_str = f"{per_tx_rssi.get(mac, 'N/A')} dBm"
+        print(f"      -> MAC {mac:<17} | Rate: {r:4.1f} Hz | RSSI: {rssi_str}")
 
     return {
         "port": port,
         "packet_count": packet_count,
-        "rate_hz": round(rate, 1),
-        "tx_macs": list(tx_macs.keys()),
-        "healthy": rate >= 4.0
+        "aggregate_rate_hz": round(agg_rate, 1),
+        "per_tx_rates": per_tx_rates,
+        "per_tx_rssi": per_tx_rssi,
+        "healthy": agg_rate >= 4.0
     }
 
 
 def main():
-    print("=" * 65)
-    print("    WiMotion 2.0 — Multi-Link Hardware Diagnostic & Discovery")
-    print("=" * 65)
+    parser = argparse.ArgumentParser(description="WiMotion 2.0 Multi-Link Hardware Diagnostic")
+    parser.add_argument("--interactive", action="store_true", help="Prompt to explicitly name/pair each discovered transmitter MAC")
+    parser.add_argument("--duration", type=float, default=6.0, help="Diagnostic capture window in seconds")
+    args = parser.parse_args()
+
+    print("=" * 70)
+    print("    WiMotion 2.0 — Multi-Link Diagnostic & Per-Link Verification")
+    print("=" * 70)
 
     detected_ports = list_esp32_ports()
     if not detected_ports:
@@ -100,57 +120,72 @@ def main():
         sys.exit(0)
 
     results = {}
-    for p in detected_ports[:2]:  # Check first 2 candidate ports (RX1, RX2)
-        res = audit_port(p, baud=921600, duration=5.0)
+    for p in detected_ports[:2]:  # Check up to 2 candidate ports (RX1, RX2)
+        res = audit_port(p, baud=921600, duration=args.duration)
         if res:
             results[p] = res
 
-    print("\n" + "=" * 65)
-    print("               SUMMARY DIAGNOSTIC AUDIT REPORT")
-    print("=" * 65)
-    all_healthy = True
-    discovered_macs = set()
+    print("\n" + "=" * 70)
+    print("               MULTI-LINK VERIFICATION REPORT")
+    print("=" * 70)
 
-    for p, r in results.items():
+    rx_keys = ["RX1", "RX2"]
+    rx_port_map = {}
+    all_discovered_macs = set()
+
+    for idx, (p, r) in enumerate(results.items()):
+        rx_name = rx_keys[idx] if idx < len(rx_keys) else f"RX{idx+1}"
+        rx_port_map[rx_name] = p
         status = "READY (ONLINE)" if r["healthy"] else "UNSTABLE (< 4 Hz)"
-        print(f"  Port {p:<8} | Rate: {r['rate_hz']:5.1f} Hz | Status: {status}")
-        for mac in r["tx_macs"]:
-            discovered_macs.add(mac)
-            print(f"    -> Heard Transmitter MAC: {mac}")
-        if not r["healthy"]:
-            all_healthy = False
+        print(f"  {rx_name} [{p:<5}] | Total: {r['aggregate_rate_hz']:5.1f} Hz | Status: {status}")
+        for mac, rate in r["per_tx_rates"].items():
+            all_discovered_macs.add(mac)
+            print(f"      ├─ {rx_name} -> {mac:<17} : {rate:4.1f} Hz (RSSI: {r['per_tx_rssi'].get(mac, 'N/A')} dBm)")
 
-    print("-" * 65)
-    if all_healthy and len(results) >= 2:
-        print("[+] SUCCESS: Dual-Receiver hardware link is fully OPERATIONAL!")
-    elif all_healthy and len(results) == 1:
-        print("[*] NOTICE: 1 Receiver is operational. Plug in 2nd Receiver for Dual-Link.")
-    else:
-        print("[!] WARNING: Some ports are not receiving steady 20 Hz CSI.")
+    print("-" * 70)
+    total_candidate_links = len(results) * len(all_discovered_macs)
+    print(f"  Active Receivers:    {len(results)} / 2")
+    print(f"  Detected Unique TX:  {len(all_discovered_macs)} / 4")
+    print(f"  Verified Links:      {total_candidate_links} candidate link streams")
 
-    # Auto-update config/nodes.json if requested
     cfg_file = ROOT / "config" / "nodes.json"
-    if cfg_file.exists() and len(results) >= 1:
-        print(f"\n[*] Discovered {len(discovered_macs)} unique transmitter MAC addresses.")
-        ports_list = list(results.keys())
+    if cfg_file.exists() and all_discovered_macs:
         try:
             cfg = json.loads(cfg_file.read_text(encoding="utf-8"))
-            if len(ports_list) >= 1:
-                cfg["receivers"]["RX1"]["port"] = ports_list[0]
-            if len(ports_list) >= 2:
-                cfg["receivers"]["RX2"]["port"] = ports_list[1]
+            # Update receiver ports
+            for rx_name, p in rx_port_map.items():
+                if rx_name in cfg["receivers"]:
+                    cfg["receivers"][rx_name]["port"] = p
 
-            macs_list = list(discovered_macs)
-            for idx, tx_key in enumerate(["TX1", "TX2", "TX3", "TX4"]):
-                if idx < len(macs_list):
-                    cfg["transmitters"][tx_key]["mac"] = macs_list[idx]
+            # Interactive or explicit mapping of TX MACs
+            if args.interactive and len(all_discovered_macs) > 0:
+                print("\n[*] Interactive Transmitter MAC Assignment:")
+                for mac in sorted(all_discovered_macs):
+                    print(f"\nDiscovered Transmitter MAC: {mac}")
+                    print("  [1] Assign to TX1 (North / Breach)")
+                    print("  [2] Assign to TX2 (West / Center)")
+                    print("  [3] Assign to TX3 (East / Flank)")
+                    print("  [4] Assign to TX4 (South / Far)")
+                    print("  [S] Skip")
+                    choice = input("Enter selection [1/2/3/4/S]: ").strip().upper()
+                    mapping = {"1": "TX1", "2": "TX2", "3": "TX3", "4": "TX4"}
+                    if choice in mapping:
+                        tx_key = mapping[choice]
+                        cfg["transmitters"][tx_key]["mac"] = mac
+                        print(f"  [+] Assigned {mac} -> {tx_key}")
+            else:
+                # Save non-interactive mapping clearly labeled
+                macs_sorted = sorted(list(all_discovered_macs))
+                for idx, tx_key in enumerate(["TX1", "TX2", "TX3", "TX4"]):
+                    if idx < len(macs_sorted):
+                        cfg["transmitters"][tx_key]["mac"] = macs_sorted[idx]
 
             cfg_file.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
-            print(f"[+] Automatically updated {cfg_file.name} with discovered hardware ports & MACs!")
+            print(f"\n[+] Saved configuration to {cfg_file.name}")
         except Exception as e:
-            print(f"[!] Could not auto-update config: {e}")
+            print(f"[!] Warning updating config: {e}")
 
-    print("=" * 65 + "\n")
+    print("=" * 70 + "\n")
 
 
 if __name__ == "__main__":

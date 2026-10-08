@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse, FileResponse
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from .types import SpatialState
@@ -13,7 +12,7 @@ app = FastAPI(title="WiMotion 2.0 Multi-Link Spatial API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -21,17 +20,20 @@ app.add_middleware(
 
 DASHBOARD_PATH = Path(__file__).resolve().parent.parent / "dashboard" / "observatory_multi.html"
 
-# Default state
+# Default state clearly states STANDBY / DEMO mode without pretending hardware is live
 LATEST_STATE = {
     "timestamp": time.time(),
-    "signal_ok": True,
+    "mode": "STANDBY / DEMO",
+    "hardware_connected": False,
+    "signal_ok": False,
     "count": 0,
     "people": [],
     "zone": "CLEAR",
-    "active_links": 8,
+    "active_links": 0,
     "link_count": 8,
-    "confidence": 0.85,
-    "reason": "STANDBY"
+    "confidence": 0.0,
+    "rate_hz": 0.0,
+    "reason": "AWAITING_HARDWARE_CONNECTION"
 }
 
 engine_instance = None
@@ -68,7 +70,10 @@ def get_dashboard():
 def get_spatial():
     global engine_instance
     if engine_instance:
-        return engine_instance.get_state()
+        state = engine_instance.get_state()
+        state["mode"] = "LIVE HARDWARE"
+        state["hardware_connected"] = True
+        return state
     return LATEST_STATE
 
 
@@ -77,6 +82,7 @@ def update_simulate(state: dict):
     """Allows testing HUD with simulated multi-person scenarios via POST"""
     global LATEST_STATE
     LATEST_STATE.update(state)
+    LATEST_STATE["mode"] = "DEMO INJECTION (SIMULATED)"
     LATEST_STATE["timestamp"] = time.time()
     return {"status": "updated", "state": LATEST_STATE}
 
@@ -86,5 +92,6 @@ def health():
     return {
         "ok": True,
         "engine": "WiMotion 2.0 Multi-Link",
+        "mode": "LIVE HARDWARE" if engine_instance else "STANDBY / DEMO",
         "timestamp": time.time()
     }

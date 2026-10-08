@@ -3,6 +3,7 @@ import time
 import queue
 from typing import Dict, Optional, Callable, Any
 from pathlib import Path
+from collections import Counter
 
 from .types import CSIRecord
 from .parser import parse_line
@@ -35,10 +36,12 @@ class SerialReceiverWorker(threading.Thread):
         self.running = False
         self.serial_conn: Optional[serial.Serial] = None
         
-        # Packet rate tracking
+        # Aggregate and per-link rate tracking
         self.packet_count = 0
+        self.per_tx_counts = Counter()
         self.last_rate_calc = time.time()
         self.current_rate_hz = 0.0
+        self.current_per_tx_rates = {}
 
     def run(self):
         self.running = True
@@ -69,19 +72,25 @@ class SerialReceiverWorker(threading.Thread):
                         if record.source_mac in self.mac_map:
                             record.tx_id = self.mac_map[record.source_mac]
                         else:
-                            # If unmapped, default based on trailing hex or record directly
                             record.tx_id = f"MAC_{record.source_mac[-5:].replace(':', '')}"
 
-                        # Update rate calculation
+                        # Update aggregate and per-TX counters
                         self.packet_count += 1
+                        self.per_tx_counts[record.tx_id] += 1
+
                         now = time.time()
                         dt = now - self.last_rate_calc
                         if dt >= 1.0:
                             self.current_rate_hz = self.packet_count / dt
+                            self.current_per_tx_rates = {
+                                tx: round(cnt / dt, 1)
+                                for tx, cnt in self.per_tx_counts.items()
+                            }
                             self.packet_count = 0
+                            self.per_tx_counts.clear()
                             self.last_rate_calc = now
 
-                        record.rate_hz = self.current_rate_hz
+                        record.rate_hz = self.current_per_tx_rates.get(record.tx_id, self.current_rate_hz)
                         self.callback(record)
 
             except Exception as e:
@@ -130,7 +139,8 @@ class MultiSerialManager:
             rx_id: {
                 "port": w.port,
                 "running": w.running,
-                "rate_hz": round(w.current_rate_hz, 2),
+                "aggregate_rate_hz": round(w.current_rate_hz, 2),
+                "per_link_rates": dict(w.current_per_tx_rates),
                 "healthy": w.current_rate_hz >= self.config.sampling.minimum_hz
             }
             for rx_id, w in self.workers.items()

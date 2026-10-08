@@ -47,7 +47,8 @@ class TestSpatial(unittest.TestCase):
         vector, active = fuse_features(features)
 
         self.assertEqual(active, 8)
-        self.assertEqual(vector.shape[0], 48)
+        self.assertEqual(vector.shape[0], 56)
+        self.assertEqual(sum(vector[48:]), 8.0)  # All 8 links active in mask
 
     def test_signal_gate(self):
         model = SpatialBaseline()
