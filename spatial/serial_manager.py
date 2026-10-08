@@ -90,7 +90,7 @@ class SerialReceiverWorker(threading.Thread):
                             self.per_tx_counts.clear()
                             self.last_rate_calc = now
 
-                        record.rate_hz = self.current_per_tx_rates.get(record.tx_id, self.current_rate_hz)
+                        record.rate_hz = self.current_per_tx_rates.get(record.tx_id, None)
                         self.callback(record)
 
             except Exception as e:
@@ -135,13 +135,29 @@ class MultiSerialManager:
             print(f"[*] Stopped worker {rx_id}")
 
     def get_health(self) -> Dict[str, Any]:
-        return {
-            rx_id: {
+        health_report = {}
+        for rx_id, w in self.workers.items():
+            per_rates = dict(w.current_per_tx_rates)
+            # Evaluate if all configured transmitters are transmitting above 1.0 Hz
+            active_links_count = sum(1 for r in per_rates.values() if r >= 1.0)
+            
+            if w.current_rate_hz >= self.config.sampling.minimum_hz:
+                if active_links_count >= len(self.config.transmitters):
+                    status = "HEALTHY"
+                elif active_links_count > 0:
+                    status = "PARTIAL"
+                else:
+                    status = "PARTIAL"
+            else:
+                status = "DEGRADED"
+
+            health_report[rx_id] = {
                 "port": w.port,
                 "running": w.running,
                 "aggregate_rate_hz": round(w.current_rate_hz, 2),
-                "per_link_rates": dict(w.current_per_tx_rates),
-                "healthy": w.current_rate_hz >= self.config.sampling.minimum_hz
+                "per_link_rates": per_rates,
+                "active_tx_count": active_links_count,
+                "status": status,
+                "healthy": status == "HEALTHY"
             }
-            for rx_id, w in self.workers.items()
-        }
+        return health_report
