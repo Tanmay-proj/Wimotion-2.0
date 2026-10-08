@@ -1,16 +1,18 @@
 """WiMotion 2.0 ESP32 Firmware Management & Flashing Utility.
 
 Enables cloning and flashing of ESP32-WROOM-32 boards without needing
-an ESP-IDF compiler or toolchain installation.
+manual compilation or complex IDF configuration.
 
 Features:
-1. Dump Golden Images: Reads full 4MB flash from pre-flashed working boards
-   (TX / active_sta, RX / active_ap).
-2. Clone & Flash: Flashes blank boards with verified golden images in ~15 seconds
-   at 921600 baud.
-3. Hardware MAC Identification: Automatically queries and registers the unique
+1. Dual Toolchain Detection:
+   - Native ESP-IDF v4.3.4 (at E:\\Espressif with esptool v3.3.2-dev)
+   - Python 3.10 esptool (v5.5.0)
+2. Dump Golden Images: Reads full 4MB flash from pre-flashed working boards
+   (TX / active_sta, RX / active_ap) preserving exact ESP-IDF v4.3.4 compilation bit-for-bit.
+3. Clone & Flash: Flashes blank boards with verified golden images in ~15 seconds.
+4. Hardware MAC Identification: Automatically queries and registers the unique
    factory eFuse MAC address of every connected board.
-4. Auto-update nodes.json: Registers discovered TX MACs into WiMotion 2.0 config.
+5. Auto-update nodes.json: Registers discovered TX MACs into WiMotion 2.0 config.
 """
 
 from __future__ import annotations
@@ -36,6 +38,17 @@ TX_IMAGE = FIRMWARE_DIR / "golden_tx_sta.bin"
 RX_IMAGE = FIRMWARE_DIR / "golden_rx_ap.bin"
 DEFAULT_BAUD = "921600"
 FLASH_SIZE = "0x400000"  # 4MB standard for ESP32-WROOM-32
+
+# Check for native ESP-IDF v4.3 installation
+IDF_DIR = Path(r"E:\Espressif")
+IDF_PYTHON = IDF_DIR / "python_env" / "idf4.3_py3.8_env" / "Scripts" / "python.exe"
+IDF_ESPTOOL_SCRIPT = IDF_DIR / "frameworks" / "esp-idf-v4.3.4" / "components" / "esptool_py" / "esptool" / "esptool.py"
+
+USE_IDF_ESPTOOL = False
+if IDF_PYTHON.exists() and IDF_ESPTOOL_SCRIPT.exists():
+    HAS_IDF_ENV = True
+else:
+    HAS_IDF_ENV = False
 
 
 def ensure_firmware_dir() -> None:
@@ -73,8 +86,16 @@ def select_com_port(prompt_msg: str = "Select COM Port") -> Optional[str]:
     return None
 
 
+def get_esptool_base_cmd() -> List[str]:
+    global USE_IDF_ESPTOOL
+    if USE_IDF_ESPTOOL and HAS_IDF_ENV:
+        return [str(IDF_PYTHON), str(IDF_ESPTOOL_SCRIPT)]
+    return [sys.executable, "-m", "esptool"]
+
+
 def run_esptool_cmd(args: List[str]) -> tuple[int, str]:
-    cmd = [sys.executable, "-m", "esptool"] + args
+    base_cmd = get_esptool_base_cmd()
+    cmd = base_cmd + args
     print(f"\n[*] Executing: {' '.join(cmd)}")
     try:
         proc = subprocess.run(
@@ -190,11 +211,16 @@ def update_nodes_config(new_mac: str) -> None:
 
 
 def interactive_menu() -> None:
+    global USE_IDF_ESPTOOL
     ensure_firmware_dir()
     while True:
         print("\n" + "=" * 65)
         print("        WiMotion 2.0 — ESP32 Automated Firmware Tool")
         print("=" * 65)
+        active_tool = "Native ESP-IDF v4.3.4 (esptool v3.3)" if USE_IDF_ESPTOOL else "Python 3.10 (esptool v5.5)"
+        print(f"  Active Toolchain: {active_tool}")
+        if HAS_IDF_ENV:
+            print(f"  Detected IDF Path: E:\\Espressif\\frameworks\\esp-idf-v4.3.4")
         tx_status = "READY" if TX_IMAGE.exists() else "MISSING (Needs dump)"
         rx_status = "READY" if RX_IMAGE.exists() else "MISSING (Needs dump)"
         print(f"  Golden TX Image: {tx_status} ({TX_IMAGE.name})")
@@ -206,10 +232,15 @@ def interactive_menu() -> None:
         print("  [4] Flash BLANK board as Receiver (RX)")
         print("  [5] Identify connected ESP32 (Read MAC & Chip Info)")
         print("  [6] Scan active COM ports")
-        print("  [7] Exit")
+        if HAS_IDF_ENV:
+            toggle_label = "Switch to Python 3.10 esptool" if USE_IDF_ESPTOOL else "Switch to Native IDF v4.3 esptool"
+            print(f"  [7] {toggle_label}")
+            print("  [8] Exit")
+        else:
+            print("  [7] Exit")
         print("=" * 65)
         
-        choice = input("Select an option [1-7]: ").strip()
+        choice = input("Select an option: ").strip()
         if choice == "1":
             port = select_com_port("Select COM port of WORKING TX board")
             if port:
@@ -236,7 +267,10 @@ def interactive_menu() -> None:
         elif choice == "6":
             ports = list_com_ports()
             print(f"\n[*] Active COM ports: {ports if ports else 'None detected'}")
-        elif choice == "7":
+        elif choice == "7" and HAS_IDF_ENV:
+            USE_IDF_ESPTOOL = not USE_IDF_ESPTOOL
+            print(f"[*] Toolchain toggled to: {'IDF v4.3.4' if USE_IDF_ESPTOOL else 'Python 3.10'}")
+        elif (choice == "7" and not HAS_IDF_ENV) or (choice == "8" and HAS_IDF_ENV):
             break
         else:
             print("[!] Invalid option.")
@@ -249,7 +283,12 @@ def main() -> None:
     parser.add_argument("--flash-tx", help="COM port to flash blank board as TX")
     parser.add_argument("--flash-rx", help="COM port to flash blank board as RX")
     parser.add_argument("--info", help="COM port to read MAC and chip info from")
+    parser.add_argument("--use-idf", action="store_true", help="Force using native ESP-IDF v4.3 esptool")
     args = parser.parse_args()
+
+    global USE_IDF_ESPTOOL
+    if args.use_idf and HAS_IDF_ENV:
+        USE_IDF_ESPTOOL = True
 
     ensure_firmware_dir()
 
