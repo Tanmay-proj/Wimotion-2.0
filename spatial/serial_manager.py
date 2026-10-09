@@ -49,6 +49,11 @@ class SerialReceiverWorker(threading.Thread):
             print(f"[!] PySerial not available. Cannot start {self.receiver_id} on {self.port}")
             return
 
+        if not self.port or self.port.upper().startswith("COM_OFFLINE") or self.port.upper() == "OFFLINE":
+            print(f"[*] {self.receiver_id}: Configured as offline standby ({self.port}).")
+            self.running = False
+            return
+
         while self.running:
             try:
                 print(f"[*] {self.receiver_id}: Connecting to {self.port} @ {self.baud} baud...")
@@ -100,16 +105,28 @@ class SerialReceiverWorker(threading.Thread):
                         self.callback(record)
 
             except Exception as e:
+                if not self.running:
+                    break
                 print(f"[!] {self.receiver_id} ({self.port}) connection error: {e}. Retrying in 2s...")
                 time.sleep(2.0)
             finally:
                 if self.serial_conn and self.serial_conn.is_open:
-                    self.serial_conn.close()
+                    try:
+                        self.serial_conn.close()
+                    except Exception:
+                        pass
 
     def stop(self):
         self.running = False
         if self.serial_conn and self.serial_conn.is_open:
-            self.serial_conn.close()
+            try:
+                self.serial_conn.cancel_read()
+            except Exception:
+                pass
+            try:
+                self.serial_conn.close()
+            except Exception:
+                pass
 
 
 class MultiSerialManager:
@@ -147,7 +164,9 @@ class MultiSerialManager:
             # Evaluate if all configured transmitters are transmitting above 1.0 Hz
             active_links_count = sum(1 for r in per_rates.values() if r >= 1.0)
             
-            if w.current_rate_hz >= self.config.sampling.minimum_hz:
+            if not w.running:
+                status = "OFFLINE"
+            elif w.current_rate_hz >= self.config.sampling.minimum_hz:
                 if active_links_count >= len(self.config.transmitters):
                     status = "HEALTHY"
                 elif active_links_count > 0:
