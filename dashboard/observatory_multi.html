@@ -215,10 +215,20 @@
       z-index: 10;
       box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
     }
-    .node-tx1 { top: 4px; left: 45%; }
-    .node-tx2 { left: 4px; top: 45%; }
-    .node-tx3 { right: 4px; top: 45%; }
-    .node-tx4 { bottom: 4px; left: 45%; }
+    .node-tx1 { top: 8px; left: 8px; }
+    .node-tx2 { top: 8px; right: 8px; }
+    .node-tx3 { bottom: 8px; left: 8px; }
+    .node-tx4 { bottom: 8px; right: 8px; }
+    .node-rx1 {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #091a1a;
+      border: 1.5px solid var(--accent-neon-green);
+      color: var(--accent-neon-green);
+      box-shadow: 0 0 18px rgba(0, 255, 136, 0.5);
+      z-index: 20;
+    }
 
     /* Avatars Container inside Zones */
     .avatar-tray {
@@ -370,16 +380,17 @@
 
       <!-- 2D Room Floorplan with 4 Quadrants -->
       <div class="room-grid-canvas">
-        <div class="rf-node-marker node-tx1">TX1 (NORTH)</div>
-        <div class="rf-node-marker node-tx2">TX2 (WEST)</div>
-        <div class="rf-node-marker node-tx3">TX3 (EAST)</div>
-        <div class="rf-node-marker node-tx4">TX4 (SOUTH)</div>
+        <div class="rf-node-marker node-tx1">TX1 (CORNER 1)</div>
+        <div class="rf-node-marker node-tx2">TX2 (CORNER 2)</div>
+        <div class="rf-node-marker node-tx3">TX3 (CORNER 3)</div>
+        <div class="rf-node-marker node-tx4">TX4 (CORNER 4)</div>
+        <div class="rf-node-marker node-rx1">💻 RX1 (LAPTOP CENTER)</div>
 
         <!-- Zone 1 -->
         <div class="zone-cell" id="zone-Z1">
           <div>
             <div class="zone-tag">SECTOR Z1</div>
-            <div class="zone-name">BREACH / DOORWAY</div>
+            <div class="zone-name">TX1 FLANK / CORNER 1</div>
           </div>
           <div class="avatar-tray" id="avatars-Z1"></div>
         </div>
@@ -388,7 +399,7 @@
         <div class="zone-cell" id="zone-Z2">
           <div>
             <div class="zone-tag">SECTOR Z2</div>
-            <div class="zone-name">ROOM CORE / CENTER</div>
+            <div class="zone-name">TX2 FLANK / CORNER 2</div>
           </div>
           <div class="avatar-tray" id="avatars-Z2"></div>
         </div>
@@ -397,7 +408,7 @@
         <div class="zone-cell" id="zone-Z3">
           <div>
             <div class="zone-tag">SECTOR Z3</div>
-            <div class="zone-name">FLANK / WINDOW</div>
+            <div class="zone-name">TX3 FLANK / CORNER 3</div>
           </div>
           <div class="avatar-tray" id="avatars-Z3"></div>
         </div>
@@ -406,7 +417,7 @@
         <div class="zone-cell" id="zone-Z4">
           <div>
             <div class="zone-tag">SECTOR Z4</div>
-            <div class="zone-name">DEEP SECTOR / CORNER</div>
+            <div class="zone-name">TX4 FLANK / CORNER 4</div>
           </div>
           <div class="avatar-tray" id="avatars-Z4"></div>
         </div>
@@ -419,14 +430,14 @@
       <div class="panel-card">
         <h3>8-LINK RF MESH <span style="font-size:11px; color:var(--accent-neon-green)">NOMINAL</span></h3>
         <div class="link-list">
-          <div class="link-item"><span>RX1-TX1</span><div class="link-status-dot"></div></div>
-          <div class="link-item"><span>RX1-TX2</span><div class="link-status-dot"></div></div>
-          <div class="link-item"><span>RX1-TX3</span><div class="link-status-dot"></div></div>
-          <div class="link-item"><span>RX1-TX4</span><div class="link-status-dot"></div></div>
-          <div class="link-item"><span>RX2-TX1</span><div class="link-status-dot"></div></div>
-          <div class="link-item"><span>RX2-TX2</span><div class="link-status-dot"></div></div>
-          <div class="link-item"><span>RX2-TX3</span><div class="link-status-dot"></div></div>
-          <div class="link-item"><span>RX2-TX4</span><div class="link-status-dot"></div></div>
+          <div class="link-item" id="lnk-RX1-TX1"><span>RX1-TX1</span><div class="link-status-dot" id="dot-RX1-TX1"></div></div>
+          <div class="link-item" id="lnk-RX1-TX2"><span>RX1-TX2</span><div class="link-status-dot" id="dot-RX1-TX2"></div></div>
+          <div class="link-item" id="lnk-RX1-TX3"><span>RX1-TX3</span><div class="link-status-dot" id="dot-RX1-TX3"></div></div>
+          <div class="link-item" id="lnk-RX1-TX4"><span>RX1-TX4</span><div class="link-status-dot" id="dot-RX1-TX4"></div></div>
+          <div class="link-item" style="opacity:0.55" title="RX2 Offline (Cable replacement pending)"><span>RX2-TX1</span><div class="link-status-dot" style="background:#555; box-shadow:none;"></div></div>
+          <div class="link-item" style="opacity:0.55" title="RX2 Offline (Cable replacement pending)"><span>RX2-TX2</span><div class="link-status-dot" style="background:#555; box-shadow:none;"></div></div>
+          <div class="link-item" style="opacity:0.55" title="RX2 Offline (Cable replacement pending)"><span>RX2-TX3</span><div class="link-status-dot" style="background:#555; box-shadow:none;"></div></div>
+          <div class="link-item" style="opacity:0.55" title="RX2 Offline (Cable replacement pending)"><span>RX2-TX4</span><div class="link-status-dot" style="background:#555; box-shadow:none;"></div></div>
         </div>
       </div>
 
@@ -491,12 +502,44 @@
         document.getElementById('hero-count').textContent = data.count || 0;
         document.getElementById('val-zone').textContent = data.zone || 'CLEAR';
         document.getElementById('hdr-links').textContent = `${data.active_links || 0} / ${data.link_count || 8} ACTIVE`;
-        document.getElementById('val-conf').textContent = `${((data.confidence || 0.0) * 100).toFixed(1)}%`;
+        
+        const confStr = data.confidence !== null && data.confidence !== undefined 
+          ? `${(data.confidence * 100).toFixed(1)}%` 
+          : 'HEURISTIC (UNCALIBRATED)';
+        document.getElementById('val-conf').textContent = confStr;
         document.getElementById('val-status').textContent = data.signal_ok ? 'ACTIVE' : (data.active_links > 0 ? 'PARTIAL' : 'STANDBY');
         
-        const rateVal = data.rate_hz || (data.mode && data.mode.includes('LIVE') ? 20.0 : null);
+        let totalRate = 0.0;
+        if (data.receiver_health) {
+          Object.values(data.receiver_health).forEach(h => {
+            if (h.running && (h.aggregate_rate_hz || h.rate_hz)) {
+              totalRate += (h.aggregate_rate_hz || h.rate_hz);
+            }
+          });
+        }
+        const rateVal = totalRate > 0 ? totalRate : (data.rate_hz || null);
         document.getElementById('hdr-rate').textContent = rateVal ? `${rateVal.toFixed(1)} Hz` : '-- Hz';
         document.getElementById('hdr-rate').style.color = rateVal ? 'var(--accent-neon-green)' : 'var(--text-muted)';
+
+        // Update active status for RX1 links
+        if (data.receiver_health && data.receiver_health.RX1 && data.receiver_health.RX1.per_link_rates) {
+          const rates = data.receiver_health.RX1.per_link_rates;
+          ['TX1', 'TX2', 'TX3', 'TX4'].forEach(tx => {
+            const dot = document.getElementById(`dot-RX1-${tx}`);
+            const lnk = document.getElementById(`lnk-RX1-${tx}`);
+            if (dot && lnk) {
+              const r = rates[tx] || 0.0;
+              if (r > 0) {
+                dot.style.background = 'var(--accent-neon-green)';
+                dot.style.boxShadow = '0 0 8px var(--accent-neon-green)';
+                lnk.title = `${tx}: ${r.toFixed(1)} Hz`;
+              } else {
+                dot.style.background = 'var(--accent-amber)';
+                dot.style.boxShadow = 'none';
+              }
+            }
+          });
+        }
 
         // Clear all zone active states and trays
         ['Z1', 'Z2', 'Z3', 'Z4'].forEach(z => {
