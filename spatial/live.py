@@ -44,9 +44,13 @@ class LiveSpatialEngine:
 
     def _process_window(self, records: List[CSIRecord]):
         health = self.serial_manager.get_health()
-        # Signal Quality Gate across receivers
-        all_rates = [h["rate_hz"] for h in health.values()]
-        signal_ok = len(all_rates) > 0 and all(r >= self.config.sampling.minimum_hz for r in all_rates)
+        # Signal Quality Gate across active receivers (supports degraded single-receiver mode)
+        all_rates = [
+            h.get("aggregate_rate_hz", h.get("rate_hz", 0.0))
+            for h in health.values()
+            if h.get("running", False)
+        ]
+        signal_ok = len(all_rates) > 0 and any(r >= self.config.sampling.minimum_hz for r in all_rates)
 
         features = extract_link_features(records)
         vector, active = fuse_features(features)
@@ -63,7 +67,7 @@ class LiveSpatialEngine:
                 "zone": pred["zone"],
                 "active_links": active,
                 "link_count": 8,
-                "confidence": 0.85 if pred["signal_ok"] and active > 0 else 0.0,
+                "confidence": None,  # Non-probabilistic; uncalibrated heuristic
                 "reason": pred.get("reason", "OK"),
                 "receiver_health": health
             }

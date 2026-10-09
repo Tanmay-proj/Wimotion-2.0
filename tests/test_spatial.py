@@ -88,6 +88,32 @@ class TestSpatial(unittest.TestCase):
         self.assertIsNotNone(w3)
         self.assertEqual(len(w3), 3)
 
+    def test_live_engine_health_schema(self):
+        from spatial.live import LiveSpatialEngine
+        engine = LiveSpatialEngine("config/nodes.json")
+        # Mock serial manager health dictionary output
+        engine.serial_manager.get_health = lambda: {
+            "RX1": {
+                "port": "COM8",
+                "running": True,
+                "aggregate_rate_hz": 40.0,
+                "rate_hz": 40.0,
+                "status": "HEALTHY",
+                "healthy": True
+            }
+        }
+        # Verify _process_window doesn't crash with KeyError
+        records = [
+            CSIRecord(1.0, "RX1", "MAC1", -60, [10]*64, 20, "TX1"),
+            CSIRecord(1.1, "RX1", "MAC1", -60, [10]*64, 20, "TX1"),
+            CSIRecord(1.2, "RX1", "MAC1", -60, [12]*64, 20, "TX1"),
+        ]
+        engine._process_window(records)
+        state = engine.get_state()
+        self.assertTrue(state["signal_ok"])
+        self.assertIsNone(state["confidence"])
+
 
 if __name__ == "__main__":
     unittest.main()
+

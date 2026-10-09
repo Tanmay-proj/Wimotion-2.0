@@ -161,6 +161,7 @@ class MultiSerialManager:
                 "port": w.port,
                 "running": w.running,
                 "aggregate_rate_hz": round(w.current_rate_hz, 2),
+                "rate_hz": round(w.current_rate_hz, 2),
                 "per_link_rates": per_rates,
                 "active_tx_count": active_links_count,
                 "status": status,
