@@ -63,11 +63,9 @@ def parse_line(line: str, receiver_id: str) -> Optional[CSIRecord]:
         except ValueError:
             rssi_val = None
 
-        # Field 23: Timestamp (or fallback to host clock)
-        try:
-            ts = float(meta_fields[23]) / 1000000.0 if len(meta_fields) > 23 and meta_fields[23] != "0" else time.time()
-        except ValueError:
-            ts = time.time()
+        # Unified host arrival timestamp ensures cross-receiver clock synchronization
+        # (Firmware timestamp is at meta_fields[18], but independent ESP32 boot clocks are unaligned)
+        ts = time.time()
 
         try:
             csi_raw = [int(x) for x in csi_part.split() if x.strip()]

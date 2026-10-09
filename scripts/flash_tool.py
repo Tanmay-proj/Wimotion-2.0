@@ -1,28 +1,17 @@
-"""WiMotion 2.0 ESP32 Firmware Management & Flashing Utility.
-
-Enables cloning and flashing of ESP32-WROOM-32 boards without needing
-manual compilation or complex IDF configuration.
-
-Features:
-1. Dual Toolchain Detection:
-   - Native ESP-IDF v4.3.4 (at E:\\Espressif with esptool v3.3.2-dev)
-   - Python 3.10 esptool (v5.5.0)
-2. Dump Golden Images: Reads full 4MB flash from pre-flashed working boards
-   (TX / active_sta, RX / active_ap) preserving exact ESP-IDF v4.3.4 compilation bit-for-bit.
-3. Clone & Flash: Flashes blank boards with verified golden images in ~15 seconds.
-4. Hardware MAC Identification: Automatically queries and registers the unique
-   factory eFuse MAC address of every connected board.
-5. Auto-update nodes.json: Registers discovered TX MACs into WiMotion 2.0 config.
+#!/usr/bin/env python3
+"""
+WiMotion 2.0 — Automated ESP32 Firmware Management & Flashing Utility
+======================================================================
+Provides interactive flashing and backups for:
+  - Transmitter (STA mode)          -> firmware/tx/active_sta.bin
+  - Master Receiver (AP mode)       -> firmware/rx/active_ap.bin
+  - Passive Sniffer (Promiscuous)   -> firmware/rx_sniffer/passive.bin
+  - Golden WiMotion v1 Backups      -> firmware/golden_*.bin
 """
 
-from __future__ import annotations
-
-import argparse
-import json
-import os
-import subprocess
 import sys
-import time
+import json
+import subprocess
 from pathlib import Path
 from typing import List, Optional
 
@@ -34,10 +23,15 @@ except ImportError:
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 FIRMWARE_DIR = WORKSPACE_ROOT / "firmware"
 CONFIG_FILE = WORKSPACE_ROOT / "config" / "nodes.json"
-TX_IMAGE = FIRMWARE_DIR / "golden_tx_sta.bin"
-RX_IMAGE = FIRMWARE_DIR / "golden_rx_ap.bin"
+
+TX_IMAGE = FIRMWARE_DIR / "tx" / "active_sta.bin"
+RX_AP_IMAGE = FIRMWARE_DIR / "rx" / "active_ap.bin"
+RX_SNIFFER_IMAGE = FIRMWARE_DIR / "rx_sniffer" / "passive.bin"
+GOLDEN_TX_IMAGE = FIRMWARE_DIR / "golden_tx_sta.bin"
+GOLDEN_RX_IMAGE = FIRMWARE_DIR / "golden_rx_ap.bin"
+
 DEFAULT_BAUD = "460800"
-FLASH_SIZE = "0x6A000"  # Exact factory firmware footprint (Bootloader + Partitions + App = 424 KB)
+FLASH_SIZE = "0x6A000"
 
 # Check for native ESP-IDF v4.3 installation
 IDF_DIR = Path(r"E:\Espressif")
@@ -45,10 +39,7 @@ IDF_PYTHON = IDF_DIR / "python_env" / "idf4.3_py3.8_env" / "Scripts" / "python.e
 IDF_ESPTOOL_SCRIPT = IDF_DIR / "frameworks" / "esp-idf-v4.3.4" / "components" / "esptool_py" / "esptool" / "esptool.py"
 
 USE_IDF_ESPTOOL = False
-if IDF_PYTHON.exists() and IDF_ESPTOOL_SCRIPT.exists():
-    HAS_IDF_ENV = True
-else:
-    HAS_IDF_ENV = False
+HAS_IDF_ENV = IDF_PYTHON.exists() and IDF_ESPTOOL_SCRIPT.exists()
 
 
 def ensure_firmware_dir() -> None:
@@ -86,16 +77,12 @@ def select_com_port(prompt_msg: str = "Select COM Port") -> Optional[str]:
     return None
 
 
-def get_esptool_base_cmd() -> List[str]:
-    global USE_IDF_ESPTOOL
-    if USE_IDF_ESPTOOL and HAS_IDF_ENV:
-        return [str(IDF_PYTHON), str(IDF_ESPTOOL_SCRIPT)]
-    return [sys.executable, "-m", "esptool"]
-
-
 def run_esptool_cmd(args: List[str]) -> tuple[int, str]:
-    base_cmd = get_esptool_base_cmd()
-    cmd = base_cmd + args
+    if USE_IDF_ESPTOOL and HAS_IDF_ENV:
+        cmd = [str(IDF_PYTHON), str(IDF_ESPTOOL_SCRIPT)] + args
+    else:
+        cmd = [sys.executable, "-m", "esptool"] + args
+        
     print(f"\n[*] Executing: {' '.join(cmd)}")
     try:
         proc = subprocess.run(
@@ -128,7 +115,7 @@ def read_mac_address(port: str) -> Optional[str]:
 def dump_firmware(port: str, target_file: Path, role_name: str) -> bool:
     ensure_firmware_dir()
     print(f"\n" + "=" * 60)
-    print(f"   DUMPING {role_name.upper()} GOLDEN FIRMWARE (4MB Flash)")
+    print(f"   DUMPING {role_name.upper()} FIRMWARE")
     print(f"   Port: {port} | Target: {target_file}")
     print("=" * 60)
     
@@ -143,50 +130,65 @@ def dump_firmware(port: str, target_file: Path, role_name: str) -> bool:
     ])
     
     if ret == 0 and target_file.exists():
-        size_mb = target_file.stat().st_size / (1024 * 1024)
-        print(f"\n[SUCCESS] Successfully dumped {role_name} firmware: {size_mb:.2f} MB")
+        size_kb = target_file.stat().st_size / 1024
+        print(f"\n[SUCCESS] Successfully dumped {role_name} firmware: {size_kb:.1f} KB")
         return True
     else:
-        print(f"\n[FAILED] Dump failed for port {port}. Please check connection or BOOT button.")
+        print(f"\n[FAILED] Dump failed for port {port}.")
         return False
 
 
-def flash_firmware(port: str, source_file: Path, role_name: str) -> bool:
+def flash_firmware(port: str, source_file: Path, role_name: str, offset: str = "0x10000") -> bool:
     if not source_file.exists():
         print(f"[!] Source image not found: {source_file}")
-        print(f"    Please dump or provide the {role_name} golden image first.")
         return False
 
     print(f"\n" + "=" * 60)
-    print(f"   FLASHING BLANK ESP32 AS {role_name.upper()}")
+    print(f"   FLASHING ESP32 AS {role_name.upper()}")
     print(f"   Port: {port} | Image: {source_file}")
     print("=" * 60)
 
-    # 1. Read MAC before flashing
     mac = read_mac_address(port)
     if mac:
         print(f"[*] Target Board Silicon MAC: {mac}")
 
-    # 2. Flash image
-    ret, _ = run_esptool_cmd([
-        "--port", port,
-        "--baud", DEFAULT_BAUD,
-        "write_flash",
-        "--flash_mode", "dio",
-        "--flash_freq", "40m",
-        "--flash_size", "detect",
-        "0x0", str(source_file)
-    ])
+    # Determine bootloader and partition table if flashing sub-component
+    sub_dir = source_file.parent
+    bl = sub_dir / "bootloader.bin"
+    pt = sub_dir / "partition-table.bin"
+    
+    if bl.exists() and pt.exists():
+        flash_args = [
+            "--port", port,
+            "--baud", DEFAULT_BAUD,
+            "write_flash",
+            "--flash_mode", "dio",
+            "--flash_freq", "40m",
+            "--flash_size", "detect",
+            "0x1000", str(bl),
+            "0x8000", str(pt),
+            "0x10000", str(source_file)
+        ]
+    else:
+        flash_args = [
+            "--port", port,
+            "--baud", DEFAULT_BAUD,
+            "write_flash",
+            "--flash_mode", "dio",
+            "--flash_freq", "40m",
+            "--flash_size", "detect",
+            offset, str(source_file)
+        ]
+
+    ret, _ = run_esptool_cmd(flash_args)
 
     if ret == 0:
         print(f"\n[SUCCESS] Successfully flashed ESP32 as {role_name}!")
-        if mac and role_name.lower() == "tx":
-            print(f"[*] Node Silicon MAC is: {mac}")
+        if mac and "tx" in role_name.lower():
             update_nodes_config(mac)
         return True
     else:
         print(f"\n[FAILED] Flashing failed on port {port}.")
-        print("    Tip: If connection fails, press and hold the 'BOOT' button on ESP32 while connecting.")
         return False
 
 
@@ -196,15 +198,15 @@ def update_nodes_config(new_mac: str) -> None:
     try:
         with open(CONFIG_FILE, "r", encoding="utf-8") as f:
             cfg = json.load(f)
-        tx_nodes = cfg.get("tx_nodes", [])
-        known_macs = [node.get("mac") for node in tx_nodes]
+        transmitters = cfg.get("transmitters", {})
+        known_macs = [t.get("mac") for t in transmitters.values()]
         if new_mac not in known_macs:
-            for node in tx_nodes:
-                if node.get("mac") == "PENDING_DISCOVERY":
-                    node["mac"] = new_mac
+            for tx_id, t_info in transmitters.items():
+                if t_info.get("mac") in ["PENDING_DISCOVERY", ""]:
+                    t_info["mac"] = new_mac
                     with open(CONFIG_FILE, "w", encoding="utf-8") as f:
                         json.dump(cfg, f, indent=2)
-                    print(f"[*] Registered new MAC {new_mac} to node {node.get('id')} in config/nodes.json")
+                    print(f"[*] Registered new MAC {new_mac} to {tx_id} in config/nodes.json")
                     break
     except Exception as exc:
         print(f"[!] Could not update config/nodes.json: {exc}")
@@ -219,95 +221,47 @@ def interactive_menu() -> None:
         print("=" * 65)
         active_tool = "Native ESP-IDF v4.3.4 (esptool v3.3)" if USE_IDF_ESPTOOL else "Python 3.10 (esptool v5.5)"
         print(f"  Active Toolchain: {active_tool}")
-        if HAS_IDF_ENV:
-            print(f"  Detected IDF Path: E:\\Espressif\\frameworks\\esp-idf-v4.3.4")
-        tx_status = "READY" if TX_IMAGE.exists() else "MISSING (Needs dump)"
-        rx_status = "READY" if RX_IMAGE.exists() else "MISSING (Needs dump)"
-        print(f"  Golden TX Image: {tx_status} ({TX_IMAGE.name})")
-        print(f"  Golden RX Image: {rx_status} ({RX_IMAGE.name})")
         print("-" * 65)
-        print("  [1] Dump/Backup WORKING Transmitter board (AP/STA golden image)")
-        print("  [2] Dump/Backup WORKING Receiver board (CSI-RX golden image)")
-        print("  [3] Flash BLANK board as Transmitter (TX)")
-        print("  [4] Flash BLANK board as Receiver (RX)")
-        print("  [5] Identify connected ESP32 (Read MAC & Chip Info)")
-        print("  [6] Scan active COM ports")
-        if HAS_IDF_ENV:
-            toggle_label = "Switch to Python 3.10 esptool" if USE_IDF_ESPTOOL else "Switch to Native IDF v4.3 esptool"
-            print(f"  [7] {toggle_label}")
-            print("  [8] Exit")
-        else:
-            print("  [7] Exit")
+        print("  --- WiMotion 2.0 Fleet Flashing ---")
+        print(f"  [1] Flash Transmitter STA           ({TX_IMAGE.name})")
+        print(f"  [2] Flash Master AP Receiver (RX1)  ({RX_AP_IMAGE.name})")
+        print(f"  [3] Flash Passive Sniffer (RX2)     ({RX_SNIFFER_IMAGE.name})")
+        print("  --- Hardware Diagnostics & Tools ---")
+        print("  [4] Identify connected ESP32 (Read MAC & Chip Info)")
+        print("  [5] Scan active COM ports")
+        print("  --- WiMotion v1 Golden Restores ---")
+        print(f"  [6] Flash Golden v1 Transmitter     ({GOLDEN_TX_IMAGE.name})")
+        print(f"  [7] Flash Golden v1 Receiver        ({GOLDEN_RX_IMAGE.name})")
+        print("  [8] Exit")
         print("=" * 65)
         
-        choice = input("Select an option: ").strip()
+        choice = input("Select an option [1-8]: ").strip()
         if choice == "1":
-            port = select_com_port("Select COM port of WORKING TX board")
-            if port:
-                dump_firmware(port, TX_IMAGE, "TX")
+            port = select_com_port("Select COM port for Transmitter")
+            if port: flash_firmware(port, TX_IMAGE, "TX (STA)")
         elif choice == "2":
-            port = select_com_port("Select COM port of WORKING RX board")
-            if port:
-                dump_firmware(port, RX_IMAGE, "RX")
+            port = select_com_port("Select COM port for Master AP (RX1)")
+            if port: flash_firmware(port, RX_AP_IMAGE, "RX1 (Master AP)")
         elif choice == "3":
-            port = select_com_port("Select COM port of BLANK board to flash as TX")
-            if port:
-                flash_firmware(port, TX_IMAGE, "TX")
+            port = select_com_port("Select COM port for Passive Sniffer (RX2)")
+            if port: flash_firmware(port, RX_SNIFFER_IMAGE, "RX2 (Passive Sniffer)")
         elif choice == "4":
-            port = select_com_port("Select COM port of BLANK board to flash as RX")
+            port = select_com_port("Select COM port to read")
             if port:
-                flash_firmware(port, RX_IMAGE, "RX")
-        elif choice == "5":
-            port = select_com_port("Select COM port of ESP32 board to inspect")
-            if port:
-                run_esptool_cmd(["--port", port, "chip_id"])
                 mac = read_mac_address(port)
-                if mac:
-                    print(f"\n[+] Chip MAC Address: {mac}")
-        elif choice == "6":
+                if mac: print(f"\n[+] Silicon MAC: {mac}")
+        elif choice == "5":
             ports = list_com_ports()
-            print(f"\n[*] Active COM ports: {ports if ports else 'None detected'}")
-        elif choice == "7" and HAS_IDF_ENV:
-            USE_IDF_ESPTOOL = not USE_IDF_ESPTOOL
-            print(f"[*] Toolchain toggled to: {'IDF v4.3.4' if USE_IDF_ESPTOOL else 'Python 3.10'}")
-        elif (choice == "7" and not HAS_IDF_ENV) or (choice == "8" and HAS_IDF_ENV):
+            print(f"\n[*] Active Ports: {ports if ports else 'None'}")
+        elif choice == "6":
+            port = select_com_port("Select COM port for Golden TX")
+            if port: flash_firmware(port, GOLDEN_TX_IMAGE, "Golden TX", offset="0x0")
+        elif choice == "7":
+            port = select_com_port("Select COM port for Golden RX")
+            if port: flash_firmware(port, GOLDEN_RX_IMAGE, "Golden RX", offset="0x0")
+        elif choice == "8":
             break
-        else:
-            print("[!] Invalid option.")
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description="WiMotion 2.0 ESP32 Firmware Utility")
-    parser.add_argument("--dump-tx", help="COM port to dump working TX board from")
-    parser.add_argument("--dump-rx", help="COM port to dump working RX board from")
-    parser.add_argument("--flash-tx", help="COM port to flash blank board as TX")
-    parser.add_argument("--flash-rx", help="COM port to flash blank board as RX")
-    parser.add_argument("--info", help="COM port to read MAC and chip info from")
-    parser.add_argument("--use-idf", action="store_true", help="Force using native ESP-IDF v4.3 esptool")
-    args = parser.parse_args()
-
-    global USE_IDF_ESPTOOL
-    if args.use_idf and HAS_IDF_ENV:
-        USE_IDF_ESPTOOL = True
-
-    ensure_firmware_dir()
-
-    if args.dump_tx:
-        dump_firmware(args.dump_tx, TX_IMAGE, "TX")
-    elif args.dump_rx:
-        dump_firmware(args.dump_rx, RX_IMAGE, "RX")
-    elif args.flash_tx:
-        flash_firmware(args.flash_tx, TX_IMAGE, "TX")
-    elif args.flash_rx:
-        flash_firmware(args.flash_rx, RX_IMAGE, "RX")
-    elif args.info:
-        run_esptool_cmd(["--port", args.info, "chip_id"])
-        mac = read_mac_address(args.info)
-        if mac:
-            print(f"[+] Chip MAC Address: {mac}")
-    else:
-        interactive_menu()
 
 
 if __name__ == "__main__":
-    main()
+    interactive_menu()

@@ -180,14 +180,11 @@ def main():
                         cfg["transmitters"][tx_key]["mac"] = mac
                         print(f"  [+] Assigned {mac} -> {tx_key}")
             else:
-                # Save non-interactive mapping clearly labeled
-                macs_sorted = sorted(list(all_discovered_macs))
-                for idx, tx_key in enumerate(["TX1", "TX2", "TX3", "TX4"]):
-                    if idx < len(macs_sorted):
-                        cfg["transmitters"][tx_key]["mac"] = macs_sorted[idx]
+                # Do not destructively overwrite registered transmitters in non-interactive audits
+                pass
 
             cfg_file.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
-            print(f"\n[+] Saved configuration to {cfg_file.name}")
+            print(f"\n[+] Synchronized receiver ports to {cfg_file.name}")
         except Exception as e:
             print(f"[!] Warning updating config: {e}")
 

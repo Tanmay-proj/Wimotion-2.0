@@ -43,8 +43,8 @@ engine_instance = None
 def startup_event():
     global engine_instance
     try:
-        # Check if hardware serial is explicitly requested or run in mock/standby mode
-        if os.environ.get("WIMOTION_ENABLE_SERIAL", "0") == "1":
+        # Check if hardware serial is enabled (default enabled, gracefully falls back if unattached)
+        if os.environ.get("WIMOTION_ENABLE_SERIAL", "1") == "1":
             engine_instance = LiveSpatialEngine()
             engine_instance.start()
             print("[*] Started hardware serial engine in background.")

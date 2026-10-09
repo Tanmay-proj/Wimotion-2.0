@@ -31,7 +31,7 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 ```
 
 - **4 Transmitters (TX1–TX4):** Standalone ESP32 nodes powered by standard 5V wall chargers/powerbanks placed in room sectors.
-- **2 Receivers (RX1, RX2):** ESP32 nodes connected directly to host PC via USB (`COM8`, `COM9` @ 921,600 baud).
+- **2 Receivers (RX1, RX2):** ESP32 nodes connected directly to host PC via USB (`COM3` Master AP, `COM8` Passive Sniffer @ 921,600 baud).
 - **8 Candidate Links:** $4 \times 2 = 8$ spatial CSI channels ($RX_1 \to TX_k$ and $RX_2 \to TX_k$ for $k \in \{1,2,3,4\}$).
 
 ---
@@ -49,8 +49,8 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Person Tracker Engine** | ✅ **Implemented** | Persistent ID assignment (`P1`, `P2`, `P3`) |
 | **FastAPI Backend & API** | ✅ **Implemented** | Non-blocking HTTP endpoints (`GET /api/spatial`, `GET /health`) |
 | **Tactical Multi-Person HUD** | ✅ **Implemented** | 4-sector glassmorphism HUD with dynamic avatars (`dashboard/`) |
-| **Automated Unit Tests** | ✅ **Passing (4/4)** | Verified tensor shapes, gates, and tracking (`tests/test_spatial.py`) |
-| **Real 8-Link Hardware Verification** | ⏳ **Pending Plug-In** | Awaiting physical ESP32 boards on `COM8`/`COM9` |
+| **Automated Unit Tests** | ✅ **Passing (6/6)** | Verified tensor shapes, gates, raw CSI parsing, and tracking (`tests/test_spatial.py`) |
+| **Dual-RX Flashed & Listening** | ✅ **Verified** | Master AP (`COM3`) & Passive Sniffer (`COM8`) active @ 921,600 baud |
 | **Labelled Multi-Person Dataset** | ⏳ **Pending Collection** | Capture script ready (`scripts/record_multilink_dataset.py`) |
 | **Trained Multi-Class ML Model** | ⏳ **Pending Dataset** | Scaffold baseline active; real ML model trained after data collection |
 

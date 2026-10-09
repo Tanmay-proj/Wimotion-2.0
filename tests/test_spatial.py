@@ -113,6 +113,20 @@ class TestSpatial(unittest.TestCase):
         self.assertTrue(state["signal_ok"])
         self.assertIsNone(state["confidence"])
 
+    def test_parse_raw_hardware_csi_line(self):
+        from spatial.parser import parse_line
+        raw_iq = " ".join(["10", "-5"] * 64)
+        sample_line = f"CSI_DATA,AP,BC:DD:C2:CC:49:F4,-55,11,0,0,0,0,0,0,0,0,0,-90,0,6,0,1234567,0,28,0,128,1,128,[{raw_iq}]"
+        
+        record = parse_line(sample_line, "RX1")
+        self.assertIsNotNone(record)
+        self.assertEqual(record.receiver_id, "RX1")
+        self.assertEqual(record.source_mac, "BC:DD:C2:CC:49:F4")
+        self.assertEqual(record.rssi, -55.0)
+        self.assertEqual(len(record.amplitudes), 64)
+        # Ensure timestamp is valid host epoch (> 1.7e9) and not corrupted by first_word_invalid
+        self.assertGreater(record.timestamp, 1700000000.0)
+
 
 if __name__ == "__main__":
     unittest.main()

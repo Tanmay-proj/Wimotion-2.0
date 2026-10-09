@@ -53,6 +53,8 @@ goto MENU
 
 :SERVER
 echo.
+echo [*] Enabling Live Hardware Serial Engine...
+set WIMOTION_ENABLE_SERIAL=1
 echo [*] Starting WiMotion 2.0 HUD Server...
 echo [*] Opening Dashboard in browser: http://127.0.0.1:8000
 start http://127.0.0.1:8000
