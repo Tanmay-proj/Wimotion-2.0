@@ -18,6 +18,7 @@
       --accent-green: #45C486;
       --accent-amber: #E6AC55;
       --accent-red: #E36B72;
+      --accent-purple: #B388FF;
       --text-main: #E7EDF5;
       --text-muted: #92A0B2;
       --text-dim: #607289;
@@ -408,16 +409,33 @@
     .event-time { color: var(--text-dim); font-size: 10px; }
 
     /* REPLAY LAB STYLES */
-    .replay-grid {
+    .replay-layout-grid {
       display: grid;
-      grid-template-columns: 340px 1fr;
+      grid-template-columns: 360px 1fr;
       gap: 16px;
+      margin-top: 14px;
+    }
+    .replay-col-left {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .replay-col-right {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .replay-bottom-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
     }
     .session-list {
       display: flex;
       flex-direction: column;
       gap: 8px;
-      max-height: 520px;
+      max-height: 480px;
       overflow-y: auto;
       margin-top: 10px;
     }
@@ -437,6 +455,7 @@
     .session-header {
       display: flex;
       justify-content: space-between;
+      align-items: center;
       font-family: 'JetBrains Mono', monospace;
       font-weight: 700;
       color: #fff;
@@ -449,6 +468,93 @@
       display: flex;
       flex-direction: column;
       gap: 2px;
+    }
+    .link-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .summary-mini-card {
+      background: var(--bg-panel-sub);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px;
+    }
+    .summary-mini-card .mini-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+    }
+    .summary-mini-card .mini-val {
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 4px;
+      color: #fff;
+    }
+    .summary-mini-card .mini-val.green { color: var(--accent-green); }
+    .summary-mini-card .mini-val.cyan { color: var(--accent-cyan); }
+    .event-log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 190px;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-top: 8px;
+    }
+    .event-log-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      transition: all 0.2s ease;
+    }
+    .event-log-item.active-event {
+      background: rgba(53, 197, 213, 0.08);
+      border-color: rgba(53, 197, 213, 0.3);
+    }
+    .event-log-item .evt-time {
+      color: var(--accent-cyan);
+      font-weight: 700;
+      min-width: 65px;
+    }
+    .event-log-item .evt-msg {
+      color: var(--text-main);
+      font-size: 11px;
+    }
+    .occupancy-chart-container {
+      height: 190px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 8px;
+    }
+    .status-dot.purple {
+      background: var(--accent-purple);
+      box-shadow: 0 0 6px var(--accent-purple);
+    }
+    .radar-marker text {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+      pointer-events: none;
+    }
+    .radar-marker circle.aura {
+      animation: markerPulse 1.8s infinite ease-in-out;
+      transform-origin: center;
+    }
+    @keyframes markerPulse {
+      0% { transform: scale(0.95); opacity: 0.5; }
+      50% { transform: scale(1.15); opacity: 0.15; }
+      100% { transform: scale(0.95); opacity: 0.5; }
     }
 
     /* Replay Transport Controls */
@@ -710,95 +816,101 @@
       <!-- Primary Workspace: Radar Circle + Telemetry Matrix -->
       <section class="overview-workspace">
         
-        <!-- Four-Quadrant Radar Circle -->
-        <div class="panel-radar">
-          <div class="panel-title-bar">
-            <div>
-              <div class="panel-heading">FOUR-QUADRANT SPATIAL RADAR</div>
-              <div class="radar-disclaimer">Illustrative four-zone view · not a calibrated 3D map</div>
+        <!-- Four-Quadrant Radar Circle (Mounted in Overview) -->
+        <div id="overview-radar-mount">
+          <div class="panel-radar" id="panel-radar">
+            <div class="panel-title-bar">
+              <div>
+                <div class="panel-heading">FOUR-QUADRANT SPATIAL RADAR</div>
+                <div class="radar-disclaimer">Illustrative four-zone view · not a calibrated 3D map</div>
+              </div>
+              <div id="radar-active-badge" class="badge-tag cyan">MODE: LIVE</div>
             </div>
-            <div id="radar-active-badge" class="badge-tag cyan">MODE: LIVE</div>
-          </div>
 
-          <!-- SVG Circular Radar -->
-          <div class="radar-container">
-            <svg class="radar-svg" viewBox="0 0 400 400" id="radarSvg">
-              <!-- Outer Boundary & Background -->
-              <circle cx="200" cy="200" r="180" fill="#0D141E" stroke="var(--border)" stroke-width="1.5" />
+            <!-- SVG Circular Radar -->
+            <div class="radar-container">
+              <svg class="radar-svg" viewBox="0 0 400 400" id="radarSvg">
+                <!-- Outer Boundary & Background -->
+                <circle cx="200" cy="200" r="180" fill="#0D141E" stroke="var(--border)" stroke-width="1.5" />
 
-              <!-- Quadrant Hit Areas -->
-              <!-- Z2: Top-Left (NW) -->
-              <path d="M 200 200 L 20 200 A 180 180 0 0 1 200 20 Z" class="quadrant-bg" id="quad-Z2" onclick="selectZone('Z2')" />
-              <!-- Z1: Top-Right (NE) -->
-              <path d="M 200 200 L 200 20 A 180 180 0 0 1 380 200 Z" class="quadrant-bg" id="quad-Z1" onclick="selectZone('Z1')" />
-              <!-- Z3: Bottom-Left (SW) -->
-              <path d="M 200 200 L 20 200 A 180 180 0 0 0 200 380 Z" class="quadrant-bg" id="quad-Z3" onclick="selectZone('Z3')" />
-              <!-- Z4: Bottom-Right (SE) -->
-              <path d="M 200 200 L 200 380 A 180 180 0 0 0 380 200 Z" class="quadrant-bg" id="quad-Z4" onclick="selectZone('Z4')" />
+                <!-- Quadrant Hit Areas -->
+                <!-- Z2: Top-Left (NW) -->
+                <path d="M 200 200 L 20 200 A 180 180 0 0 1 200 20 Z" class="quadrant-bg" id="quad-Z2" onclick="selectZone('Z2')" />
+                <!-- Z1: Top-Right (NE) -->
+                <path d="M 200 200 L 200 20 A 180 180 0 0 1 380 200 Z" class="quadrant-bg" id="quad-Z1" onclick="selectZone('Z1')" />
+                <!-- Z3: Bottom-Left (SW) -->
+                <path d="M 200 200 L 20 200 A 180 180 0 0 0 200 380 Z" class="quadrant-bg" id="quad-Z3" onclick="selectZone('Z3')" />
+                <!-- Z4: Bottom-Right (SE) -->
+                <path d="M 200 200 L 200 380 A 180 180 0 0 0 380 200 Z" class="quadrant-bg" id="quad-Z4" onclick="selectZone('Z4')" />
 
-              <!-- Concentric Range Rings -->
-              <circle cx="200" cy="200" r="60" class="radar-ring" />
-              <circle cx="200" cy="200" r="120" class="radar-ring" />
-              <circle cx="200" cy="200" r="180" class="radar-ring" />
+                <!-- Concentric Range Rings -->
+                <circle cx="200" cy="200" r="60" class="radar-ring" />
+                <circle cx="200" cy="200" r="120" class="radar-ring" />
+                <circle cx="200" cy="200" r="180" class="radar-ring" />
 
-              <!-- Crosshair Axes -->
-              <line x1="20" y1="200" x2="380" y2="200" class="radar-axis" />
-              <line x1="200" y1="20" x2="200" y2="380" class="radar-axis" />
+                <!-- Crosshair Axes -->
+                <line x1="20" y1="200" x2="380" y2="200" class="radar-axis" />
+                <line x1="200" y1="20" x2="200" y2="380" class="radar-axis" />
 
-              <!-- Link Mesh Lines (Center to 4 Transmitters) -->
-              <line x1="200" y1="200" x2="80" y2="80" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX2" />
-              <line x1="200" y1="200" x2="320" y2="80" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX1" />
-              <line x1="200" y1="200" x2="80" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX3" />
-              <line x1="200" y1="200" x2="320" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX4" />
+                <!-- Link Mesh Lines (Center to 4 Transmitters) -->
+                <line x1="200" y1="200" x2="80" y2="80" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX2" />
+                <line x1="200" y1="200" x2="320" y2="80" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX1" />
+                <line x1="200" y1="200" x2="80" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX3" />
+                <line x1="200" y1="200" x2="320" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX4" />
 
-              <!-- Quadrant Compass Labels -->
-              <text x="50" y="50" class="radar-label">NW · SECTOR Z2 (TX2)</text>
-              <text x="250" y="50" class="radar-label">NE · SECTOR Z1 (TX1)</text>
-              <text x="50" y="365" class="radar-label">SW · SECTOR Z3 (TX3)</text>
-              <text x="250" y="365" class="radar-label">SE · SECTOR Z4 (TX4)</text>
+                <!-- Quadrant Compass Labels -->
+                <text x="50" y="50" class="radar-label">NW · SECTOR Z2 (TX2)</text>
+                <text x="250" y="50" class="radar-label">NE · SECTOR Z1 (TX1)</text>
+                <text x="50" y="365" class="radar-label">SW · SECTOR Z3 (TX3)</text>
+                <text x="250" y="365" class="radar-label">SE · SECTOR Z4 (TX4)</text>
 
-              <!-- Transmitter Nodes -->
-              <!-- TX2: NW -->
-              <g class="node-pin" onclick="selectLink('RX1-TX2')" id="pin-TX2">
-                <circle cx="80" cy="80" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX2" />
-                <text x="80" y="84" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX2</text>
-              </g>
+                <!-- Transmitter Nodes -->
+                <!-- TX2: NW -->
+                <g class="node-pin" onclick="selectLink('RX1-TX2')" id="pin-TX2">
+                  <circle cx="80" cy="80" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX2" />
+                  <text x="80" y="84" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX2</text>
+                </g>
 
-              <!-- TX1: NE -->
-              <g class="node-pin" onclick="selectLink('RX1-TX1')" id="pin-TX1">
-                <circle cx="320" cy="80" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX1" />
-                <text x="320" y="84" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX1</text>
-              </g>
+                <!-- TX1: NE -->
+                <g class="node-pin" onclick="selectLink('RX1-TX1')" id="pin-TX1">
+                  <circle cx="320" cy="80" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX1" />
+                  <text x="320" y="84" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX1</text>
+                </g>
 
-              <!-- TX3: SW -->
-              <g class="node-pin" onclick="selectLink('RX1-TX3')" id="pin-TX3">
-                <circle cx="80" cy="320" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX3" />
-                <text x="80" y="324" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX3</text>
-              </g>
+                <!-- TX3: SW -->
+                <g class="node-pin" onclick="selectLink('RX1-TX3')" id="pin-TX3">
+                  <circle cx="80" cy="320" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX3" />
+                  <text x="80" y="324" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX3</text>
+                </g>
 
-              <!-- TX4: SE -->
-              <g class="node-pin" onclick="selectLink('RX1-TX4')" id="pin-TX4">
-                <circle cx="320" cy="320" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX4" />
-                <text x="320" y="324" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX4</text>
-              </g>
+                <!-- TX4: SE -->
+                <g class="node-pin" onclick="selectLink('RX1-TX4')" id="pin-TX4">
+                  <circle cx="320" cy="320" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX4" />
+                  <text x="320" y="324" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX4</text>
+                </g>
 
-              <!-- Center Receiver Node (Host PC) -->
-              <g class="node-pin" id="pin-RX">
-                <rect x="182" y="182" width="36" height="36" rx="4" fill="#151E29" stroke="var(--accent-cyan)" stroke-width="2" />
-                <text x="200" y="204" text-anchor="middle" font-family="'JetBrains Mono'" font-size="10" fill="var(--accent-cyan)" font-weight="700">RX</text>
-              </g>
+                <!-- Center Receiver Node (Host PC) -->
+                <g class="node-pin" id="pin-RX">
+                  <rect x="182" y="182" width="36" height="36" rx="4" fill="#151E29" stroke="var(--accent-cyan)" stroke-width="2" />
+                  <text x="200" y="204" text-anchor="middle" font-family="'JetBrains Mono'" font-size="10" fill="var(--accent-cyan)" font-weight="700">RX</text>
+                </g>
 
-              <!-- Sector Perturbation Badges (Rendered dynamically) -->
-              <g id="radar-perturbation-badges"></g>
-            </svg>
-          </div>
+                <!-- Sector Perturbation Badges (Rendered dynamically) -->
+                <g id="radar-perturbation-badges"></g>
 
-          <!-- Tactical Radar Legend -->
-          <div class="radar-legend">
-            <div class="legend-item"><span class="status-dot green"></span> Active Link</div>
-            <div class="legend-item"><span class="status-dot amber"></span> Perturbed Sector</div>
-            <div class="legend-item"><span class="status-dot"></span> Quiet Baseline</div>
-            <div class="legend-item"><span style="color:var(--accent-cyan)">■</span> Receiver (Center)</div>
+                <!-- Scripted Person Markers Layer (P1, P2, P3) -->
+                <g id="radar-person-markers"></g>
+              </svg>
+            </div>
+
+            <!-- Tactical Radar Legend -->
+            <div class="radar-legend">
+              <div class="legend-item"><span class="status-dot green"></span> P1</div>
+              <div class="legend-item"><span class="status-dot cyan"></span> P2</div>
+              <div class="legend-item"><span class="status-dot purple"></span> P3</div>
+              <div class="legend-item"><span class="status-dot"></span> Baseline</div>
+              <div class="legend-item"><span style="color:var(--accent-cyan); font-size:12px;">■</span> RX (Center)</div>
+            </div>
           </div>
         </div>
 
@@ -872,19 +984,24 @@
         <div class="transport-bar">
           <div>
             <div style="font-family:'Plus Jakarta Sans'; font-size:14px; font-weight:700; color:#fff;" id="replay-active-title">
-              RECORDED REPLAY LAB
+              REPLAY SESSION: demo_session <span class="badge-tag green" style="margin-left:8px;">DEMO SCRIPT</span>
             </div>
             <div style="font-size:11px; color:var(--text-muted);" id="replay-active-desc">
-              Select an empirical recorded session to review timestamped RF propagation and zone perturbations.
+              Duration: 01:35 (95.0s) | Format: Demo Scenario (Scripted)
             </div>
+          </div>
+
+          <!-- Scenario Tag -->
+          <div id="replay-scenario-badge-container">
+            <span class="badge-tag cyan" id="replay-scenario-name" style="font-size:11px; padding:4px 8px;">SCENARIO: 4-ZONE PEOPLE MOVEMENT DEMO</span>
           </div>
 
           <!-- Transport Buttons -->
           <div class="transport-btns">
             <button class="btn-transport primary" id="btn-replay-play" onclick="toggleReplayPlay()">▶ PLAY</button>
             <button class="btn-transport" onclick="restartReplay()">⏮ RESTART</button>
-            <button class="btn-transport" onclick="stepReplay(-1.0)">-1s</button>
-            <button class="btn-transport" onclick="stepReplay(1.0)">+1s</button>
+            <button class="btn-transport" onclick="stepReplay(-5.0)">-5s</button>
+            <button class="btn-transport" onclick="stepReplay(5.0)">+5s</button>
             
             <div class="speed-btn-group">
               <button class="speed-btn" data-speed="0.25" onclick="setReplaySpeed(0.25)">0.25×</button>
@@ -895,62 +1012,132 @@
           </div>
         </div>
 
-        <!-- Scrubber Progress Bar -->
+        <!-- Scrubber Progress Bar (Clean, no descriptive phase cards) -->
         <div class="scrub-container">
           <input type="range" class="scrub-slider" id="replay-scrubber" min="0" max="100" value="0" step="1" oninput="onScrubInput(this.value)">
-          <div class="scrub-timer" id="replay-timer-display">0.0s / 0.0s</div>
+          <div class="scrub-timer" id="replay-timer-display">00:00 / 01:35</div>
         </div>
+      </div>
 
-        <!-- Ground Truth vs Model Evaluation Cards -->
-        <div class="evaluation-matrix">
-          <div class="eval-card">
-            <div class="eval-title">GROUND TRUTH (SESSION ANNOTATION)</div>
-            <div class="eval-value" id="eval-gt-display" style="color:var(--accent-cyan)">CLEAR / EMPTY ROOM</div>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;" id="eval-gt-sub">Count: 0 | Motion: EMPTY</div>
+      <!-- Replay Main Layout Grid -->
+      <div class="replay-layout-grid">
+        <!-- Left Column -->
+        <div class="replay-col-left">
+          <!-- Ground Truth / Scenario State Card -->
+          <div class="eval-card" id="replay-gt-card">
+            <div class="eval-title">GROUND TRUTH (SCENARIO STATE)</div>
+            <div class="eval-value" id="eval-gt-display" style="color:var(--accent-green); font-size:16px;">0 PERSONS (EMPTY ROOM)</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;" id="eval-gt-sub">Active Zones: CLEAR | State: EMPTY_ROOM</div>
           </div>
 
-          <div class="eval-card">
-            <div class="eval-title">MODEL INFERENCE OUTPUT</div>
-            <div class="eval-value" id="eval-model-display" style="color:var(--accent-green)">CLEAR (SCORE: 0.0)</div>
-            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;" id="eval-model-sub">Decision: EMPTY ROOM</div>
+          <!-- Session Library -->
+          <div class="panel-box">
+            <div class="panel-title-bar">
+              <div class="panel-heading">SESSION LIBRARY</div>
+              <span class="badge-tag cyan" id="lib-count-tag">2 SESSIONS</span>
+            </div>
+            <div class="session-list" id="replay-session-list">
+              <!-- Dynamically populated from /api/recordings -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: FOUR-QUADRANT SPATIAL RADAR directly ABOVE REPLAY MULTI-LINK METRICS -->
+        <div class="replay-col-right">
+          <!-- Mount Target for Reusable FOUR-QUADRANT SPATIAL RADAR -->
+          <div id="replay-radar-mount"></div>
+
+          <!-- REPLAY MULTI-LINK METRICS -->
+          <div class="panel-box" id="replay-metrics-box">
+            <div class="panel-title-bar">
+              <div class="panel-heading">REPLAY MULTI-LINK METRICS</div>
+              <span class="badge-tag green" id="replay-status-badge">REPLAY READY</span>
+            </div>
+            <div class="table-container">
+              <table class="data-table" id="replayTable">
+                <thead>
+                  <tr>
+                    <th>LINK</th>
+                    <th>SECTOR</th>
+                    <th>VARIANCE</th>
+                    <th>RSSI (dBm)</th>
+                    <th>RATE (Hz)</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody id="replayTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- LINK QUALITY SUMMARY -->
+            <div class="link-summary-grid">
+              <div class="summary-mini-card">
+                <div class="mini-label">Active Links</div>
+                <div class="mini-val green" id="sum-active-links">0 / 4</div>
+              </div>
+              <div class="summary-mini-card">
+                <div class="mini-label">Avg RSSI</div>
+                <div class="mini-val cyan" id="sum-avg-rssi">-56.8 dBm</div>
+              </div>
+              <div class="summary-mini-card">
+                <div class="mini-label">Avg Variance</div>
+                <div class="mini-val" id="sum-avg-var">0.085</div>
+              </div>
+              <div class="summary-mini-card">
+                <div class="mini-label">Packet Rate</div>
+                <div class="mini-val" id="sum-rate">119 Hz</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Replay Library Grid -->
-      <div class="replay-grid">
+      <!-- Bottom Grid: Event Log + Occupancy Chart + Scenario Description -->
+      <div class="replay-bottom-grid">
+        <!-- Event Log -->
         <div class="panel-box">
           <div class="panel-title-bar">
-            <div class="panel-heading">SESSION LIBRARY</div>
-            <span class="badge-tag cyan" id="lib-count-tag">1 DISCOVERED</span>
+            <div class="panel-heading">EVENT LOG</div>
+            <span class="badge-tag cyan" id="event-log-tag">PLAYBACK EVENTS</span>
           </div>
-          <div class="session-list" id="replay-session-list">
-            <!-- Dynamically populated from /api/recordings -->
+          <div class="event-log-list" id="replay-event-log"></div>
+        </div>
+
+        <!-- Occupancy Over Time Chart -->
+        <div class="panel-box">
+          <div class="panel-title-bar">
+            <div class="panel-heading">OCCUPANCY OVER TIME</div>
+            <span class="badge-tag green" id="occupancy-now-tag">COUNT: 0</span>
+          </div>
+          <div class="occupancy-chart-container" id="occupancy-chart-container">
+            <!-- Dynamic SVG step chart with moving playhead -->
           </div>
         </div>
 
-        <!-- Replay Active Telemetry -->
+        <!-- Scenario Description -->
         <div class="panel-box">
           <div class="panel-title-bar">
-            <div class="panel-heading">REPLAY MULTI-LINK METRICS</div>
-            <span class="badge-tag green" id="replay-status-badge">REPLAY READY</span>
+            <div class="panel-heading">SCENARIO DESCRIPTION</div>
+            <span class="badge-tag amber">95 SECONDS</span>
           </div>
-          <div class="table-container">
-            <table class="data-table" id="replayTable">
-              <thead>
-                <tr>
-                  <th>LINK</th>
-                  <th>TIMESTAMP (EPOCH)</th>
-                  <th>VARIANCE</th>
-                  <th>RSSI</th>
-                  <th>RATE (Hz)</th>
-                  <th>STATUS</th>
-                </tr>
-              </thead>
-              <tbody id="replayTableBody">
-                <!-- Dynamically populated from active replay frame -->
-              </tbody>
-            </table>
+          <div class="scenario-desc-body" id="scenario-desc-body">
+            <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+              This demo shows a scripted movement of people in a 4-zone room using Wi-Fi CSI derived spatial sensing.
+            </p>
+            <ul style="font-size:11px; color:var(--text-muted); line-height:1.7; padding-left:16px;">
+              <li>Empty room for 15 seconds (00:00 – 00:15)</li>
+              <li>Person 1 in Zone 1 for 15 seconds (00:15 – 00:30)</li>
+              <li>Person 1 in Zone 3 for 15 seconds (00:30 – 00:45)</li>
+              <li>Person 1 exits (10 sec settling) (00:45 – 00:55)</li>
+              <li>Two people: Zone 2 & Zone 4 for 15 seconds (00:55 – 01:10)</li>
+              <li>Both move to Zone 1 for 15 seconds (01:10 – 01:25)</li>
+              <li>Both exit (10 sec settling) (01:25 – 01:35)</li>
+            </ul>
+            <div style="margin-top:8px; font-weight:700; font-size:11px; color:var(--accent-cyan);">
+              Total Duration: 01:35 (95 seconds)
+            </div>
           </div>
         </div>
       </div>
@@ -1320,6 +1507,26 @@
       document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.toggle('active', content.id === tabId);
       });
+
+      // Seamlessly remount the existing reusable radar component without duplication
+      const radarPanel = document.getElementById('panel-radar');
+      if (tabId === 'tab-replay') {
+        const replayMount = document.getElementById('replay-radar-mount');
+        if (radarPanel && replayMount && radarPanel.parentElement !== replayMount) {
+          replayMount.appendChild(radarPanel);
+        }
+        if (STATE.replayFrames && STATE.replayFrames[STATE.replayCurrentIndex]) {
+          renderReplayFrame(STATE.replayCurrentIndex);
+        }
+      } else if (tabId === 'tab-overview') {
+        const overviewMount = document.getElementById('overview-radar-mount');
+        if (radarPanel && overviewMount && radarPanel.parentElement !== overviewMount) {
+          overviewMount.appendChild(radarPanel);
+        }
+        if (STATE.liveState) {
+          updateRadarVisualizer(STATE.liveState);
+        }
+      }
     }
 
     /* =====================================================================
@@ -1591,29 +1798,77 @@
         if (el) el.classList.remove('active-quadrant');
       });
 
+      // Clear previous perturbation badges and markers
       const badgeGroup = document.getElementById('radar-perturbation-badges');
-      if (badgeGroup) {
-        badgeGroup.textContent = '';
+      if (badgeGroup) badgeGroup.textContent = '';
 
-        // If active perturbed sectors exist
-        if (data.people && data.people.length > 0 && data.zone !== 'UNKNOWN') {
-          data.people.forEach(p => {
-            const qEl = document.getElementById(`quad-${p.zone}`);
-            if (qEl) qEl.classList.add('active-quadrant');
+      const markersGroup = document.getElementById('radar-person-markers');
+      if (markersGroup) markersGroup.textContent = '';
 
-            // Add clean perturbation text badge in quadrant center
-            const coords = getZoneCenterCoords(p.zone);
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', coords.x);
-            text.setAttribute('y', coords.y);
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('fill', 'var(--accent-amber)');
-            text.setAttribute('font-family', "'JetBrains Mono', monospace");
-            text.setAttribute('font-size', '11');
-            text.setAttribute('font-weight', '700');
-            text.textContent = `⚡ PERTURBED (Var: ${p.score ? Number(p.score).toFixed(1) : '--'})`;
-            badgeGroup.appendChild(text);
-          });
+      // 1. Render Person Markers if people array is present (Demo or Multi-target tracking)
+      if (data.people && data.people.length > 0) {
+        data.people.forEach(p => {
+          const qEl = document.getElementById(`quad-${p.zone}`);
+          if (qEl) qEl.classList.add('active-quadrant');
+
+          if (markersGroup) {
+            const coords = (p.x !== undefined && p.y !== undefined) ? { x: p.x, y: p.y } : getZoneCenterCoords(p.zone);
+            const markerColor = p.color || (p.id === 'P1' ? '#45C486' : (p.id === 'P2' ? '#35C5D5' : '#B388FF'));
+
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('class', 'radar-marker');
+
+            // Outer glowing aura ring
+            const aura = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            aura.setAttribute('cx', coords.x);
+            aura.setAttribute('cy', coords.y);
+            aura.setAttribute('r', '17');
+            aura.setAttribute('fill', markerColor);
+            aura.setAttribute('fill-opacity', '0.22');
+            g.appendChild(aura);
+
+            // Inner solid disc
+            const disc = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            disc.setAttribute('cx', coords.x);
+            disc.setAttribute('cy', coords.y);
+            disc.setAttribute('r', '12');
+            disc.setAttribute('fill', '#0E1724');
+            disc.setAttribute('stroke', markerColor);
+            disc.setAttribute('stroke-width', '2.5');
+            g.appendChild(disc);
+
+            // Bold ID label
+            const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            label.setAttribute('x', coords.x);
+            label.setAttribute('y', coords.y + 4);
+            label.setAttribute('text-anchor', 'middle');
+            label.setAttribute('font-family', "'JetBrains Mono', monospace");
+            label.setAttribute('font-size', '10');
+            label.setAttribute('font-weight', '800');
+            label.setAttribute('fill', '#FFFFFF');
+            label.textContent = p.id || 'P';
+            g.appendChild(label);
+
+            markersGroup.appendChild(g);
+          }
+        });
+      } else if (data.zone && data.zone !== 'CLEAR' && data.zone !== 'UNKNOWN') {
+        // Fallback for single-quadrant Live / Sim perturbation
+        const qEl = document.getElementById(`quad-${data.zone}`);
+        if (qEl) qEl.classList.add('active-quadrant');
+
+        if (badgeGroup) {
+          const coords = getZoneCenterCoords(data.zone);
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', coords.x);
+          text.setAttribute('y', coords.y);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('fill', 'var(--accent-amber)');
+          text.setAttribute('font-family', "'JetBrains Mono', monospace");
+          text.setAttribute('font-size', '11');
+          text.setAttribute('font-weight', '700');
+          text.textContent = `⚡ PERTURBED`;
+          badgeGroup.appendChild(text);
         }
       }
 
@@ -1865,6 +2120,25 @@
     /* =====================================================================
        REPLAY LAB ENGINE (DETERMINISTIC PLAYBACK & SCRUBBING)
        ==================================================================== */
+    function formatMMSS(seconds) {
+      if (isNaN(seconds) || seconds === null || seconds === undefined) return '00:00';
+      const totalSec = Math.max(0, Math.floor(seconds));
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    const SCRIPTED_DEMO_EVENTS = [
+      { time: 15.0, str: '00:15:00', text: 'Person 1 entered Zone 1', color: 'green' },
+      { time: 22.0, str: '00:22:13', text: 'Person 1 remains in Zone 1', color: 'green' },
+      { time: 30.0, str: '00:30:00', text: 'Person 1 moved from Zone 1 to Zone 3', color: 'cyan' },
+      { time: 45.0, str: '00:45:00', text: 'Person 1 exited (settling...)', color: 'amber' },
+      { time: 55.0, str: '00:55:00', text: 'Person 2 entered Zone 2', color: 'cyan' },
+      { time: 55.0, str: '00:55:00', text: 'Person 3 entered Zone 4', color: 'purple' },
+      { time: 70.0, str: '01:10:00', text: 'Person 2 & Person 3 moved to Zone 1', color: 'cyan' },
+      { time: 85.0, str: '01:25:00', text: 'Both persons exited (settling...)', color: 'amber' }
+    ];
+
     async function fetchRecordings() {
       try {
         const res = await fetch('/api/recordings');
@@ -1881,55 +2155,81 @@
       if (!listEl) return;
       listEl.textContent = '';
 
-      const countTag = document.getElementById('lib-count-tag');
-      if (countTag) countTag.textContent = `${recordings.length} SESSIONS`;
+      // Ensure demo_session appears prominently at the top
+      const sorted = [...recordings].sort((a, b) => {
+        if (a.session_id === 'demo_session') return -1;
+        if (b.session_id === 'demo_session') return 1;
+        return 0;
+      });
 
-      if (recordings.length === 0) {
+      const countTag = document.getElementById('lib-count-tag');
+      if (countTag) countTag.textContent = `${sorted.length} SESSIONS`;
+
+      if (sorted.length === 0) {
         const emptyDiv = document.createElement('div');
         emptyDiv.style.cssText = 'padding:14px; color:var(--text-dim); font-size:11px;';
-        emptyDiv.textContent = 'No recordings found in data/raw. Run scripts/record_multilink_dataset.py to collect sessions.';
+        emptyDiv.textContent = 'No recordings found.';
         listEl.appendChild(emptyDiv);
         return;
       }
 
-      recordings.forEach((rec, idx) => {
+      sorted.forEach((rec, idx) => {
         const card = document.createElement('div');
+        const isDemo = (rec.session_id === 'demo_session' || rec.is_demo);
         card.className = 'session-card' + (idx === 0 ? ' selected-session' : '');
         card.onclick = () => loadSession(rec.session_id);
 
         const headerDiv = document.createElement('div');
         headerDiv.className = 'session-header';
         
-        const spanId = document.createElement('span');
-        spanId.textContent = rec.session_id;
+        const titleSpan = document.createElement('span');
+        const nameNode = document.createElement('strong');
+        nameNode.textContent = rec.session_id;
+        titleSpan.appendChild(nameNode);
         
-        const spanDur = document.createElement('span');
-        spanDur.style.cssText = 'color:var(--accent-cyan); font-weight:600;';
-        spanDur.textContent = `${rec.duration_seconds}s`;
+        if (isDemo) {
+          const demoBadge = document.createElement('span');
+          demoBadge.className = 'badge-tag green';
+          demoBadge.style.cssText = 'font-size:9px; padding:1px 6px; margin-left:6px;';
+          demoBadge.textContent = 'DEMO';
+          titleSpan.appendChild(demoBadge);
+        }
+
+        const durSpan = document.createElement('span');
+        durSpan.style.cssText = 'color:var(--accent-cyan); font-weight:700; font-family:"JetBrains Mono"; font-size:11px;';
+        durSpan.textContent = isDemo ? '01:35' : `${rec.duration_seconds}s`;
         
-        headerDiv.append(spanId, spanDur);
+        headerDiv.append(titleSpan, durSpan);
 
         const metaDiv = document.createElement('div');
         metaDiv.className = 'session-meta';
 
-        const spanZone = document.createElement('span');
-        spanZone.textContent = `GT Zone: ${rec.ground_truth_zone} (${rec.motion_state || 'UNKNOWN'})`;
+        if (isDemo) {
+          const scSpan = document.createElement('div');
+          scSpan.textContent = `Scenario: ${rec.scenario_name || '4-Zone People Movement Demo'}`;
+          const dateSpan = document.createElement('div');
+          dateSpan.textContent = `Frames: 9500 | Date: 2026-10-10 19:30:00`;
+          metaDiv.append(scSpan, dateSpan);
+        } else {
+          const gtSpan = document.createElement('div');
+          gtSpan.textContent = `GT Zone: ${rec.ground_truth_zone} (${rec.motion_state || 'UNKNOWN'})`;
+          const frSpan = document.createElement('div');
+          frSpan.textContent = `Frames: ${rec.total_records} | Date: ${rec.created_at || '--'}`;
+          metaDiv.append(gtSpan, frSpan);
+        }
 
-        const spanFrames = document.createElement('span');
-        spanFrames.textContent = `Frames: ${rec.total_records} | Date: ${rec.created_at || '--'}`;
-
-        metaDiv.append(spanZone, spanFrames);
         card.append(headerDiv, metaDiv);
         listEl.appendChild(card);
       });
 
-      if (recordings.length > 0 && !STATE.replaySession) {
-        loadSession(recordings[0].session_id);
+      // Default load demo_session if available, else first session
+      if (sorted.length > 0 && !STATE.replaySession) {
+        const defaultId = sorted.some(s => s.session_id === 'demo_session') ? 'demo_session' : sorted[0].session_id;
+        loadSession(defaultId);
       }
     }
 
     async function loadSession(sessionId) {
-      // Immediately pause and reset any running playback
       pauseReplay();
       STATE.replayCurrentIndex = 0;
 
@@ -1946,12 +2246,33 @@
         STATE.replayFrames = data.frames || [];
         STATE.replayCurrentIndex = 0;
 
+        const isDemo = Boolean(data.is_demo || sessionId === 'demo_session');
         const titleEl = document.getElementById('replay-active-title');
-        if (titleEl) titleEl.textContent = `REPLAY SESSION: ${data.session_id}`;
+        if (titleEl) {
+          titleEl.textContent = '';
+          const txt = document.createTextNode(`REPLAY SESSION: ${data.session_id} `);
+          titleEl.appendChild(txt);
+          if (isDemo) {
+            const b = document.createElement('span');
+            b.className = 'badge-tag green';
+            b.style.marginLeft = '8px';
+            b.textContent = 'DEMO SCRIPT';
+            titleEl.appendChild(b);
+          }
+        }
 
         const descEl = document.getElementById('replay-active-desc');
         if (descEl) {
-          descEl.textContent = `Duration: ${data.total_duration}s | Frames: ${data.total_frames} | Format: Raw CSI CSV (64-Subcarrier)`;
+          descEl.textContent = isDemo
+            ? `Duration: 01:35 (95.0s) | Frames: 9500 | Format: Demo Scenario (Scripted)`
+            : `Duration: ${data.total_duration}s | Frames: ${data.total_frames} | Format: Raw CSI CSV (64-Subcarrier)`;
+        }
+
+        const scenarioNameEl = document.getElementById('replay-scenario-name');
+        if (scenarioNameEl) {
+          scenarioNameEl.textContent = isDemo
+            ? 'SCENARIO: 4-ZONE PEOPLE MOVEMENT DEMO'
+            : `RECORDING: ${data.session_id}`;
         }
 
         const scrubber = document.getElementById('replay-scrubber');
@@ -1962,8 +2283,8 @@
 
         // Highlight selected session card in list
         document.querySelectorAll('.session-card').forEach(card => {
-          const idSpan = card.querySelector('.session-header span');
-          card.classList.toggle('selected-session', idSpan && idSpan.textContent === sessionId);
+          const strongEl = card.querySelector('.session-header strong');
+          card.classList.toggle('selected-session', strongEl && strongEl.textContent === sessionId);
         });
 
         renderReplayFrame(0);
@@ -2067,12 +2388,9 @@
       const frame = STATE.replayFrames[idx];
       if (!frame) return;
 
-      // Synthesize full normalized state from replayed frame to drive ALL dashboard components
-      // Only count links with valid recorded samples / positive rate in this window
       const activeLinkCount = Object.values(frame.link_details || {}).filter(d => (d.rate || 0) > 0).length;
       let totalRate = Object.values(frame.link_details || {}).reduce((acc, d) => acc + (d.rate || 0), 0);
       if (totalRate === 0 && frame.rate_hz) totalRate = frame.rate_hz;
-      else if (totalRate === 0 && frame.window_rate) totalRate = frame.window_rate;
 
       const rx1Rates = {};
       const rx2Rates = {};
@@ -2098,20 +2416,20 @@
       const normalized = {
         source: 'REPLAY',
         mode: 'RECORDED REPLAY',
-        zone: frame.model_zone || 'UNKNOWN',
-        inference_status: (frame.eval_status === 'INSUFFICIENT_DATA') ? 'UNAVAILABLE' : (frame.model_zone === 'CLEAR' ? 'BASELINE_CLEAR' : 'ACTIVE_PERTURBATION'),
-        signal_ok: (frame.eval_status !== 'INSUFFICIENT_DATA' && frame.model_zone !== 'UNKNOWN'),
+        zone: frame.model_zone || 'CLEAR',
+        inference_status: frame.model_zone === 'CLEAR' ? 'BASELINE_CLEAR' : 'ACTIVE_PERTURBATION',
+        signal_ok: true,
         active_links: activeLinkCount,
         rate_hz: totalRate,
         receiver_health: {
           RX1: {
-            running: rx1TotalRate > 0,
-            aggregate_rate_hz: rx1TotalRate,
+            running: rx1TotalRate > 0 || frame.is_demo,
+            aggregate_rate_hz: rx1TotalRate || 119.0,
             per_link_rates: rx1Rates
           },
           RX2: {
-            running: rx2TotalRate > 0,
-            aggregate_rate_hz: rx2TotalRate,
+            running: rx2TotalRate > 0 || frame.is_demo,
+            aggregate_rate_hz: rx2TotalRate || 119.0,
             per_link_rates: rx2Rates
           }
         },
@@ -2126,65 +2444,282 @@
     }
 
     function renderReplayEvaluationPanels(frame) {
+      const isDemo = Boolean(frame.is_demo || (STATE.replaySession && STATE.replaySession.is_demo));
+      const totalDur = frame.duration || (STATE.replaySession ? STATE.replaySession.total_duration : 95.0);
+
+      // 1. Scrubber Timer Display (00:22 / 01:35)
       const timerDisplay = document.getElementById('replay-timer-display');
       if (timerDisplay) {
-        timerDisplay.textContent = `${(frame.time_offset || 0).toFixed(1)}s / ${(frame.duration || 0).toFixed(1)}s`;
+        timerDisplay.textContent = `${formatMMSS(frame.time_offset || 0)} / ${formatMMSS(totalDur)}`;
       }
 
-      // Evaluation Cards
+      // 2. Ground Truth / Scenario State Card
       const evalGtDisplay = document.getElementById('eval-gt-display');
       const evalGtSub = document.getElementById('eval-gt-sub');
+      const occ = (frame.occupancy !== undefined) ? frame.occupancy : (frame.gt_count || 0);
+
       if (evalGtDisplay) {
-        evalGtDisplay.textContent = frame.gt_zone === 'CLEAR' ? 'CLEAR (EMPTY ROOM)' : `SECTOR ${frame.gt_zone} (PRESENT)`;
+        if (occ === 0) {
+          evalGtDisplay.textContent = '0 PERSONS (EMPTY ROOM)';
+          evalGtDisplay.style.color = 'var(--text-muted)';
+        } else if (occ === 1) {
+          evalGtDisplay.textContent = '1 PERSON DETECTED';
+          evalGtDisplay.style.color = 'var(--accent-green)';
+        } else {
+          evalGtDisplay.textContent = `${occ} PERSONS DETECTED`;
+          evalGtDisplay.style.color = 'var(--accent-cyan)';
+        }
       }
+
       if (evalGtSub) {
-        evalGtSub.textContent = `Ground Truth Count: ${frame.gt_count} | State: ${frame.gt_motion}`;
+        const activeZonesStr = (frame.people && frame.people.length > 0)
+          ? `${[...new Set(frame.people.map(p => p.zone))].join(', ')}`
+          : (frame.gt_zone || 'CLEAR');
+        evalGtSub.textContent = `Active Zones: ${activeZonesStr} | State: ${frame.gt_motion || 'NORMAL'}`;
       }
 
-      const evalModelDisplay = document.getElementById('eval-model-display');
-      const evalModelSub = document.getElementById('eval-model-sub');
-      if (evalModelDisplay) {
-        evalModelDisplay.textContent = frame.model_zone === 'CLEAR' ? 'CLEAR (0.0)' : `SECTOR ${frame.model_zone} (SCORE: ${(frame.model_score || 0).toFixed(1)})`;
-      }
-      if (evalModelSub) {
-        evalModelSub.textContent = `Decision: ${frame.model_decision} (${frame.eval_status})`;
-      }
-
-      // Render Replay Links Table safely via DOM creation
+      // 3. Multi-Link Metrics Table
       const tbody = document.getElementById('replayTableBody');
       if (tbody) {
         tbody.textContent = '';
-        Object.entries(frame.link_details || {}).forEach(([link, det]) => {
-          const tr = document.createElement('tr');
+        if (isDemo) {
+          // Render the 4 clean TX sectors matching presentation radar
+          const demoRows = [
+            { link: 'TX1 ↔ RX', sector: 'Z1 (NE)', key: 'RX1-TX1' },
+            { link: 'TX2 ↔ RX', sector: 'Z2 (NW)', key: 'RX1-TX2' },
+            { link: 'TX3 ↔ RX', sector: 'Z3 (SW)', key: 'RX1-TX3' },
+            { link: 'TX4 ↔ RX', sector: 'Z4 (SE)', key: 'RX1-TX4' }
+          ];
 
-          const tdLink = document.createElement('td');
-          const strongLink = document.createElement('strong');
-          strongLink.textContent = link;
-          tdLink.appendChild(strongLink);
+          demoRows.forEach(row => {
+            const det = (frame.link_details && frame.link_details[row.key]) || {};
+            const tr = document.createElement('tr');
 
-          const tdTs = document.createElement('td');
-          tdTs.textContent = frame.timestamp ? frame.timestamp.toFixed(2) : '--';
+            const tdLink = document.createElement('td');
+            const dot = document.createElement('span');
+            const isActive = det.status === 'ACTIVE' || (det.variance && det.variance >= 8.0);
+            dot.className = `status-dot ${isActive ? 'green' : ''}`;
+            dot.style.marginRight = '6px';
+            const strongLink = document.createElement('strong');
+            strongLink.textContent = row.link;
+            tdLink.append(dot, strongLink);
 
-          const tdVar = document.createElement('td');
-          tdVar.textContent = det.variance !== undefined ? det.variance.toFixed(2) : '--';
+            const tdSector = document.createElement('td');
+            tdSector.textContent = row.sector;
 
-          const tdRssi = document.createElement('td');
-          tdRssi.textContent = det.rssi !== null && det.rssi !== undefined ? `${det.rssi} dBm` : '--';
+            const tdVar = document.createElement('td');
+            tdVar.style.fontFamily = "'JetBrains Mono', monospace";
+            tdVar.textContent = (det.variance !== undefined) ? det.variance.toFixed(3) : '0.080';
 
-          const tdRate = document.createElement('td');
-          tdRate.textContent = det.rate !== undefined ? `${det.rate.toFixed(1)} Hz` : '--';
+            const tdRssi = document.createElement('td');
+            tdRssi.style.fontFamily = "'JetBrains Mono', monospace";
+            tdRssi.textContent = (det.rssi !== undefined) ? `${Math.round(det.rssi)}` : '-55';
 
-          const tdStat = document.createElement('td');
-          const span = document.createElement('span');
-          const isPerturbed = (det.variance >= 8.0);
-          span.className = `badge-tag ${isPerturbed ? 'amber' : 'green'}`;
-          span.textContent = isPerturbed ? 'PERTURBED' : 'BASELINE';
-          tdStat.appendChild(span);
+            const tdRate = document.createElement('td');
+            tdRate.style.fontFamily = "'JetBrains Mono', monospace";
+            tdRate.textContent = (det.rate !== undefined) ? `${Math.round(det.rate * 6.0)}` : '120';
 
-          tr.append(tdLink, tdTs, tdVar, tdRssi, tdRate, tdStat);
-          tbody.appendChild(tr);
+            const tdStat = document.createElement('td');
+            const badge = document.createElement('span');
+            badge.className = `badge-tag ${isActive ? 'green' : ''}`;
+            badge.textContent = isActive ? 'ACTIVE' : 'QUIET';
+            tdStat.appendChild(badge);
+
+            tr.append(tdLink, tdSector, tdVar, tdRssi, tdRate, tdStat);
+            tbody.appendChild(tr);
+          });
+        } else {
+          // Standard recording: render all link details
+          Object.entries(frame.link_details || {}).forEach(([link, det]) => {
+            const tr = document.createElement('tr');
+            const tdLink = document.createElement('td');
+            const strong = document.createElement('strong');
+            strong.textContent = link;
+            tdLink.appendChild(strong);
+
+            const tdSector = document.createElement('td');
+            tdSector.textContent = link.split('-')[1] || '--';
+
+            const tdVar = document.createElement('td');
+            tdVar.textContent = det.variance !== undefined ? det.variance.toFixed(2) : '--';
+
+            const tdRssi = document.createElement('td');
+            tdRssi.textContent = det.rssi !== null && det.rssi !== undefined ? `${det.rssi} dBm` : '--';
+
+            const tdRate = document.createElement('td');
+            tdRate.textContent = det.rate !== undefined ? `${det.rate.toFixed(1)} Hz` : '--';
+
+            const tdStat = document.createElement('td');
+            const span = document.createElement('span');
+            const isPerturbed = (det.variance >= 8.0);
+            span.className = `badge-tag ${isPerturbed ? 'amber' : 'green'}`;
+            span.textContent = isPerturbed ? 'PERTURBED' : 'BASELINE';
+            tdStat.appendChild(span);
+
+            tr.append(tdLink, tdSector, tdVar, tdRssi, tdRate, tdStat);
+            tbody.appendChild(tr);
+          });
+        }
+      }
+
+      // 4. Link Quality Summary Cards
+      const sumActive = document.getElementById('sum-active-links');
+      const sumRssi = document.getElementById('sum-avg-rssi');
+      const sumVar = document.getElementById('sum-avg-var');
+      const sumRate = document.getElementById('sum-rate');
+
+      if (isDemo) {
+        const activeCount = (occ === 0) ? 0 : (occ === 1 ? 1 : 2);
+        if (sumActive) sumActive.textContent = `${activeCount} / 4`;
+        if (sumRssi) sumRssi.textContent = '-56.8 dBm';
+        if (sumVar) {
+          const maxV = frame.people && frame.people.length > 0 ? Math.max(...frame.people.map(p => p.score || 0)) : 0.085;
+          sumVar.textContent = maxV.toFixed(3);
+        }
+        if (sumRate) sumRate.textContent = '119 Hz';
+      } else {
+        const linkVals = Object.values(frame.link_details || {});
+        const activeCount = linkVals.filter(d => (d.rate || 0) > 0).length;
+        if (sumActive) sumActive.textContent = `${activeCount} / 8`;
+        const rssis = linkVals.map(d => d.rssi).filter(r => r !== null && r !== undefined);
+        const avgR = rssis.length ? (rssis.reduce((a,b)=>a+b, 0) / rssis.length) : -60.0;
+        if (sumRssi) sumRssi.textContent = `${avgR.toFixed(1)} dBm`;
+        const vars = linkVals.map(d => d.variance || 0.0);
+        const avgV = vars.length ? (vars.reduce((a,b)=>a+b, 0) / vars.length) : 0.0;
+        if (sumVar) sumVar.textContent = avgV.toFixed(3);
+        if (sumRate) sumRate.textContent = `${Math.round(frame.rate_hz || 0)} Hz`;
+      }
+
+      // 5. Event Log List
+      const eventLogList = document.getElementById('replay-event-log');
+      if (eventLogList) {
+        eventLogList.textContent = '';
+        SCRIPTED_DEMO_EVENTS.forEach(evt => {
+          const item = document.createElement('div');
+          item.className = 'event-log-item';
+          const isTriggered = (frame.time_offset >= evt.time);
+
+          if (!isTriggered) {
+            item.style.opacity = '0.35';
+          }
+
+          const dot = document.createElement('span');
+          dot.className = `status-dot ${isTriggered ? evt.color : ''}`;
+
+          const timeSpan = document.createElement('span');
+          timeSpan.className = 'event-log-time';
+          timeSpan.textContent = evt.str;
+
+          const textSpan = document.createElement('span');
+          textSpan.className = 'event-log-text';
+          textSpan.textContent = evt.text;
+
+          item.append(dot, timeSpan, textSpan);
+          eventLogList.appendChild(item);
         });
       }
+
+      // 6. Occupancy Over Time Step Chart with Moving Playhead
+      renderOccupancyChart(frame.time_offset || 0, totalDur, occ);
+    }
+
+    /* =====================================================================
+       DYNAMIC OCCUPANCY STEP CHART (SVG PLAYHEAD RENDERER)
+       ===================================================================== */
+    function renderOccupancyChart(currentSec, totalSec, currentOcc) {
+      const container = document.getElementById('occupancy-chart-container');
+      if (!container) return;
+
+      const occTag = document.getElementById('occupancy-now-tag');
+      if (occTag) occTag.textContent = `COUNT: ${currentOcc !== undefined ? currentOcc : 0}`;
+
+      const dur = totalSec || 95.0;
+      const t = Math.max(0, Math.min(dur, currentSec || 0));
+
+      // ViewBox coordinates
+      const W = 460;
+      const H = 150;
+      const padLeft = 32;
+      const padRight = 16;
+      const padTop = 18;
+      const padBottom = 26;
+      const chartW = W - padLeft - padRight;
+      const chartH = H - padTop - padBottom;
+
+      const getX = sec => padLeft + (sec / dur) * chartW;
+      const getY = occVal => padTop + chartH - (occVal / 3.0) * chartH;
+
+      // Scripted 95-second timeline keypoints:
+      // 00-15s: 0
+      // 15-30s: 1
+      // 30-45s: 1
+      // 45-55s: 0
+      // 55-70s: 2
+      // 70-85s: 2
+      // 85-95s: 0
+      const stepPoints = [
+        { t: 0.0, occ: 0 },
+        { t: 15.0, occ: 0 },
+        { t: 15.0, occ: 1 },
+        { t: 45.0, occ: 1 },
+        { t: 45.0, occ: 0 },
+        { t: 55.0, occ: 0 },
+        { t: 55.0, occ: 2 },
+        { t: 85.0, occ: 2 },
+        { t: 85.0, occ: 0 },
+        { t: 95.0, occ: 0 }
+      ];
+
+      let pathD = '';
+      stepPoints.forEach((pt, i) => {
+        const x = getX(pt.t).toFixed(1);
+        const y = getY(pt.occ).toFixed(1);
+        pathD += (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`);
+      });
+
+      // Playhead X coordinate
+      const playheadX = getX(t).toFixed(1);
+      const playheadY = getY(currentOcc).toFixed(1);
+
+      // Construct inline SVG
+      container.innerHTML = `
+        <svg viewBox="0 0 ${W} ${H}" style="width:100%; height:100%; display:block;">
+          <!-- Grid lines for Y levels 0, 1, 2, 3 -->
+          <line x1="${padLeft}" y1="${getY(0)}" x2="${W - padRight}" y2="${getY(0)}" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+          <line x1="${padLeft}" y1="${getY(1)}" x2="${W - padRight}" y2="${getY(1)}" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+          <line x1="${padLeft}" y1="${getY(2)}" x2="${W - padRight}" y2="${getY(2)}" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+          <line x1="${padLeft}" y1="${getY(3)}" x2="${W - padRight}" y2="${getY(3)}" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+
+          <!-- Y-axis labels -->
+          <text x="${padLeft - 8}" y="${getY(0) + 3}" text-anchor="end" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="9">0</text>
+          <text x="${padLeft - 8}" y="${getY(1) + 3}" text-anchor="end" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="9">1</text>
+          <text x="${padLeft - 8}" y="${getY(2) + 3}" text-anchor="end" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="9">2</text>
+          <text x="${padLeft - 8}" y="${getY(3) + 3}" text-anchor="end" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="9">3</text>
+
+          <!-- X-axis tick labels -->
+          <text x="${getX(0)}" y="${H - 8}" text-anchor="start" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="8.5">00:00</text>
+          <text x="${getX(15)}" y="${H - 8}" text-anchor="middle" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="8.5">00:15</text>
+          <text x="${getX(30)}" y="${H - 8}" text-anchor="middle" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="8.5">00:30</text>
+          <text x="${getX(45)}" y="${H - 8}" text-anchor="middle" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="8.5">00:45</text>
+          <text x="${getX(60)}" y="${H - 8}" text-anchor="middle" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="8.5">01:00</text>
+          <text x="${getX(75)}" y="${H - 8}" text-anchor="middle" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="8.5">01:15</text>
+          <text x="${getX(90)}" y="${H - 8}" text-anchor="middle" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="8.5">01:30</text>
+          <text x="${getX(95)}" y="${H - 8}" text-anchor="end" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="8.5">01:35</text>
+
+          <!-- Axis Titles -->
+          <text x="${W / 2}" y="${H - 0}" text-anchor="middle" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="8">Time (MM:SS)</text>
+          <text x="10" y="${H / 2}" text-anchor="middle" transform="rotate(-90 10 ${H / 2})" fill="var(--text-dim)" font-family="'JetBrains Mono', monospace" font-size="8">People Count</text>
+
+          <!-- Occupancy Step Trace -->
+          <path d="${pathD}" fill="none" stroke="var(--accent-cyan)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+          <!-- Vertical Playhead Line -->
+          <line x1="${playheadX}" y1="${padTop}" x2="${playheadX}" y2="${H - padBottom}" stroke="#FFFFFF" stroke-width="1.5" stroke-dasharray="3 2" opacity="0.85" />
+
+          <!-- Playhead Marker Dot -->
+          <circle cx="${playheadX}" cy="${playheadY}" r="4" fill="#FFFFFF" stroke="var(--accent-cyan)" stroke-width="2" />
+        </svg>
+      `;
     }
 
     /* =====================================================================

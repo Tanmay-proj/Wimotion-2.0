@@ -95,17 +95,185 @@ def list_recordings() -> List[Dict[str, Any]]:
             "ground_truth_zone": gt_zone,
             "ground_truth_count": gt_count,
             "motion_state": motion_state,
-            "format": "CSV_RAW_CSI_64",
+            "format": meta.get("format", "CSV_RAW_CSI_64"),
+            "is_demo": meta.get("is_demo", False),
+            "scenario_name": meta.get("scenario_name", ""),
             "has_metadata": bool(meta)
         })
 
     return sessions
 
 
+def generate_demo_session_frames(step_seconds: float = 0.5, total_duration: float = 95.0) -> Dict[str, Any]:
+    """Generates the authoritative deterministic 95-second presentation demo sequence.
+    
+    Occupancy sequence: 0 -> 1 -> 1 -> 0 -> 2 -> 2 -> 0.
+    Timeline:
+    - 00-15s: 0 persons, no markers (Empty Room)
+    - 15-30s: 1 person (P1) in Zone 1 (NE)
+    - 30-45s: 1 person (P1) moves from Zone 1 to Zone 3 (SW)
+    - 45-55s: 0 persons, markers disappear (Exit / Settling)
+    - 55-70s: 2 persons (P2 in Z2 NW, P3 in Z4 SE)
+    - 70-85s: 2 persons (P2 & P3 move to Zone 1 NE, occupancy remains 2)
+    - 85-95s: 0 persons, markers disappear (All Exited)
+    """
+    base_ts = 1728580000.0
+    frames = []
+    current_offset = 0.0
+
+    while current_offset <= total_duration + 1e-5:
+        t = round(current_offset, 2)
+        window_end = round(base_ts + t, 3)
+
+        # Baseline link parameters (4 TX links active, rate ~119-121 Hz)
+        link_details = {
+            "RX1-TX1": {"variance": 0.128, "rssi": -52.0, "rate": 20.0, "samples": 40, "status": "QUIET"},
+            "RX1-TX2": {"variance": 0.078, "rssi": -58.0, "rate": 20.0, "samples": 40, "status": "QUIET"},
+            "RX1-TX3": {"variance": 0.064, "rssi": -60.0, "rate": 20.0, "samples": 40, "status": "QUIET"},
+            "RX1-TX4": {"variance": 0.072, "rssi": -57.0, "rate": 20.0, "samples": 40, "status": "QUIET"},
+            "RX2-TX1": {"variance": 0.110, "rssi": -54.0, "rate": 20.0, "samples": 40, "status": "QUIET"},
+            "RX2-TX2": {"variance": 0.082, "rssi": -59.0, "rate": 20.0, "samples": 40, "status": "QUIET"},
+            "RX2-TX3": {"variance": 0.068, "rssi": -61.0, "rate": 20.0, "samples": 40, "status": "QUIET"},
+            "RX2-TX4": {"variance": 0.075, "rssi": -58.0, "rate": 20.0, "samples": 40, "status": "QUIET"},
+        }
+        per_tx_var = {"TX1": 0.128, "TX2": 0.078, "TX3": 0.064, "TX4": 0.072}
+
+        if t < 15.0:
+            occ = 0
+            gt_zone = "CLEAR"
+            gt_motion = "EMPTY_ROOM"
+            model_zone = "CLEAR"
+            people = []
+        elif t < 30.0:
+            occ = 1
+            gt_zone = "Z1"
+            gt_motion = "PERSON_1_IN_ZONE_1"
+            model_zone = "Z1"
+            people = [{"id": "P1", "zone": "Z1", "x": 285.0, "y": 125.0, "score": 19.5, "color": "#45C486"}]
+            link_details["RX1-TX1"]["variance"] = 19.5
+            link_details["RX1-TX1"]["status"] = "ACTIVE"
+            per_tx_var["TX1"] = 19.5
+        elif t < 45.0:
+            occ = 1
+            gt_zone = "Z3"
+            gt_motion = "PERSON_1_IN_ZONE_3"
+            model_zone = "Z3"
+            if t < 33.5:
+                prog = (t - 30.0) / 3.5
+                cur_x = round(285.0 + (125.0 - 285.0) * prog, 1)
+                cur_y = round(125.0 + (275.0 - 125.0) * prog, 1)
+                z = "Z1" if prog < 0.5 else "Z3"
+            else:
+                cur_x, cur_y = 125.0, 275.0
+                z = "Z3"
+            people = [{"id": "P1", "zone": z, "x": cur_x, "y": cur_y, "score": 22.0, "color": "#45C486"}]
+            link_details["RX1-TX3"]["variance"] = 22.0
+            link_details["RX1-TX3"]["status"] = "ACTIVE"
+            per_tx_var["TX3"] = 22.0
+        elif t < 55.0:
+            occ = 0
+            gt_zone = "CLEAR"
+            gt_motion = "PERSON_1_EXIT"
+            model_zone = "CLEAR"
+            people = []
+        elif t < 70.0:
+            occ = 2
+            gt_zone = "Z2_Z4"
+            gt_motion = "TWO_PERSONS_SPLIT"
+            model_zone = "Z2"
+            people = [
+                {"id": "P2", "zone": "Z2", "x": 125.0, "y": 125.0, "score": 18.2, "color": "#35C5D5"},
+                {"id": "P3", "zone": "Z4", "x": 285.0, "y": 275.0, "score": 20.4, "color": "#B388FF"}
+            ]
+            link_details["RX1-TX2"]["variance"] = 18.2
+            link_details["RX1-TX2"]["status"] = "ACTIVE"
+            link_details["RX1-TX4"]["variance"] = 20.4
+            link_details["RX1-TX4"]["status"] = "ACTIVE"
+            per_tx_var["TX2"] = 18.2
+            per_tx_var["TX4"] = 20.4
+        elif t < 85.0:
+            occ = 2
+            gt_zone = "Z1"
+            gt_motion = "TWO_PERSONS_IN_ZONE_1"
+            model_zone = "Z1"
+            if t < 73.5:
+                prog = (t - 70.0) / 3.5
+                p2_x = round(125.0 + (270.0 - 125.0) * prog, 1)
+                p2_y = round(125.0 + (115.0 - 125.0) * prog, 1)
+                p3_x = round(285.0 + (295.0 - 285.0) * prog, 1)
+                p3_y = round(275.0 + (135.0 - 275.0) * prog, 1)
+            else:
+                p2_x, p2_y = 270.0, 115.0
+                p3_x, p3_y = 295.0, 135.0
+            people = [
+                {"id": "P2", "zone": "Z1", "x": p2_x, "y": p2_y, "score": 24.0, "color": "#35C5D5"},
+                {"id": "P3", "zone": "Z1", "x": p3_x, "y": p3_y, "score": 26.5, "color": "#B388FF"}
+            ]
+            link_details["RX1-TX1"]["variance"] = 26.5
+            link_details["RX1-TX1"]["status"] = "ACTIVE"
+            per_tx_var["TX1"] = 26.5
+        else:
+            occ = 0
+            gt_zone = "CLEAR"
+            gt_motion = "ALL_EXITED"
+            model_zone = "CLEAR"
+            people = []
+
+        active_count = sum(1 for d in link_details.values() if d["status"] == "ACTIVE")
+        frame = {
+            "time_offset": t,
+            "timestamp": window_end,
+            "duration": total_duration,
+            "gt_zone": gt_zone,
+            "gt_count": occ,
+            "occupancy": occ,
+            "gt_motion": gt_motion,
+            "model_zone": model_zone,
+            "model_decision": "HUMAN_PERTURBATION" if model_zone != "CLEAR" else "EMPTY_ROOM",
+            "model_score": max(per_tx_var.values()),
+            "eval_status": "ZONE_MATCH" if model_zone == gt_zone or (gt_zone == "Z2_Z4" and model_zone in ["Z2", "Z4"]) else ("CORRECT_BASELINE" if model_zone == "CLEAR" else "ZONE_MISMATCH"),
+            "active_links": max(active_count, 4 if t >= 15.0 and t < 85.0 else 1),
+            "link_count": 8,
+            "per_tx_variance": per_tx_var,
+            "link_details": link_details,
+            "people": people,
+            "window_records_count": 160,
+            "rate_hz": 119.0,
+            "is_demo": True
+        }
+        frames.append(frame)
+        current_offset += step_seconds
+
+    return {
+        "session_id": "demo_session",
+        "metadata": {
+            "session_id": "demo_session",
+            "scenario_name": "4-Zone People Movement Demo",
+            "duration_seconds": total_duration,
+            "total_records": 9500,
+            "is_demo": True,
+            "format": "DEMO_SCENARIO_SCRIPTED",
+            "description": "Scripted presentation demonstration: 95-second multi-zone sequence (0 -> 1 -> 1 -> 0 -> 2 -> 2 -> 0)."
+        },
+        "total_duration": total_duration,
+        "frame_interval": step_seconds,
+        "total_frames": len(frames),
+        "frames": frames,
+        "is_demo": True
+    }
+
+
 def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_seconds: float = 2.0) -> Optional[Dict[str, Any]]:
     """Loads a recording file and converts it into uniform timestamped replay frames."""
-    if not DATA_RAW.exists() or not session_id:
+    if not session_id:
         return None
+
+    if session_id == "demo_session":
+        return generate_demo_session_frames(step_seconds=step_seconds)
+
+    if not DATA_RAW.exists():
+        return None
+
 
     # Strict exact matching for session_id
     target_csv = None

@@ -1,0 +1,15 @@
+{
+  "session_id": "demo_session",
+  "room_id": "ROOM_MCTE_DEMO_SCRIPT",
+  "operator_id": "PRESENTATION_DEMO",
+  "scenario_name": "4-Zone People Movement Demo",
+  "ground_truth_count": 0,
+  "ground_truth_zone": "SCRIPTED_MULTI_ZONE",
+  "motion_state": "SCRIPTED_DEMO",
+  "duration_seconds": 95.0,
+  "total_records": 9500,
+  "is_demo": true,
+  "format": "DEMO_SCENARIO_SCRIPTED",
+  "description": "Scripted presentation demonstration: 95-second multi-zone sequence (0 -> 1 -> 1 -> 0 -> 2 -> 2 -> 0).",
+  "created_at": "2026-10-10 19:30:00"
+}

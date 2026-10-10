@@ -492,6 +492,115 @@ class TestSpatial(unittest.TestCase):
             mock_browser_open_fail.assert_not_called()
 
 
+    def test_demo_session_in_session_library(self):
+        from spatial.replay_loader import list_recordings
+
+        recordings = list_recordings()
+        demo_rec = next((r for r in recordings if r["session_id"] == "demo_session"), None)
+        self.assertIsNotNone(demo_rec, "demo_session must be present in list_recordings()")
+        self.assertTrue(demo_rec["is_demo"])
+        self.assertEqual(demo_rec["format"], "DEMO_SCENARIO_SCRIPTED")
+        self.assertEqual(demo_rec["scenario_name"], "4-Zone People Movement Demo")
+        self.assertEqual(demo_rec["duration_seconds"], 95.0)
+
+    def test_demo_session_exact_95s_timeline_and_occupancy_sequence(self):
+        from spatial.replay_loader import load_recording_frames
+
+        data = load_recording_frames("demo_session")
+        self.assertIsNotNone(data)
+        self.assertEqual(data["total_duration"], 95.0)
+        self.assertEqual(data["total_frames"], 191)  # 0.0 to 95.0 @ 0.5s step
+
+        frames = data["frames"]
+        self.assertEqual(len(frames), 191)
+
+        # 1. 00-15s: Occupancy = 0, no person markers
+        for f in frames:
+            if f["time_offset"] < 15.0:
+                self.assertEqual(f["occupancy"], 0)
+                self.assertEqual(len(f["people"]), 0)
+
+        # 2. 15-30s: Occupancy = 1, P1 in Zone 1
+        for f in frames:
+            if 15.0 <= f["time_offset"] < 30.0:
+                self.assertEqual(f["occupancy"], 1)
+                self.assertEqual(len(f["people"]), 1)
+                self.assertEqual(f["people"][0]["id"], "P1")
+                self.assertEqual(f["people"][0]["zone"], "Z1")
+
+        # 3. 30-45s: Occupancy = 1, P1 moves to Zone 3
+        for f in frames:
+            if 30.0 <= f["time_offset"] < 45.0:
+                self.assertEqual(f["occupancy"], 1)
+                self.assertEqual(len(f["people"]), 1)
+                self.assertEqual(f["people"][0]["id"], "P1")
+                if f["time_offset"] >= 34.0:
+                    self.assertEqual(f["people"][0]["zone"], "Z3")
+
+        # 4. 45-55s: Occupancy = 0, markers disappear (settling)
+        for f in frames:
+            if 45.0 <= f["time_offset"] < 55.0:
+                self.assertEqual(f["occupancy"], 0)
+                self.assertEqual(len(f["people"]), 0)
+
+        # 5. 55-70s: Occupancy = 2, P2 in Zone 2 and P3 in Zone 4
+        for f in frames:
+            if 55.0 <= f["time_offset"] < 70.0:
+                self.assertEqual(f["occupancy"], 2)
+                self.assertEqual(len(f["people"]), 2)
+                ids = {p["id"] for p in f["people"]}
+                self.assertEqual(ids, {"P2", "P3"})
+                zones = {p["id"]: p["zone"] for p in f["people"]}
+                self.assertEqual(zones["P2"], "Z2")
+                self.assertEqual(zones["P3"], "Z4")
+
+        # 6. 70-85s: Occupancy = 2, both P2 and P3 in Zone 1
+        for f in frames:
+            if 70.0 <= f["time_offset"] < 85.0:
+                self.assertEqual(f["occupancy"], 2)
+                self.assertEqual(len(f["people"]), 2)
+                ids = {p["id"] for p in f["people"]}
+                self.assertEqual(ids, {"P2", "P3"})
+                if f["time_offset"] >= 74.0:
+                    self.assertEqual(f["people"][0]["zone"], "Z1")
+                    self.assertEqual(f["people"][1]["zone"], "Z1")
+
+        # 7. 85-95s: Occupancy = 0, markers disappear (settling/final)
+        for f in frames:
+            if 85.0 <= f["time_offset"] <= 95.0:
+                self.assertEqual(f["occupancy"], 0)
+                self.assertEqual(len(f["people"]), 0)
+
+        # Final frame (t=95.0s) must be strictly empty
+        last_frame = frames[-1]
+        self.assertEqual(last_frame["time_offset"], 95.0)
+        self.assertEqual(last_frame["occupancy"], 0)
+        self.assertEqual(len(last_frame["people"]), 0)
+
+    def test_demo_session_persistent_marker_ids_and_transitions(self):
+        from spatial.replay_loader import load_recording_frames
+
+        data = load_recording_frames("demo_session")
+        frames = data["frames"]
+
+        # Track IDs across phases
+        p1_frames = [f for f in frames if any(p["id"] == "P1" for p in f["people"])]
+        p2_frames = [f for f in frames if any(p["id"] == "P2" for p in f["people"])]
+        p3_frames = [f for f in frames if any(p["id"] == "P3" for p in f["people"])]
+
+        # P1 exists only between 15s and 45s
+        self.assertTrue(all(15.0 <= f["time_offset"] < 45.0 for f in p1_frames))
+
+        # P2 and P3 exist only between 55s and 85s
+        self.assertTrue(all(55.0 <= f["time_offset"] < 85.0 for f in p2_frames))
+        self.assertTrue(all(55.0 <= f["time_offset"] < 85.0 for f in p3_frames))
+
+        # Verify marker gliding coordinates change monotonically during transitions
+        glide_p1 = [f["people"][0]["x"] for f in frames if 30.0 <= f["time_offset"] <= 33.5]
+        # X moves from 285.0 down toward 125.0
+        self.assertTrue(glide_p1[0] > glide_p1[-1])
+
+
 if __name__ == "__main__":
     unittest.main()
 
