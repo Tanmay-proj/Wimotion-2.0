@@ -113,8 +113,8 @@ def generate_demo_session_frames(step_seconds: float = 0.5, total_duration: floa
     - 15-30s: 1 person (P1) in Zone 1 (NE)
     - 30-45s: 1 person (P1) moves from Zone 1 to Zone 3 (SW)
     - 45-55s: 0 persons, markers disappear (Exit / Settling)
-    - 55-70s: 2 persons (P2 in Z2 NW, P3 in Z4 SE)
-    - 70-85s: 2 persons (P2 & P3 move to Zone 1 NE, occupancy remains 2)
+    - 55-70s: 2 persons (P1 in Z2 NW, P2 in Z4 SE)
+    - 70-85s: 2 persons (P1 & P2 move to Zone 1 NE, occupancy remains 2)
     - 85-95s: 0 persons, markers disappear (All Exited)
     """
     base_ts = 1728580000.0
@@ -174,8 +174,8 @@ def generate_demo_session_frames(step_seconds: float = 0.5, total_duration: floa
             gt_motion = "TWO_PERSONS_SPLIT"
             model_zone = "Z2"
             people = [
-                {"id": "P2", "zone": "Z2", "x": 125.0, "y": 125.0, "score": 18.2, "color": "#35C5D5"},
-                {"id": "P3", "zone": "Z4", "x": 285.0, "y": 275.0, "score": 20.4, "color": "#B388FF"}
+                {"id": "P1", "zone": "Z2", "x": 125.0, "y": 125.0, "score": 18.2, "color": "#45C486"},
+                {"id": "P2", "zone": "Z4", "x": 285.0, "y": 275.0, "score": 20.4, "color": "#35C5D5"}
             ]
             link_details["RX1-TX2"]["variance"] = 18.2
             link_details["RX1-TX2"]["status"] = "ACTIVE"
@@ -189,8 +189,8 @@ def generate_demo_session_frames(step_seconds: float = 0.5, total_duration: floa
             gt_motion = "TWO_PERSONS_IN_ZONE_1"
             model_zone = "Z1"
             people = [
-                {"id": "P2", "zone": "Z1", "x": 270.0, "y": 115.0, "score": 24.0, "color": "#35C5D5"},
-                {"id": "P3", "zone": "Z1", "x": 295.0, "y": 135.0, "score": 26.5, "color": "#B388FF"}
+                {"id": "P1", "zone": "Z1", "x": 270.0, "y": 115.0, "score": 24.0, "color": "#45C486"},
+                {"id": "P2", "zone": "Z1", "x": 295.0, "y": 135.0, "score": 26.5, "color": "#35C5D5"}
             ]
             link_details["RX1-TX1"]["variance"] = 26.5
             link_details["RX1-TX1"]["status"] = "ACTIVE"

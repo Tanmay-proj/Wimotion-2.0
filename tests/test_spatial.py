@@ -543,24 +543,24 @@ class TestSpatial(unittest.TestCase):
                 self.assertEqual(f["occupancy"], 0)
                 self.assertEqual(len(f["people"]), 0)
 
-        # 5. 55-70s: Occupancy = 2, P2 in Zone 2 and P3 in Zone 4
+        # 5. 55-70s: Occupancy = 2, P1 in Zone 2 and P2 in Zone 4
         for f in frames:
             if 55.0 <= f["time_offset"] < 70.0:
                 self.assertEqual(f["occupancy"], 2)
                 self.assertEqual(len(f["people"]), 2)
                 ids = {p["id"] for p in f["people"]}
-                self.assertEqual(ids, {"P2", "P3"})
+                self.assertEqual(ids, {"P1", "P2"})
                 zones = {p["id"]: p["zone"] for p in f["people"]}
-                self.assertEqual(zones["P2"], "Z2")
-                self.assertEqual(zones["P3"], "Z4")
+                self.assertEqual(zones["P1"], "Z2")
+                self.assertEqual(zones["P2"], "Z4")
 
-        # 6. 70-85s: Occupancy = 2, both P2 and P3 in Zone 1
+        # 6. 70-85s: Occupancy = 2, both P1 and P2 in Zone 1
         for f in frames:
             if 70.0 <= f["time_offset"] < 85.0:
                 self.assertEqual(f["occupancy"], 2)
                 self.assertEqual(len(f["people"]), 2)
                 ids = {p["id"] for p in f["people"]}
-                self.assertEqual(ids, {"P2", "P3"})
+                self.assertEqual(ids, {"P1", "P2"})
                 if f["time_offset"] >= 74.0:
                     self.assertEqual(f["people"][0]["zone"], "Z1")
                     self.assertEqual(f["people"][1]["zone"], "Z1")
@@ -583,17 +583,19 @@ class TestSpatial(unittest.TestCase):
         data = load_recording_frames("demo_session")
         frames = data["frames"]
 
-        # Track IDs across phases
+        # Track IDs across phases: P1, P2 only (no P3)
         p1_frames = [f for f in frames if any(p["id"] == "P1" for p in f["people"])]
         p2_frames = [f for f in frames if any(p["id"] == "P2" for p in f["people"])]
         p3_frames = [f for f in frames if any(p["id"] == "P3" for p in f["people"])]
 
-        # P1 exists only between 15s and 45s
-        self.assertTrue(all(15.0 <= f["time_offset"] < 45.0 for f in p1_frames))
+        # P3 must not exist at all
+        self.assertEqual(len(p3_frames), 0)
 
-        # P2 and P3 exist only between 55s and 85s
+        # P1 exists in 15s-45s (solo) and 55s-85s (with P2)
+        self.assertTrue(all((15.0 <= f["time_offset"] < 45.0) or (55.0 <= f["time_offset"] < 85.0) for f in p1_frames))
+
+        # P2 exists only in 55s-85s
         self.assertTrue(all(55.0 <= f["time_offset"] < 85.0 for f in p2_frames))
-        self.assertTrue(all(55.0 <= f["time_offset"] < 85.0 for f in p3_frames))
 
         # Verify markers are strictly placed in their discrete zones without floating between zones
         for f in frames:
