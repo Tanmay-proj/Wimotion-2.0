@@ -55,9 +55,9 @@ goto MENU
 echo.
 echo [*] Enabling Live Hardware Serial Engine...
 set WIMOTION_ENABLE_SERIAL=1
+set WIMOTION_AUTO_OPEN_BROWSER=1
 echo [*] Starting WiMotion 2.0 HUD Server...
-echo [*] Opening Dashboard in browser: http://127.0.0.1:8000
-start http://127.0.0.1:8000
+echo [*] Observatory dashboard will open automatically in browser once server is ready: http://127.0.0.1:8000
 py -3.10 -m uvicorn spatial.server:app --host 127.0.0.1 --port 8000
 pause
 goto MENU

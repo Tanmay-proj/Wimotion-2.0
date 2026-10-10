@@ -1,6 +1,7 @@
 import time
 import os
 from pathlib import Path
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,17 +10,6 @@ from .types import SpatialState
 from .live import LiveSpatialEngine
 from .config import load_config
 from .replay_loader import list_recordings, load_recording_frames
-
-app = FastAPI(title="WiMotion 2.0 Multi-Link Spatial API", version="2.0.0")
-
-# Restrict CORS to exact local development and dashboard origin
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000"],
-    allow_credentials=True,
-    allow_methods=["GET", "POST"],
-    allow_headers=["*"],
-)
 
 DASHBOARD_PATH = Path(__file__).resolve().parent.parent / "dashboard" / "observatory_multi.html"
 
@@ -92,8 +82,37 @@ REPLAY_STATE = {
 engine_instance = None
 
 
-@app.on_event("startup")
-def startup_event():
+def _launch_browser_when_ready(url: str = "http://127.0.0.1:8000", max_retries: int = 60, delay: float = 0.15):
+    """
+    Polls the server's /health endpoint in a background daemon thread.
+    Opens the default browser only when HTTP 200 is confirmed, eliminating
+    the 'Site can't be reached' connection-refused race condition.
+    """
+    import urllib.request
+    import webbrowser
+    import threading
+
+    def _poll():
+        health_url = f"{url}/health"
+        for _ in range(max_retries):
+            time.sleep(delay)
+            try:
+                with urllib.request.urlopen(health_url, timeout=0.5) as resp:
+                    if resp.status == 200:
+                        print(f"[*] Server ready! Opening observatory dashboard: {url}")
+                        webbrowser.open(url)
+                        return
+            except Exception:
+                pass
+        print("[!] Note: Server health check timeout during auto-browser open.")
+
+    t = threading.Thread(target=_poll, daemon=True, name="wimotion-browser-opener")
+    t.start()
+    return t
+
+
+@asynccontextmanager
+async def lifespan(app_instance: FastAPI):
     global engine_instance
     try:
         if os.environ.get("WIMOTION_ENABLE_SERIAL", "1") == "1":
@@ -103,12 +122,27 @@ def startup_event():
     except Exception as e:
         print(f"[!] Note: Serial hardware not attached ({e}), running in HTTP API mode.")
 
+    # Only auto-open if explicitly requested and not running under CI / test harness
+    if os.environ.get("WIMOTION_AUTO_OPEN_BROWSER", "0") == "1" and not os.environ.get("CI"):
+        _launch_browser_when_ready()
 
-@app.on_event("shutdown")
-def shutdown_event():
-    global engine_instance
+    yield
+
     if engine_instance:
         engine_instance.stop()
+
+
+app = FastAPI(title="WiMotion 2.0 Multi-Link Spatial API", version="2.0.0", lifespan=lifespan)
+
+# Restrict CORS to exact local development and dashboard origin
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
 
 
 SYSTEM_EVENTS = [
@@ -296,3 +330,10 @@ def health():
         "active_mode": CURRENT_MODE,
         "timestamp": time.time()
     }
+
+
+if __name__ == "__main__":
+    import uvicorn
+    os.environ["WIMOTION_AUTO_OPEN_BROWSER"] = "1"
+    uvicorn.run("spatial.server:app", host="127.0.0.1", port=8000, reload=False)
+

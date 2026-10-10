@@ -469,8 +469,31 @@ class TestSpatial(unittest.TestCase):
             self.assertEqual(len(linear_records), len(bisect_records))
             self.assertEqual([r.timestamp for r in linear_records], [r.timestamp for r in bisect_records])
 
+    def test_auto_browser_opener_when_server_ready(self):
+        from unittest.mock import patch, MagicMock
+        from spatial.server import _launch_browser_when_ready
+
+        # 1. Success case: server returns HTTP 200 on /health -> browser opens
+        mock_resp = MagicMock()
+        mock_resp.status = 200
+        mock_resp.__enter__.return_value = mock_resp
+
+        with patch("urllib.request.urlopen", return_value=mock_resp) as mock_urlopen, \
+             patch("webbrowser.open") as mock_browser_open:
+            t = _launch_browser_when_ready(url="http://127.0.0.1:8000", max_retries=5, delay=0.01)
+            t.join(timeout=1.0)
+            mock_browser_open.assert_called_once_with("http://127.0.0.1:8000")
+
+        # 2. Timeout case: server unreachable -> browser must NOT open
+        with patch("urllib.request.urlopen", side_effect=Exception("Connection refused")), \
+             patch("webbrowser.open") as mock_browser_open_fail:
+            t = _launch_browser_when_ready(url="http://127.0.0.1:8000", max_retries=2, delay=0.01)
+            t.join(timeout=1.0)
+            mock_browser_open_fail.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
