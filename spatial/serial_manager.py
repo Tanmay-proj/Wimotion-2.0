@@ -42,18 +42,22 @@ class SerialReceiverWorker(threading.Thread):
         self.last_rate_calc = time.time()
         self.current_rate_hz = 0.0
         self.current_per_tx_rates = {}
+        self.last_error = None
 
     def run(self):
-        self.running = True
         if not SERIAL_AVAILABLE:
+            self.running = False
+            self.last_error = "PYSERIAL_UNAVAILABLE"
             print(f"[!] PySerial not available. Cannot start {self.receiver_id} on {self.port}")
             return
 
         if not self.port or self.port.upper().startswith("COM_OFFLINE") or self.port.upper() == "OFFLINE":
             print(f"[*] {self.receiver_id}: Configured as offline standby ({self.port}).")
             self.running = False
+            self.last_error = "CONFIGURED_OFFLINE"
             return
 
+        self.running = True
         while self.running:
             try:
                 print(f"[*] {self.receiver_id}: Connecting to {self.port} @ {self.baud} baud...")
@@ -105,6 +109,7 @@ class SerialReceiverWorker(threading.Thread):
                         self.callback(record)
 
             except Exception as e:
+                self.last_error = str(e)
                 if not self.running:
                     break
                 print(f"[!] {self.receiver_id} ({self.port}) connection error: {e}. Retrying in 2s...")
@@ -161,29 +166,33 @@ class MultiSerialManager:
         health_report = {}
         for rx_id, w in self.workers.items():
             per_rates = dict(w.current_per_tx_rates)
-            # Evaluate if all configured transmitters are transmitting above 1.0 Hz
             active_links_count = sum(1 for r in per_rates.values() if r >= 1.0)
-            
-            if not w.running:
+            is_open = bool(w.serial_conn and w.serial_conn.is_open)
+
+            if not w.running or not SERIAL_AVAILABLE:
                 status = "OFFLINE"
+            elif not is_open:
+                status = "DISCONNECTED"
             elif w.current_rate_hz >= self.config.sampling.minimum_hz:
                 if active_links_count >= len(self.config.transmitters):
                     status = "HEALTHY"
-                elif active_links_count > 0:
-                    status = "PARTIAL"
                 else:
                     status = "PARTIAL"
-            else:
+            elif w.current_rate_hz > 0:
                 status = "DEGRADED"
+            else:
+                status = "DISCONNECTED"
 
             health_report[rx_id] = {
                 "port": w.port,
                 "running": w.running,
+                "serial_connected": is_open,
                 "aggregate_rate_hz": round(w.current_rate_hz, 2),
                 "rate_hz": round(w.current_rate_hz, 2),
                 "per_link_rates": per_rates,
                 "active_tx_count": active_links_count,
                 "status": status,
-                "healthy": status == "HEALTHY"
+                "healthy": status == "HEALTHY",
+                "error": getattr(w, "last_error", None)
             }
         return health_report

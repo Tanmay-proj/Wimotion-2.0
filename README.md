@@ -43,11 +43,10 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **8-Link Schema & Fusion** | ✅ **Implemented** | 56-dim feature vector (48 stats + 8-bit link validity mask) |
 | **Signal Quality Gate** | ✅ **Implemented** | Blocks inference if receiver rate falls below 4.0 Hz |
 | **Sliding Window Buffer** | ✅ **Implemented** | 2.0s sliding window with 0.5s step (`spatial/window.py`) |
-| **Synthetic Replay Suite** | ✅ **Implemented** | 600-frame 3-stage validation (`spatial/replay.py`) |
-| **Person Tracker Engine** | ✅ **Implemented** | Persistent ID assignment (`P1`, `P2`, `P3`) |
-| **FastAPI Backend & API** | ✅ **Implemented** | Non-blocking HTTP endpoints (`GET /api/spatial`, `GET /health`) |
-| **Tactical Multi-Person HUD** | ✅ **Implemented** | 4-sector glassmorphism HUD with dynamic avatars (`dashboard/`) |
-| **Automated Unit Tests** | ✅ **Passing (6/6)** | Verified tensor shapes, gates, raw CSI parsing, and tracking (`tests/test_spatial.py`) |
+| **Strict Mode Isolation** | ✅ **Implemented** | Authoritative separation between LIVE hardware, REPLAY lab, and SIMULATION (`spatial/server.py`) |
+| **Unified State Renderer** | ✅ **Implemented** | Consistent single-renderer driving metrics, 8-link mesh, timeline, and radar (`dashboard/observatory_multi.html`) |
+| **Safe Replay Lab Engine** | ✅ **Implemented** | Timestamp-based playback with scrub, rate quality gate, and XSS-safe DOM nodes (`spatial/replay_loader.py`) |
+| **Automated Unit Tests** | ✅ **Passing (13/13)** | Mode isolation, stale stream `UNKNOWN`, quality gate, tensor shapes, raw CSI parsing, tracking (`tests/test_spatial.py`) |
 | **Dual-RX Flashed & Listening** | ✅ **Verified** | Master AP (`COM3`) & Passive Sniffer (`COM8`) active @ 921,600 baud |
 | **Labelled Multi-Person Dataset** | ⏳ **Pending Collection** | Capture script ready (`scripts/record_multilink_dataset.py`) |
 | **Trained Multi-Class ML Model** | ⏳ **Pending Dataset** | Scaffold baseline active; real ML model trained after data collection |
@@ -61,18 +60,13 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 py -3.10 -m unittest discover -s tests -v
 ```
 
-### 2. Run Synthetic 3-Stage Replay
-```bash
-py -3.10 -m spatial.replay
-```
-
-### 3. Launch Tactical HUD Server
+### 2. Launch Tactical Console & Web Server
 ```bash
 py -3.10 -m uvicorn spatial.server:app --host 127.0.0.1 --port 8000
 ```
 Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser.
 
-### 4. Interactive Hardware Diagnostic (When Boards Plugged In)
+### 3. Interactive Hardware Diagnostic (When ESP32 Boards Plugged In)
 ```bash
 py -3.10 scripts/0_check_multilink_hardware.py --interactive
 ```
@@ -80,5 +74,14 @@ py -3.10 scripts/0_check_multilink_hardware.py --interactive
 ---
 
 ## 4. Engineering Principles & Scientific Integrity
-- **Scaffold vs. Learned ML:** The current `SpatialBaseline` model serves as a deterministic functional scaffold to verify data pipelines and visualization. Final crowd counting and localization require empirical cross-validation on real labelled session data.
-- **Safety Guarantee:** Project WiMotion v1.0 (`wimotion/`) remains 100% frozen, intact, and fully operational as an independent baseline.
+
+- **Heuristic Zone Perturbation vs. Validated Human Counting:**
+  The current spatial baseline tracks **perturbed RF sectors**, based on temporal CSI variance thresholds (threshold = 8.0). Active zone count reflects perturbed links, NOT an independently verified count of physical humans. A single individual walking across the room can perturb multiple links simultaneously, while two stationary individuals in one sector activate a single quadrant.
+- **Truthful Telemetry Semantics:**
+  When physical hardware is unplugged or CSI packets are interrupted (> 3.0s timeout), the system authoritatively reports `zone: UNKNOWN` and `inference_status: UNAVAILABLE`. Disconnected hardware is never falsely reported as an empty room (`CLEAR`).
+- **Complete Mode Isolation:**
+  Synthetic simulation data cannot leak into or override live hardware data. The backend explicitly manages operating modes (`LIVE`, `REPLAY`, `SIMULATION`), isolates memory stores, and clears stale values on mode switches.
+- **Scaffold vs. Learned ML:**
+  The current `SpatialBaseline` model serves as a deterministic functional scaffold to verify data pipelines, quality gates, and spatial visualization. Final crowd counting and localization require empirical cross-validation on real labelled session data.
+- **Safety Guarantee:**
+  Project WiMotion v1.0 (`wimotion/`) remains 100% frozen, intact, and fully operational as an independent baseline.

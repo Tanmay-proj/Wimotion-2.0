@@ -86,14 +86,18 @@ class SpatialBaseline:
         else:
             primary_zone = "CLEAR"
 
-        count = len(active_zones)
+        # Note: active_zones reflects distinct RF sectors with variance >= threshold,
+        # not physically calibrated multi-person counting.
+        active_zone_count = len(active_zones)
 
         return {
             "signal_ok": True,
-            "count": count,
+            "count": active_zone_count,
+            "active_zone_count": active_zone_count,
             "zone": primary_zone,
+            "inference_status": "ACTIVE_PERTURBATION" if primary_zone != "CLEAR" else "BASELINE_CLEAR",
             "people": people,
             "active_links": active_links,
             "confidence": None,
-            "reason": "BASELINE_OK"
+            "reason": "ZONE_PERTURBATION_DETECTED" if primary_zone != "CLEAR" else "BASELINE_OK"
         }

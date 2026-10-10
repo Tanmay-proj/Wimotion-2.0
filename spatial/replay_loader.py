@@ -15,6 +15,32 @@ ROOT = Path(__file__).resolve().parent.parent
 DATA_RAW = ROOT / "data" / "raw"
 
 
+def _extract_csv_timestamps(csv_path: Path) -> Optional[tuple[float, float, int]]:
+    """Quickly extracts start_ts, end_ts, and record count from CSV without full parsing."""
+    try:
+        first_ts = None
+        last_ts = None
+        count = 0
+        with open(csv_path, "r", encoding="utf-8", errors="ignore") as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            for row in reader:
+                if len(row) > 0 and row[0]:
+                    try:
+                        ts = float(row[0])
+                        if first_ts is None:
+                            first_ts = ts
+                        last_ts = ts
+                        count += 1
+                    except ValueError:
+                        pass
+        if first_ts is not None and last_ts is not None:
+            return first_ts, last_ts, count
+    except Exception:
+        pass
+    return None
+
+
 def list_recordings() -> List[Dict[str, Any]]:
     """Discovers all available recorded sessions in data/raw."""
     if not DATA_RAW.exists():
@@ -34,22 +60,29 @@ def list_recordings() -> List[Dict[str, Any]]:
 
         session_id = meta.get("session_id", session_dir.name if session_dir != DATA_RAW else csv_path.stem)
         created_at = meta.get("created_at") or time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(csv_path)))
+        
+        # Aligned metadata field check (both total_records and total_records_captured)
+        total_records = meta.get("total_records") or meta.get("total_records_captured")
         duration = meta.get("duration_seconds")
-        total_records = meta.get("total_records")
+        
+        # If duration or total_records missing, calculate from real CSV timestamps
+        if duration is None or total_records is None:
+            ts_info = _extract_csv_timestamps(csv_path)
+            if ts_info:
+                first_ts, last_ts, count = ts_info
+                if duration is None:
+                    duration = round(max(0.0, last_ts - first_ts), 2)
+                if total_records is None:
+                    total_records = count
+
+        if duration is None:
+            duration = 0.0
+        if total_records is None:
+            total_records = 0
+
         gt_zone = meta.get("ground_truth_zone", "UNKNOWN")
         gt_count = meta.get("ground_truth_count", 0)
         motion_state = meta.get("motion_state", "UNKNOWN")
-
-        # Fallback record count estimation if not in metadata
-        if total_records is None:
-            try:
-                with open(csv_path, "r", encoding="utf-8", errors="ignore") as f:
-                    total_records = max(0, sum(1 for _ in f) - 1)
-            except Exception:
-                total_records = 0
-
-        if duration is None:
-            duration = round(total_records / 160.0, 1) if total_records > 0 else 0.0
 
         sessions.append({
             "session_id": session_id,
@@ -70,33 +103,48 @@ def list_recordings() -> List[Dict[str, Any]]:
 
 def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_seconds: float = 2.0) -> Optional[Dict[str, Any]]:
     """Loads a recording file and converts it into uniform timestamped replay frames."""
-    if not DATA_RAW.exists():
+    if not DATA_RAW.exists() or not session_id:
         return None
 
-    # Locate CSV file matching session_id
+    # Strict exact matching for session_id
     target_csv = None
     target_meta = {}
 
-    for csv_path in DATA_RAW.glob("**/*.csv"):
-        s_id = csv_path.parent.name if csv_path.parent != DATA_RAW else csv_path.stem
-        meta_candidates = list(csv_path.parent.glob("metadata*.json"))
-        if meta_candidates:
-            try:
-                m = json.loads(meta_candidates[0].read_text(encoding="utf-8"))
-                if m.get("session_id") == session_id:
-                    target_csv = csv_path
-                    target_meta = m
-                    break
-            except Exception:
-                pass
-        if s_id == session_id or session_id in csv_path.name:
-            target_csv = csv_path
-            if meta_candidates and not target_meta:
+    # 1. Direct directory match
+    direct_dir = DATA_RAW / session_id
+    if direct_dir.is_dir():
+        csv_files = list(direct_dir.glob("*.csv"))
+        if csv_files:
+            target_csv = csv_files[0]
+            meta_candidates = list(direct_dir.glob("metadata*.json"))
+            if meta_candidates:
                 try:
                     target_meta = json.loads(meta_candidates[0].read_text(encoding="utf-8"))
                 except Exception:
                     pass
-            break
+
+    # 2. Exact match in metadata or filename
+    if not target_csv:
+        for csv_path in DATA_RAW.glob("**/*.csv"):
+            s_id = csv_path.parent.name if csv_path.parent != DATA_RAW else csv_path.stem
+            meta_candidates = list(csv_path.parent.glob("metadata*.json"))
+            if meta_candidates:
+                try:
+                    m = json.loads(meta_candidates[0].read_text(encoding="utf-8"))
+                    if m.get("session_id") == session_id:
+                        target_csv = csv_path
+                        target_meta = m
+                        break
+                except Exception:
+                    pass
+            if s_id == session_id or csv_path.stem == session_id:
+                target_csv = csv_path
+                if meta_candidates and not target_meta:
+                    try:
+                        target_meta = json.loads(meta_candidates[0].read_text(encoding="utf-8"))
+                    except Exception:
+                        pass
+                break
 
     if not target_csv or not target_csv.exists():
         return None
@@ -172,50 +220,17 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         else:
             latest_gt_count, latest_gt_zone, latest_motion = 0, "CLEAR", "UNKNOWN"
 
-        features = extract_link_features(window_records) if window_records else []
-        pred = model.predict(features, len(features), len(window_records) > 0)
-
-        per_tx_var = {}
-        link_details = {}
-        for f in features:
-            rx = f.get("receiver")
-            tx = f.get("tx")
-            link_key = f"{rx}-{tx}"
-            var = f.get("csi_variance", 0.0)
-            per_tx_var[tx] = max(per_tx_var.get(tx, 0.0), round(var, 2))
-            link_details[link_key] = {
-                "variance": round(var, 2),
-                "rssi": round(f.get("rssi", -60.0), 1) if f.get("rssi") is not None else -60.0,
-                "rate": round(f.get("sample_count", 0) / window_seconds, 1),
-                "status": "ACTIVE" if var > 0.0 else "IDLE"
-            }
-
-        # Determine evaluation comparison
-        pred_zone = pred.get("zone", "CLEAR")
-        if latest_gt_zone == "CLEAR":
-            eval_status = "CORRECT_BASELINE" if pred_zone == "CLEAR" else "FALSE_POSITIVE"
-        else:
-            eval_status = "ZONE_MATCH" if pred_zone == latest_gt_zone else "ZONE_MISMATCH"
-
-        frame = {
-            "time_offset": round(current_offset, 2),
-            "timestamp": round(window_end, 3),
-            "duration": round(total_duration, 2),
-            "gt_zone": latest_gt_zone,
-            "gt_count": latest_gt_count,
-            "gt_motion": latest_motion,
-            "model_zone": pred_zone,
-            "model_decision": "HUMAN_PERTURBATION" if pred_zone != "CLEAR" else "EMPTY_ROOM",
-            "model_score": max(per_tx_var.values()) if per_tx_var else 0.0,
-            "eval_status": eval_status,
-            "active_links": len(features),
-            "link_count": 8,
-            "per_tx_variance": per_tx_var,
-            "link_details": link_details,
-            "people": pred.get("people", []),
-            "window_records_count": len(window_records),
-            "rate_hz": round(len(window_records) / window_seconds, 1)
-        }
+        frame = evaluate_window_frame(
+            window_records=window_records,
+            window_seconds=window_seconds,
+            total_duration=total_duration,
+            current_offset=current_offset,
+            window_end=window_end,
+            latest_gt_count=latest_gt_count,
+            latest_gt_zone=latest_gt_zone,
+            latest_motion=latest_motion,
+            model=model
+        )
         frames.append(frame)
         current_offset += step_seconds
 
@@ -226,4 +241,72 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         "frame_interval": step_seconds,
         "total_frames": len(frames),
         "frames": frames
+    }
+
+
+def evaluate_window_frame(
+    window_records: list,
+    window_seconds: float = 2.0,
+    total_duration: float = 10.0,
+    current_offset: float = 0.0,
+    window_end: float = 0.0,
+    latest_gt_count: int = 0,
+    latest_gt_zone: str = "CLEAR",
+    latest_motion: str = "UNKNOWN",
+    model: Optional[SpatialBaseline] = None
+) -> Dict[str, Any]:
+    """Evaluates a single sliding-window of CSI records against quality gates and ground truth."""
+    if model is None:
+        model = SpatialBaseline()
+
+    features = extract_link_features(window_records) if window_records else []
+    window_rate = len(window_records) / window_seconds if window_seconds > 0 else 0.0
+    
+    # Rigorous Signal Quality Gate: at least 8 packets, rate >= 4.0 Hz
+    signal_ok = (len(window_records) >= 8) and (len(features) >= 1) and (window_rate >= 4.0)
+
+    pred = model.predict(features, len(features), signal_ok)
+
+    per_tx_var = {}
+    link_details = {}
+    for f in features:
+        rx = f.get("receiver")
+        tx = f.get("tx")
+        link_key = f"{rx}-{tx}"
+        var = f.get("csi_variance", 0.0)
+        per_tx_var[tx] = max(per_tx_var.get(tx, 0.0), round(var, 2))
+        link_details[link_key] = {
+            "variance": round(var, 2),
+            "rssi": round(f.get("rssi", -60.0), 1) if f.get("rssi") is not None else -60.0,
+            "rate": round(f.get("sample_count", 0) / window_seconds, 1),
+            "status": "ACTIVE" if var >= 8.0 else "BASELINE"
+        }
+
+    # Determine evaluation comparison
+    pred_zone = pred.get("zone", "UNKNOWN")
+    if not signal_ok or pred_zone == "UNKNOWN":
+        eval_status = "INSUFFICIENT_DATA"
+    elif latest_gt_zone == "CLEAR":
+        eval_status = "CORRECT_BASELINE" if pred_zone == "CLEAR" else "FALSE_POSITIVE"
+    else:
+        eval_status = "ZONE_MATCH" if pred_zone == latest_gt_zone else "ZONE_MISMATCH"
+
+    return {
+        "time_offset": round(current_offset, 2),
+        "timestamp": round(window_end, 3),
+        "duration": round(total_duration, 2),
+        "gt_zone": latest_gt_zone,
+        "gt_count": latest_gt_count,
+        "gt_motion": latest_motion,
+        "model_zone": pred_zone,
+        "model_decision": "HUMAN_PERTURBATION" if pred_zone not in ["CLEAR", "UNKNOWN"] else ("EMPTY_ROOM" if pred_zone == "CLEAR" else "UNAVAILABLE"),
+        "model_score": max(per_tx_var.values()) if per_tx_var else 0.0,
+        "eval_status": eval_status,
+        "active_links": len(features),
+        "link_count": 8,
+        "per_tx_variance": per_tx_var,
+        "link_details": link_details,
+        "people": pred.get("people", []),
+        "window_records_count": len(window_records),
+        "rate_hz": round(window_rate, 1)
     }

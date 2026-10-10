@@ -67,8 +67,10 @@ class LiveSpatialEngine:
                 "last_valid_data_time": self.last_record_receipt_time,
                 "signal_ok": pred["signal_ok"],
                 "count": pred["count"],
+                "active_zone_count": pred.get("active_zone_count", pred["count"]),
                 "people": tracked,
                 "zone": pred["zone"],
+                "inference_status": pred.get("inference_status", "ACTIVE" if pred["zone"] != "CLEAR" else "CLEAR"),
                 "active_links": active,
                 "link_count": 8,
                 "confidence": None,  # Non-probabilistic; uncalibrated heuristic
@@ -102,7 +104,9 @@ class LiveSpatialEngine:
                 st["mode"] = "HARDWARE OFFLINE (NO RECENT PACKETS)"
                 st["reason"] = "AWAITING_SERIAL_STREAM"
                 st["count"] = 0
-                st["zone"] = "CLEAR"
+                st["active_zone_count"] = 0
+                st["zone"] = "UNKNOWN"
+                st["inference_status"] = "UNAVAILABLE"
                 st["people"] = []
             elif active_rx >= 2:
                 st["hardware_connected"] = True
@@ -113,6 +117,8 @@ class LiveSpatialEngine:
             else:
                 st["hardware_connected"] = False
                 st["signal_ok"] = False
+                st["zone"] = "UNKNOWN"
+                st["inference_status"] = "UNAVAILABLE"
                 st["mode"] = "HARDWARE STANDBY"
 
             return st

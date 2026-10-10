@@ -693,10 +693,10 @@
           </div>
         </div>
 
-        <!-- Card 4: PRESENCE STATE -->
+        <!-- Card 4: HEURISTIC ZONE PERTURBATION -->
         <div class="metric-card">
           <div class="metric-label">
-            <span>PRESENCE STATE</span>
+            <span>HEURISTIC ZONE PERTURBATION</span>
             <span class="badge-tag" id="tag-gate-status">GATE ACTIVE</span>
           </div>
           <div class="metric-value" id="val-presence-state" style="color:var(--accent-cyan)">CLEAR</div>
@@ -887,17 +887,17 @@
             <button class="btn-transport" onclick="stepReplay(1.0)">+1s</button>
             
             <div class="speed-btn-group">
-              <button class="speed-btn" onclick="setReplaySpeed(0.25)">0.25×</button>
-              <button class="speed-btn" onclick="setReplaySpeed(0.5)">0.5×</button>
-              <button class="speed-btn active" id="spd-1" onclick="setReplaySpeed(1.0)">1.0×</button>
-              <button class="speed-btn" onclick="setReplaySpeed(2.0)">2.0×</button>
+              <button class="speed-btn" data-speed="0.25" onclick="setReplaySpeed(0.25)">0.25×</button>
+              <button class="speed-btn" data-speed="0.5" onclick="setReplaySpeed(0.5)">0.5×</button>
+              <button class="speed-btn active" id="spd-1" data-speed="1.0" onclick="setReplaySpeed(1.0)">1.0×</button>
+              <button class="speed-btn" data-speed="2.0" onclick="setReplaySpeed(2.0)">2.0×</button>
             </div>
           </div>
         </div>
 
         <!-- Scrubber Progress Bar -->
         <div class="scrub-container">
-          <input type="range" class="scrub-slider" id="replay-scrubber" min="0" max="100" value="0" step="0.5" oninput="onScrubInput(this.value)">
+          <input type="range" class="scrub-slider" id="replay-scrubber" min="0" max="100" value="0" step="1" oninput="onScrubInput(this.value)">
           <div class="scrub-timer" id="replay-timer-display">0.0s / 0.0s</div>
         </div>
 
@@ -1097,14 +1097,17 @@
       
       // Polling loops
       setInterval(pollSpatialState, 500);
+      setInterval(pollHealthStatus, 1500);
       setInterval(updateSystemClock, 1000);
       updateSystemClock();
     });
 
     function updateSystemClock() {
       const now = new Date();
-      document.getElementById('footer-system-clock').textContent = 
-        `SYS TIME: ${now.toLocaleTimeString()} · HOST EPOCH: ${Math.floor(now.getTime() / 1000)}`;
+      const el = document.getElementById('footer-system-clock');
+      if (el) {
+        el.textContent = `SYS TIME: ${now.toLocaleTimeString()} · HOST EPOCH: ${Math.floor(now.getTime() / 1000)}`;
+      }
     }
 
     /* =====================================================================
@@ -1126,7 +1129,8 @@
     function renderLinkTableSkeleton() {
       if (!STATE.config) return;
       const tbody = document.getElementById('linkTableBody');
-      tbody.innerHTML = '';
+      if (!tbody) return;
+      tbody.textContent = '';
 
       const rxKeys = Object.keys(STATE.config.receivers || {});
       const txKeys = Object.keys(STATE.config.transmitters || {});
@@ -1138,15 +1142,39 @@
           tr.id = `row-link-${linkId}`;
           tr.className = 'clickable';
           tr.onclick = () => selectLink(linkId);
-          tr.innerHTML = `
-            <td><strong style="color:var(--text-main);">${linkId}</strong></td>
-            <td>${rx}</td>
-            <td>${tx}</td>
-            <td id="rate-${linkId}">--</td>
-            <td id="rssi-${linkId}">--</td>
-            <td id="var-${linkId}">--</td>
-            <td id="stat-${linkId}"><span class="badge-tag">IDLE</span></td>
-          `;
+
+          const tdLink = document.createElement('td');
+          const strong = document.createElement('strong');
+          strong.style.color = 'var(--text-main)';
+          strong.textContent = linkId;
+          tdLink.appendChild(strong);
+
+          const tdRx = document.createElement('td');
+          tdRx.textContent = rx;
+
+          const tdTx = document.createElement('td');
+          tdTx.textContent = tx;
+
+          const tdRate = document.createElement('td');
+          tdRate.id = `rate-${linkId}`;
+          tdRate.textContent = '--';
+
+          const tdRssi = document.createElement('td');
+          tdRssi.id = `rssi-${linkId}`;
+          tdRssi.textContent = '--';
+
+          const tdVar = document.createElement('td');
+          tdVar.id = `var-${linkId}`;
+          tdVar.textContent = '--';
+
+          const tdStat = document.createElement('td');
+          tdStat.id = `stat-${linkId}`;
+          const spanStat = document.createElement('span');
+          spanStat.className = 'badge-tag';
+          spanStat.textContent = 'IDLE';
+          tdStat.appendChild(spanStat);
+
+          tr.append(tdLink, tdRx, tdTx, tdRate, tdRssi, tdVar, tdStat);
           tbody.appendChild(tr);
         });
       });
@@ -1155,29 +1183,60 @@
     function renderDiagnosticsConfig() {
       if (!STATE.config) return;
       const tbody = document.getElementById('diagConfigTableBody');
-      tbody.innerHTML = '';
+      if (!tbody) return;
+      tbody.textContent = '';
 
       Object.entries(STATE.config.receivers || {}).forEach(([rx, cfg]) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${rx}</strong></td>
-          <td>RECEIVER (INGESTION)</td>
-          <td>${cfg.port}</td>
-          <td>${cfg.baud} baud</td>
-          <td><span class="badge-tag green">CONFIGURED</span></td>
-        `;
+
+        const tdNode = document.createElement('td');
+        const strongNode = document.createElement('strong');
+        strongNode.textContent = rx;
+        tdNode.appendChild(strongNode);
+
+        const tdRole = document.createElement('td');
+        tdRole.textContent = 'RECEIVER (INGESTION)';
+
+        const tdPort = document.createElement('td');
+        tdPort.textContent = cfg.port || '--';
+
+        const tdBaud = document.createElement('td');
+        tdBaud.textContent = `${cfg.baud || 921600} baud`;
+
+        const tdStat = document.createElement('td');
+        const span = document.createElement('span');
+        span.className = 'badge-tag green';
+        span.textContent = 'CONFIGURED';
+        tdStat.appendChild(span);
+
+        tr.append(tdNode, tdRole, tdPort, tdBaud, tdStat);
         tbody.appendChild(tr);
       });
 
       Object.entries(STATE.config.transmitters || {}).forEach(([tx, cfg]) => {
         const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${tx}</strong></td>
-          <td>TRANSMITTER (BEACON)</td>
-          <td>${cfg.mac}</td>
-          <td>CH 11 (2.4 GHz)</td>
-          <td><span class="badge-tag cyan">CONFIGURED</span></td>
-        `;
+
+        const tdNode = document.createElement('td');
+        const strongNode = document.createElement('strong');
+        strongNode.textContent = tx;
+        tdNode.appendChild(strongNode);
+
+        const tdRole = document.createElement('td');
+        tdRole.textContent = 'TRANSMITTER (BEACON)';
+
+        const tdMac = document.createElement('td');
+        tdMac.textContent = cfg.mac || '--';
+
+        const tdCh = document.createElement('td');
+        tdCh.textContent = 'CH 11 (2.4 GHz)';
+
+        const tdStat = document.createElement('td');
+        const span = document.createElement('span');
+        span.className = 'badge-tag cyan';
+        span.textContent = 'CONFIGURED';
+        tdStat.appendChild(span);
+
+        tr.append(tdNode, tdRole, tdMac, tdCh, tdStat);
         tbody.appendChild(tr);
       });
     }
@@ -1185,30 +1244,54 @@
     /* =====================================================================
        OPERATING MODE & NAVIGATION MANAGER
        ===================================================================== */
-    function setMode(newMode) {
+    async function setMode(newMode) {
       if (STATE.mode === newMode) return;
       
-      // Clean up previous mode
+      // Clean up previous mode state
       if (STATE.mode === 'REPLAY') {
         pauseReplay();
       }
+      // Reset timeline to avoid stitching live and replay/sim traces
+      STATE.timelineHistory = [];
 
       STATE.mode = newMode;
-      logEvent('INFO', `MODE_CHANGED`, `System switched operating mode to ${newMode}`);
+      logEvent('INFO', 'MODE_CHANGED', `System switched operating mode to ${newMode}`);
 
-      document.getElementById('btn-mode-live').className = 'btn-mode' + (newMode === 'LIVE' ? ' active-live' : '');
-      document.getElementById('btn-mode-replay').className = 'btn-mode' + (newMode === 'REPLAY' ? ' active-replay' : '');
-      document.getElementById('btn-mode-sim').className = 'btn-mode' + (newMode === 'SIMULATION' ? ' active-sim' : '');
+      // Notify backend authoritative mode manager
+      try {
+        await fetch('/api/mode', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: newMode })
+        });
+      } catch (e) {
+        console.warn("Could not synchronize mode with backend:", e);
+      }
 
-      document.getElementById('radar-active-badge').textContent = `MODE: ${newMode}`;
-      document.getElementById('radar-active-badge').className = `badge-tag ${newMode === 'LIVE' ? 'green' : newMode === 'REPLAY' ? 'cyan' : 'amber'}`;
+      const btnLive = document.getElementById('btn-mode-live');
+      const btnReplay = document.getElementById('btn-mode-replay');
+      const btnSim = document.getElementById('btn-mode-sim');
+      if (btnLive) btnLive.className = 'btn-mode' + (newMode === 'LIVE' ? ' active-live' : '');
+      if (btnReplay) btnReplay.className = 'btn-mode' + (newMode === 'REPLAY' ? ' active-replay' : '');
+      if (btnSim) btnSim.className = 'btn-mode' + (newMode === 'SIMULATION' ? ' active-sim' : '');
+
+      const radarBadge = document.getElementById('radar-active-badge');
+      if (radarBadge) {
+        radarBadge.textContent = `MODE: ${newMode}`;
+        radarBadge.className = `badge-tag ${newMode === 'LIVE' ? 'green' : newMode === 'REPLAY' ? 'cyan' : 'amber'}`;
+      }
 
       const simDrawer = document.getElementById('sim-drawer');
-      simDrawer.style.display = (newMode === 'SIMULATION') ? 'flex' : 'none';
+      if (simDrawer) {
+        simDrawer.style.display = (newMode === 'SIMULATION') ? 'flex' : 'none';
+      }
 
       if (newMode === 'REPLAY') {
         switchNavTab('tab-replay');
-      } else if (newMode === 'LIVE') {
+        if (STATE.replayFrames.length > 0) {
+          renderReplayFrame(STATE.replayCurrentIndex);
+        }
+      } else {
         pollSpatialState();
       }
     }
@@ -1223,10 +1306,56 @@
     }
 
     /* =====================================================================
+       BACKEND TELEMETRY & HEALTH POLLING
+       ===================================================================== */
+    async function pollHealthStatus() {
+      try {
+        const res = await fetch('/health');
+        if (!res.ok) {
+          updateConnectionStatus(false, 'BACKEND UNREACHABLE');
+          return;
+        }
+        const h = await res.json();
+        if (STATE.mode === 'SIMULATION') {
+          updateConnectionStatus(true, 'SYNTHETIC SIMULATION', 'amber');
+        } else if (STATE.mode === 'REPLAY') {
+          updateConnectionStatus(true, 'REPLAY LAB ACTIVE', 'cyan');
+        } else {
+          // LIVE MODE
+          if (h.hardware_connected && h.signal_ok) {
+            updateConnectionStatus(true, 'HARDWARE STREAMING', 'green');
+          } else if (h.hardware_connected) {
+            updateConnectionStatus(true, 'HARDWARE CONNECTED', 'amber');
+          } else if (h.engine_active) {
+            updateConnectionStatus(true, 'BACKEND OK · WAITING FOR CSI', 'amber');
+          } else {
+            updateConnectionStatus(true, 'BACKEND OK · HARDWARE OFFLINE', 'amber');
+          }
+        }
+      } catch (e) {
+        updateConnectionStatus(false, 'BACKEND UNREACHABLE');
+      }
+    }
+
+    function updateConnectionStatus(connected, text = 'BACKEND OK', color = 'green') {
+      const dot = document.getElementById('hdr-conn-dot');
+      const txt = document.getElementById('hdr-conn-text');
+      if (!dot || !txt) return;
+
+      if (!connected) {
+        dot.className = 'status-dot red';
+        txt.textContent = 'BACKEND UNREACHABLE';
+      } else {
+        dot.className = `status-dot ${color}`;
+        txt.textContent = text;
+      }
+    }
+
+    /* =====================================================================
        POLLING SPATIAL STATE (LIVE HARDWARE & SIMULATION)
        ===================================================================== */
     async function pollSpatialState() {
-      if (STATE.mode === 'REPLAY') return; // Replay has its own playback clock
+      if (STATE.mode === 'REPLAY') return; // Replay playback clock drives rendering
 
       try {
         const res = await fetch('/api/spatial');
@@ -1236,37 +1365,46 @@
         }
 
         const data = await res.json();
-        updateConnectionStatus(true);
         STATE.liveState = data;
-
-        updateTopMetricCards(data);
-        updateRadarVisualizer(data);
-        updateLinkMatrix(data);
-        appendTimelineSample(data);
+        renderDashboardState(data, STATE.mode);
 
       } catch (e) {
         updateConnectionStatus(false);
       }
     }
 
-    function updateConnectionStatus(connected) {
-      const dot = document.getElementById('hdr-conn-dot');
-      const txt = document.getElementById('hdr-conn-text');
-      if (connected) {
-        dot.className = 'status-dot green';
-        txt.textContent = 'BACKEND OK';
-      } else {
-        dot.className = 'status-dot red';
-        txt.textContent = 'BACKEND UNREACHABLE';
+    /* =====================================================================
+       UNIFIED DASHBOARD RENDERER (LIVE, REPLAY & SIMULATION)
+       ===================================================================== */
+    function renderDashboardState(data, source = 'LIVE') {
+      if (!data) return;
+
+      // 1. Metric Cards (Rate, Links, RX Health, Heuristic Zone Perturbation)
+      updateTopMetricCards(data, source);
+
+      // 2. Four-Quadrant Radar
+      updateRadarVisualizer(data);
+
+      // 3. 8-Link Health Matrix & Diagnostics Cards
+      updateLinkMatrix(data, source);
+
+      // 4. Timeline Rolling History
+      appendTimelineSample(data, source);
+
+      // 5. If Replay frame, update Replay-specific evaluation cards and link table
+      if (source === 'REPLAY' && data.raw_frame) {
+        renderReplayEvaluationPanels(data.raw_frame);
       }
     }
 
     /* =====================================================================
        METRIC CARDS & TELEMETRY DISPLAY
        ===================================================================== */
-    function updateTopMetricCards(data) {
-      // 1. CSI Rate Card
+    function updateTopMetricCards(data, source = 'LIVE') {
+      const isReplay = (source === 'REPLAY');
       const rxHealth = data.receiver_health || {};
+
+      // 1. CSI Rate Card
       let totalRate = 0.0;
       let rxRateStrs = [];
 
@@ -1277,71 +1415,139 @@
       });
 
       const rateVal = totalRate > 0 ? totalRate : (data.rate_hz || 0.0);
-      document.getElementById('val-csi-rate').textContent = rateVal > 0 ? `${rateVal.toFixed(1)} Hz` : '-- Hz';
-      document.getElementById('sub-rate-rx').textContent = rxRateStrs.join(' | ') || 'No active streams';
-      
-      const rateTag = document.getElementById('tag-rate-status');
-      if (rateVal >= 8.0) {
-        rateTag.className = 'badge-tag green';
-        rateTag.textContent = 'OPTIMAL RATE';
-      } else if (rateVal > 0) {
-        rateTag.className = 'badge-tag amber';
-        rateTag.textContent = 'DEGRADED';
-      } else {
-        rateTag.className = 'badge-tag red';
-        rateTag.textContent = 'OFFLINE';
+      const valCsiRate = document.getElementById('val-csi-rate');
+      const subRateRx = document.getElementById('sub-rate-rx');
+      const tagRate = document.getElementById('tag-rate-status');
+
+      if (valCsiRate) {
+        if (isReplay) {
+          valCsiRate.textContent = rateVal > 0 ? `${rateVal.toFixed(1)} Hz` : 'NOT RECORDED';
+        } else {
+          valCsiRate.textContent = rateVal > 0 ? `${rateVal.toFixed(1)} Hz` : '-- Hz';
+        }
+      }
+
+      if (subRateRx) {
+        subRateRx.textContent = rxRateStrs.join(' | ') || (isReplay ? 'Replay link stream' : 'No active streams');
+      }
+
+      if (tagRate) {
+        if (isReplay) {
+          tagRate.className = 'badge-tag cyan';
+          tagRate.textContent = 'REPLAY RATE';
+        } else if (source === 'SIMULATION') {
+          tagRate.className = 'badge-tag amber';
+          tagRate.textContent = 'SYNTHETIC';
+        } else if (rateVal >= 8.0) {
+          tagRate.className = 'badge-tag green';
+          tagRate.textContent = 'OPTIMAL RATE';
+        } else if (rateVal > 0) {
+          tagRate.className = 'badge-tag amber';
+          tagRate.textContent = 'DEGRADED';
+        } else {
+          tagRate.className = 'badge-tag red';
+          tagRate.textContent = 'OFFLINE';
+        }
       }
 
       // 2. Active Links Card
       const activeCount = data.active_links || 0;
-      document.getElementById('val-active-links').textContent = `${activeCount} / 8 ACTIVE`;
-      const meshTag = document.getElementById('tag-links-mesh');
-      if (activeCount >= 8) {
-        meshTag.className = 'badge-tag green';
-        meshTag.textContent = 'FULL MESH';
-      } else if (activeCount > 0) {
-        meshTag.className = 'badge-tag amber';
-        meshTag.textContent = 'PARTIAL MESH';
-      } else {
-        meshTag.className = 'badge-tag red';
-        meshTag.textContent = 'NO LINKS';
+      const valActiveLinks = document.getElementById('val-active-links');
+      const tagLinks = document.getElementById('tag-links-mesh');
+      if (valActiveLinks) {
+        valActiveLinks.textContent = `${activeCount} / 8 ${isReplay ? 'RECORDED' : 'ACTIVE'}`;
+      }
+      if (tagLinks) {
+        if (activeCount >= 8) {
+          tagLinks.className = 'badge-tag green';
+          tagLinks.textContent = 'FULL MESH';
+        } else if (activeCount > 0) {
+          tagLinks.className = 'badge-tag amber';
+          tagLinks.textContent = 'PARTIAL MESH';
+        } else {
+          tagLinks.className = 'badge-tag red';
+          tagLinks.textContent = 'NO LINKS';
+        }
       }
 
       // 3. Receiver Health Card
-      const onlineRx = Object.values(rxHealth).filter(h => h.running && h.aggregate_rate_hz >= 1.0).length;
-      document.getElementById('val-rx-health').textContent = `${onlineRx} / 2 ONLINE`;
-      const rxTag = document.getElementById('tag-rx-mode');
-      if (onlineRx >= 2) {
-        rxTag.className = 'badge-tag green';
-        rxTag.textContent = 'DUAL-RX ACTIVE';
-      } else if (onlineRx === 1) {
-        rxTag.className = 'badge-tag amber';
-        rxTag.textContent = 'DEGRADED 1-RX';
-      } else {
-        rxTag.className = 'badge-tag red';
-        rxTag.textContent = 'STANDBY';
+      const onlineRx = Object.values(rxHealth).filter(h => h.running && (h.aggregate_rate_hz > 0 || isReplay)).length;
+      const valRxHealth = document.getElementById('val-rx-health');
+      const tagRx = document.getElementById('tag-rx-mode');
+      if (valRxHealth) {
+        valRxHealth.textContent = `${onlineRx} / 2 ${isReplay ? 'RECORDED' : 'ONLINE'}`;
+      }
+      if (tagRx) {
+        if (isReplay) {
+          tagRx.className = 'badge-tag cyan';
+          tagRx.textContent = 'REPLAY DATA';
+        } else if (onlineRx >= 2) {
+          tagRx.className = 'badge-tag green';
+          tagRx.textContent = 'DUAL-RX ACTIVE';
+        } else if (onlineRx === 1) {
+          tagRx.className = 'badge-tag amber';
+          tagRx.textContent = 'DEGRADED 1-RX';
+        } else {
+          tagRx.className = 'badge-tag red';
+          tagRx.textContent = 'STANDBY';
+        }
       }
 
-      // 4. Presence State Card
-      const zone = data.zone || 'CLEAR';
-      document.getElementById('val-presence-state').textContent = zone === 'CLEAR' ? 'CLEAR' : `SECTOR ${zone}`;
-      document.getElementById('val-presence-state').style.color = zone === 'CLEAR' ? 'var(--text-main)' : 'var(--accent-amber)';
+      // 4. Heuristic Zone Perturbation Card
+      const zone = data.zone || 'UNKNOWN';
+      const infStatus = data.inference_status || (data.signal_ok ? 'ACTIVE_PERTURBATION' : 'UNAVAILABLE');
+      const valPresence = document.getElementById('val-presence-state');
+      const tagGate = document.getElementById('tag-gate-status');
+      const subPresence = document.getElementById('sub-presence-score');
 
-      const gateTag = document.getElementById('tag-gate-status');
-      if (data.signal_ok) {
-        gateTag.className = 'badge-tag green';
-        gateTag.textContent = 'SIGNAL OK';
-      } else {
-        gateTag.className = 'badge-tag amber';
-        gateTag.textContent = 'SIGNAL UNSTABLE';
+      let maxVar = 0.0;
+      if (data.link_features && data.link_features.length > 0) {
+        maxVar = Math.max(...data.link_features.map(f => f.csi_variance || 0.0));
+      }
+
+      if (valPresence) {
+        if (zone === 'UNKNOWN' || infStatus === 'UNAVAILABLE') {
+          valPresence.textContent = 'UNKNOWN';
+          valPresence.style.color = 'var(--accent-amber)';
+        } else if (zone === 'CLEAR') {
+          valPresence.textContent = 'CLEAR (BASELINE)';
+          valPresence.style.color = 'var(--text-main)';
+        } else {
+          valPresence.textContent = `SECTOR ${zone}`;
+          valPresence.style.color = 'var(--accent-amber)';
+        }
+      }
+
+      if (tagGate) {
+        if (zone === 'UNKNOWN' || infStatus === 'UNAVAILABLE') {
+          tagGate.className = 'badge-tag red';
+          tagGate.textContent = isReplay ? 'INSUFFICIENT DATA' : 'NO CSI / OFFLINE';
+        } else if (zone === 'CLEAR') {
+          tagGate.className = 'badge-tag green';
+          tagGate.textContent = 'BASELINE NOISE';
+        } else {
+          tagGate.className = 'badge-tag amber';
+          tagGate.textContent = `PERTURBED (Var: ${maxVar.toFixed(1)})`;
+        }
+      }
+
+      if (subPresence) {
+        if (zone === 'UNKNOWN' || infStatus === 'UNAVAILABLE') {
+          subPresence.textContent = 'Signal offline or insufficient window';
+        } else {
+          subPresence.textContent = `Max Var: ${maxVar.toFixed(2)}`;
+        }
       }
 
       // Last valid timestamp
-      if (data.last_valid_data_time && data.last_valid_data_time > 0) {
-        const lastDate = new Date(data.last_valid_data_time * 1000);
-        document.getElementById('hdr-last-csi').textContent = lastDate.toLocaleTimeString();
-      } else {
-        document.getElementById('hdr-last-csi').textContent = '--';
+      const hdrLastCsi = document.getElementById('hdr-last-csi');
+      if (hdrLastCsi) {
+        if (data.last_valid_data_time && data.last_valid_data_time > 0) {
+          const lastDate = new Date(data.last_valid_data_time * 1000);
+          hdrLastCsi.textContent = lastDate.toLocaleTimeString();
+        } else {
+          hdrLastCsi.textContent = '--';
+        }
       }
     }
 
@@ -1356,39 +1562,46 @@
       });
 
       const badgeGroup = document.getElementById('radar-perturbation-badges');
-      badgeGroup.innerHTML = '';
+      if (badgeGroup) {
+        badgeGroup.textContent = '';
 
-      // If active people / sectors exist
-      if (data.people && data.people.length > 0) {
-        data.people.forEach(p => {
-          const qEl = document.getElementById(`quad-${p.zone}`);
-          if (qEl) qEl.classList.add('active-quadrant');
+        // If active perturbed sectors exist
+        if (data.people && data.people.length > 0 && data.zone !== 'UNKNOWN') {
+          data.people.forEach(p => {
+            const qEl = document.getElementById(`quad-${p.zone}`);
+            if (qEl) qEl.classList.add('active-quadrant');
 
-          // Add clean perturbation text badge in quadrant center
-          const coords = getZoneCenterCoords(p.zone);
-          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-          text.setAttribute('x', coords.x);
-          text.setAttribute('y', coords.y);
-          text.setAttribute('text-anchor', 'middle');
-          text.setAttribute('fill', 'var(--accent-amber)');
-          text.setAttribute('font-family', "'JetBrains Mono', monospace");
-          text.setAttribute('font-size', '11');
-          text.setAttribute('font-weight', '700');
-          text.textContent = `⚡ PERTURBED (Var: ${p.score || '--'})`;
-          badgeGroup.appendChild(text);
-        });
+            // Add clean perturbation text badge in quadrant center
+            const coords = getZoneCenterCoords(p.zone);
+            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            text.setAttribute('x', coords.x);
+            text.setAttribute('y', coords.y);
+            text.setAttribute('text-anchor', 'middle');
+            text.setAttribute('fill', 'var(--accent-amber)');
+            text.setAttribute('font-family', "'JetBrains Mono', monospace");
+            text.setAttribute('font-size', '11');
+            text.setAttribute('font-weight', '700');
+            text.textContent = `⚡ PERTURBED (Var: ${p.score ? Number(p.score).toFixed(1) : '--'})`;
+            badgeGroup.appendChild(text);
+          });
+        }
       }
 
       // Update Node circles color based on active links
-      const activeRx = data.receiver_health || {};
+      const rxHealth = data.receiver_health || {};
       ['TX1', 'TX2', 'TX3', 'TX4'].forEach(tx => {
         const circle = document.getElementById(`circle-${tx}`);
         const meshLine = document.getElementById(`mesh-${tx}`);
         let hasActive = false;
         
-        Object.values(activeRx).forEach(h => {
+        Object.values(rxHealth).forEach(h => {
           if (h.per_link_rates && h.per_link_rates[tx] > 0) hasActive = true;
         });
+
+        // Also check link_features for activity if per_link_rates is missing
+        if (!hasActive && data.link_features) {
+          hasActive = data.link_features.some(f => f.tx === tx && (f.csi_variance > 0 || f.rssi !== null));
+        }
 
         if (circle) {
           circle.setAttribute('stroke', hasActive ? 'var(--accent-green)' : 'var(--text-dim)');
@@ -1416,8 +1629,10 @@
         const el = document.getElementById(`quad-${z}`);
         if (el) el.classList.toggle('selected-quadrant', z === STATE.selectedZone);
       });
-      document.getElementById('selected-link-label').textContent = 
-        STATE.selectedZone ? `FILTER: SECTOR ${STATE.selectedZone}` : 'SELECTED: ALL LINKS';
+      const lbl = document.getElementById('selected-link-label');
+      if (lbl) {
+        lbl.textContent = STATE.selectedZone ? `FILTER: SECTOR ${STATE.selectedZone}` : 'SELECTED: ALL LINKS';
+      }
     }
 
     function selectLink(linkId) {
@@ -1425,14 +1640,16 @@
       document.querySelectorAll('#linkTableBody tr').forEach(tr => {
         tr.classList.toggle('selected-row', tr.id === `row-link-${STATE.selectedLink}`);
       });
-      document.getElementById('selected-link-label').textContent = 
-        STATE.selectedLink ? `SELECTED: ${STATE.selectedLink}` : 'SELECTED: ALL LINKS';
+      const lbl = document.getElementById('selected-link-label');
+      if (lbl) {
+        lbl.textContent = STATE.selectedLink ? `SELECTED: ${STATE.selectedLink}` : 'SELECTED: ALL LINKS';
+      }
     }
 
     /* =====================================================================
        8-LINK MATRIX TELEMETRY UPDATE
        ===================================================================== */
-    function updateLinkMatrix(data) {
+    function updateLinkMatrix(data, source = 'LIVE') {
       const rxHealth = data.receiver_health || {};
       const features = data.link_features || [];
 
@@ -1443,10 +1660,10 @@
         featMap[k] = f;
       });
 
-      // Update Diagnostics transmitter cards
       const txMaxVar = {};
 
-      Object.entries(rxHealth).forEach(([rx, h]) => {
+      ['RX1', 'RX2'].forEach(rx => {
+        const h = rxHealth[rx] || {};
         const rates = h.per_link_rates || {};
         ['TX1', 'TX2', 'TX3', 'TX4'].forEach(tx => {
           const linkId = `${rx}-${tx}`;
@@ -1467,13 +1684,19 @@
           if (elVar) elVar.textContent = variance > 0 ? variance.toFixed(2) : '0.00';
 
           if (elStat) {
+            elStat.textContent = '';
+            const span = document.createElement('span');
             if (variance >= 8.0) {
-              elStat.innerHTML = '<span class="badge-tag amber">PERTURBED</span>';
-            } else if (r >= 1.0) {
-              elStat.innerHTML = '<span class="badge-tag green">ACTIVE</span>';
+              span.className = 'badge-tag amber';
+              span.textContent = 'PERTURBED';
+            } else if (r >= 1.0 || (source === 'REPLAY' && variance > 0)) {
+              span.className = 'badge-tag green';
+              span.textContent = 'ACTIVE';
             } else {
-              elStat.innerHTML = '<span class="badge-tag">IDLE</span>';
+              span.className = 'badge-tag';
+              span.textContent = 'IDLE';
             }
+            elStat.appendChild(span);
           }
         });
       });
@@ -1510,7 +1733,7 @@
       canvas.height = canvas.parentElement.clientHeight;
     }
 
-    function appendTimelineSample(data) {
+    function appendTimelineSample(data, source = 'LIVE') {
       if (STATE.timelinePaused) return;
 
       const rateVal = data.rate_hz || 0.0;
@@ -1599,18 +1822,19 @@
 
     function toggleTimelinePause() {
       STATE.timelinePaused = !STATE.timelinePaused;
-      document.getElementById('btn-pause-timeline').textContent = 
-        STATE.timelinePaused ? 'RESUME' : 'PAUSE';
+      const btn = document.getElementById('btn-pause-timeline');
+      if (btn) btn.textContent = STATE.timelinePaused ? 'RESUME' : 'PAUSE';
     }
 
     function resetTimelineZoom() {
       STATE.timelinePaused = false;
-      document.getElementById('btn-pause-timeline').textContent = 'PAUSE';
+      const btn = document.getElementById('btn-pause-timeline');
+      if (btn) btn.textContent = 'PAUSE';
     }
 
     /* =====================================================================
        REPLAY LAB ENGINE (DETERMINISTIC PLAYBACK & SCRUBBING)
-       ===================================================================== */
+       ==================================================================== */
     async function fetchRecordings() {
       try {
         const res = await fetch('/api/recordings');
@@ -1624,15 +1848,17 @@
 
     function renderSessionList(recordings) {
       const listEl = document.getElementById('replay-session-list');
-      listEl.innerHTML = '';
-      document.getElementById('lib-count-tag').textContent = `${recordings.length} SESSIONS`;
+      if (!listEl) return;
+      listEl.textContent = '';
+
+      const countTag = document.getElementById('lib-count-tag');
+      if (countTag) countTag.textContent = `${recordings.length} SESSIONS`;
 
       if (recordings.length === 0) {
-        listEl.innerHTML = `
-          <div style="padding:14px; color:var(--text-dim); font-size:11px;">
-            No recordings found in data/raw.<br>Run scripts/record_multilink_dataset.py to collect sessions.
-          </div>
-        `;
+        const emptyDiv = document.createElement('div');
+        emptyDiv.style.cssText = 'padding:14px; color:var(--text-dim); font-size:11px;';
+        emptyDiv.textContent = 'No recordings found in data/raw. Run scripts/record_multilink_dataset.py to collect sessions.';
+        listEl.appendChild(emptyDiv);
         return;
       }
 
@@ -1640,16 +1866,30 @@
         const card = document.createElement('div');
         card.className = 'session-card' + (idx === 0 ? ' selected-session' : '');
         card.onclick = () => loadSession(rec.session_id);
-        card.innerHTML = `
-          <div class="session-header">
-            <span>${rec.session_id}</span>
-            <span style="color:var(--accent-cyan); font-weight:600;">${rec.duration_seconds}s</span>
-          </div>
-          <div class="session-meta">
-            <span>GT Zone: <strong style="color:#fff">${rec.ground_truth_zone}</strong> (${rec.motion_state})</span>
-            <span>Frames: ${rec.total_records} | Date: ${rec.created_at}</span>
-          </div>
-        `;
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'session-header';
+        
+        const spanId = document.createElement('span');
+        spanId.textContent = rec.session_id;
+        
+        const spanDur = document.createElement('span');
+        spanDur.style.cssText = 'color:var(--accent-cyan); font-weight:600;';
+        spanDur.textContent = `${rec.duration_seconds}s`;
+        
+        headerDiv.append(spanId, spanDur);
+
+        const metaDiv = document.createElement('div');
+        metaDiv.className = 'session-meta';
+
+        const spanZone = document.createElement('span');
+        spanZone.textContent = `GT Zone: ${rec.ground_truth_zone} (${rec.motion_state || 'UNKNOWN'})`;
+
+        const spanFrames = document.createElement('span');
+        spanFrames.textContent = `Frames: ${rec.total_records} | Date: ${rec.created_at || '--'}`;
+
+        metaDiv.append(spanZone, spanFrames);
+        card.append(headerDiv, metaDiv);
         listEl.appendChild(card);
       });
 
@@ -1659,22 +1899,42 @@
     }
 
     async function loadSession(sessionId) {
+      // Immediately pause and reset any running playback
+      pauseReplay();
+      STATE.replayCurrentIndex = 0;
+
       try {
-        const res = await fetch(`/api/recordings/${sessionId}/data`);
-        if (!res.ok) return;
+        const safeSessionId = encodeURIComponent(sessionId);
+        const res = await fetch(`/api/recordings/${safeSessionId}/data`);
+        if (!res.ok) {
+          logEvent('ERROR', 'REPLAY_ERROR', `Session not found: ${sessionId}`);
+          return;
+        }
         const data = await res.json();
         
         STATE.replaySession = data;
         STATE.replayFrames = data.frames || [];
         STATE.replayCurrentIndex = 0;
 
-        document.getElementById('replay-active-title').textContent = `REPLAY SESSION: ${data.session_id}`;
-        document.getElementById('replay-active-desc').textContent = 
-          `Duration: ${data.total_duration}s | Frames: ${data.total_frames} | Format: Raw CSI CSV (64-Subcarrier)`;
+        const titleEl = document.getElementById('replay-active-title');
+        if (titleEl) titleEl.textContent = `REPLAY SESSION: ${data.session_id}`;
+
+        const descEl = document.getElementById('replay-active-desc');
+        if (descEl) {
+          descEl.textContent = `Duration: ${data.total_duration}s | Frames: ${data.total_frames} | Format: Raw CSI CSV (64-Subcarrier)`;
+        }
 
         const scrubber = document.getElementById('replay-scrubber');
-        scrubber.max = data.frames.length - 1;
-        scrubber.value = 0;
+        if (scrubber) {
+          scrubber.max = Math.max(0, (data.frames ? data.frames.length - 1 : 0));
+          scrubber.value = 0;
+        }
+
+        // Highlight selected session card in list
+        document.querySelectorAll('.session-card').forEach(card => {
+          const idSpan = card.querySelector('.session-header span');
+          card.classList.toggle('selected-session', idSpan && idSpan.textContent === sessionId);
+        });
 
         renderReplayFrame(0);
         logEvent('INFO', 'REPLAY_LOADED', `Loaded session ${sessionId} (${data.total_frames} frames)`);
@@ -1691,52 +1951,75 @@
 
     function playReplay() {
       if (!STATE.replayFrames.length) return;
-      STATE.replayIsPlaying = true;
-      document.getElementById('btn-replay-play').textContent = '⏸ PAUSE';
-      document.getElementById('replay-status-badge').textContent = 'PLAYING';
-      document.getElementById('replay-status-badge').className = 'badge-tag green';
+      if (STATE.replayTimerId) clearInterval(STATE.replayTimerId);
 
-      const intervalMs = (500 / STATE.replaySpeed);
+      STATE.replayIsPlaying = true;
+      const playBtn = document.getElementById('btn-replay-play');
+      if (playBtn) playBtn.textContent = '⏸ PAUSE';
+
+      const badge = document.getElementById('replay-status-badge');
+      if (badge) {
+        badge.textContent = 'PLAYING';
+        badge.className = 'badge-tag green';
+      }
+
+      const frameInterval = (STATE.replaySession && STATE.replaySession.frame_interval) ? STATE.replaySession.frame_interval : 0.5;
+      const intervalMs = Math.max(50, Math.round((frameInterval * 1000) / STATE.replaySpeed));
+
       STATE.replayTimerId = setInterval(() => {
         if (STATE.replayCurrentIndex >= STATE.replayFrames.length - 1) {
           pauseReplay();
-          document.getElementById('replay-status-badge').textContent = 'REPLAY COMPLETE';
-          document.getElementById('replay-status-badge').className = 'badge-tag cyan';
+          if (badge) {
+            badge.textContent = 'REPLAY COMPLETE';
+            badge.className = 'badge-tag cyan';
+          }
           return;
         }
         STATE.replayCurrentIndex++;
-        document.getElementById('replay-scrubber').value = STATE.replayCurrentIndex;
+        const scrubber = document.getElementById('replay-scrubber');
+        if (scrubber) scrubber.value = STATE.replayCurrentIndex;
         renderReplayFrame(STATE.replayCurrentIndex);
       }, intervalMs);
     }
 
     function pauseReplay() {
       STATE.replayIsPlaying = false;
-      if (STATE.replayTimerId) clearInterval(STATE.replayTimerId);
-      document.getElementById('btn-replay-play').textContent = '▶ PLAY';
-      document.getElementById('replay-status-badge').textContent = 'PAUSED';
-      document.getElementById('replay-status-badge').className = 'badge-tag amber';
+      if (STATE.replayTimerId) {
+        clearInterval(STATE.replayTimerId);
+        STATE.replayTimerId = null;
+      }
+      const playBtn = document.getElementById('btn-replay-play');
+      if (playBtn) playBtn.textContent = '▶ PLAY';
+
+      const badge = document.getElementById('replay-status-badge');
+      if (badge) {
+        badge.textContent = 'PAUSED';
+        badge.className = 'badge-tag amber';
+      }
     }
 
     function restartReplay() {
       pauseReplay();
       STATE.replayCurrentIndex = 0;
-      document.getElementById('replay-scrubber').value = 0;
+      const scrubber = document.getElementById('replay-scrubber');
+      if (scrubber) scrubber.value = 0;
       renderReplayFrame(0);
     }
 
     function stepReplay(deltaSec) {
       if (!STATE.replayFrames.length) return;
-      const stepFrames = Math.round(deltaSec / 0.5);
+      const frameInterval = (STATE.replaySession && STATE.replaySession.frame_interval) ? STATE.replaySession.frame_interval : 0.5;
+      const stepFrames = Math.round(deltaSec / frameInterval);
       STATE.replayCurrentIndex = Math.max(0, Math.min(STATE.replayFrames.length - 1, STATE.replayCurrentIndex + stepFrames));
-      document.getElementById('replay-scrubber').value = STATE.replayCurrentIndex;
+      const scrubber = document.getElementById('replay-scrubber');
+      if (scrubber) scrubber.value = STATE.replayCurrentIndex;
       renderReplayFrame(STATE.replayCurrentIndex);
     }
 
     function setReplaySpeed(spd) {
       STATE.replaySpeed = spd;
       document.querySelectorAll('.speed-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.textContent === `${spd}×`);
+        btn.classList.toggle('active', parseFloat(btn.dataset.speed) === spd);
       });
       if (STATE.replayIsPlaying) {
         pauseReplay();
@@ -1745,50 +2028,128 @@
     }
 
     function onScrubInput(val) {
-      STATE.replayCurrentIndex = parseInt(val);
-      renderReplayFrame(STATE.replayCurrentIndex);
+      const targetIdx = Math.max(0, Math.min(STATE.replayFrames.length - 1, parseInt(val, 10) || 0));
+      STATE.replayCurrentIndex = targetIdx;
+      renderReplayFrame(targetIdx);
     }
 
     function renderReplayFrame(idx) {
       const frame = STATE.replayFrames[idx];
       if (!frame) return;
 
-      document.getElementById('replay-timer-display').textContent = 
-        `${frame.time_offset.toFixed(1)}s / ${frame.duration.toFixed(1)}s`;
+      // Synthesize full normalized state from replayed frame to drive ALL dashboard components
+      const activeLinkCount = Object.values(frame.link_details || {}).filter(d => (d.rate || 0) > 0 || (d.variance || 0) > 0).length;
+      let totalRate = Object.values(frame.link_details || {}).reduce((acc, d) => acc + (d.rate || 0), 0);
+      if (totalRate === 0 && frame.window_rate) totalRate = frame.window_rate;
 
-      // Update Evaluation Cards
-      document.getElementById('eval-gt-display').textContent = 
-        frame.gt_zone === 'CLEAR' ? 'CLEAR (EMPTY ROOM)' : `SECTOR ${frame.gt_zone} (PRESENT)`;
-      document.getElementById('eval-gt-sub').textContent = 
-        `Ground Truth Count: ${frame.gt_count} | State: ${frame.gt_motion}`;
+      const rx1Rates = {};
+      const rx2Rates = {};
+      Object.entries(frame.link_details || {}).forEach(([k, d]) => {
+        const parts = k.split('-');
+        if (parts[0] === 'RX1') rx1Rates[parts[1]] = d.rate || 0;
+        if (parts[0] === 'RX2') rx2Rates[parts[1]] = d.rate || 0;
+      });
 
-      document.getElementById('eval-model-display').textContent = 
-        frame.model_zone === 'CLEAR' ? 'CLEAR (0.0)' : `SECTOR ${frame.model_zone} (SCORE: ${frame.model_score.toFixed(1)})`;
-      document.getElementById('eval-model-sub').textContent = 
-        `Inference Decision: ${frame.model_decision} (${frame.eval_status})`;
+      const linkFeatures = Object.entries(frame.link_details || {}).map(([link, det]) => {
+        const parts = link.split('-');
+        return {
+          receiver: parts[0],
+          tx: parts[1],
+          csi_variance: det.variance,
+          rssi: det.rssi
+        };
+      });
 
-      // Render Replay Links Table
+      const normalized = {
+        source: 'REPLAY',
+        mode: 'RECORDED REPLAY',
+        zone: frame.model_zone || 'UNKNOWN',
+        inference_status: (frame.eval_status === 'INSUFFICIENT_DATA') ? 'UNAVAILABLE' : (frame.model_zone === 'CLEAR' ? 'BASELINE_CLEAR' : 'ACTIVE_PERTURBATION'),
+        signal_ok: (frame.eval_status !== 'INSUFFICIENT_DATA' && frame.model_zone !== 'UNKNOWN'),
+        active_links: activeLinkCount,
+        rate_hz: totalRate,
+        receiver_health: {
+          RX1: {
+            running: true,
+            aggregate_rate_hz: Object.values(rx1Rates).reduce((a, b) => a + b, 0),
+            per_link_rates: rx1Rates
+          },
+          RX2: {
+            running: true,
+            aggregate_rate_hz: Object.values(rx2Rates).reduce((a, b) => a + b, 0),
+            per_link_rates: rx2Rates
+          }
+        },
+        people: frame.people || [],
+        link_features: linkFeatures,
+        last_valid_data_time: frame.timestamp,
+        raw_frame: frame
+      };
+
+      // Call single unified renderer
+      renderDashboardState(normalized, 'REPLAY');
+    }
+
+    function renderReplayEvaluationPanels(frame) {
+      const timerDisplay = document.getElementById('replay-timer-display');
+      if (timerDisplay) {
+        timerDisplay.textContent = `${(frame.time_offset || 0).toFixed(1)}s / ${(frame.duration || 0).toFixed(1)}s`;
+      }
+
+      // Evaluation Cards
+      const evalGtDisplay = document.getElementById('eval-gt-display');
+      const evalGtSub = document.getElementById('eval-gt-sub');
+      if (evalGtDisplay) {
+        evalGtDisplay.textContent = frame.gt_zone === 'CLEAR' ? 'CLEAR (EMPTY ROOM)' : `SECTOR ${frame.gt_zone} (PRESENT)`;
+      }
+      if (evalGtSub) {
+        evalGtSub.textContent = `Ground Truth Count: ${frame.gt_count} | State: ${frame.gt_motion}`;
+      }
+
+      const evalModelDisplay = document.getElementById('eval-model-display');
+      const evalModelSub = document.getElementById('eval-model-sub');
+      if (evalModelDisplay) {
+        evalModelDisplay.textContent = frame.model_zone === 'CLEAR' ? 'CLEAR (0.0)' : `SECTOR ${frame.model_zone} (SCORE: ${(frame.model_score || 0).toFixed(1)})`;
+      }
+      if (evalModelSub) {
+        evalModelSub.textContent = `Decision: ${frame.model_decision} (${frame.eval_status})`;
+      }
+
+      // Render Replay Links Table safely via DOM creation
       const tbody = document.getElementById('replayTableBody');
-      tbody.innerHTML = '';
-      Object.entries(frame.link_details || {}).forEach(([link, det]) => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td><strong>${link}</strong></td>
-          <td>${frame.timestamp}</td>
-          <td>${det.variance}</td>
-          <td>${det.rssi} dBm</td>
-          <td>${det.rate} Hz</td>
-          <td><span class="badge-tag ${det.variance >= 8.0 ? 'amber' : 'green'}">${det.variance >= 8.0 ? 'PERTURBED' : 'BASELINE'}</span></td>
-        `;
-        tbody.appendChild(tr);
-      });
+      if (tbody) {
+        tbody.textContent = '';
+        Object.entries(frame.link_details || {}).forEach(([link, det]) => {
+          const tr = document.createElement('tr');
 
-      // Update radar with replayed frame
-      updateRadarVisualizer({
-        zone: frame.model_zone,
-        people: frame.people,
-        receiver_health: {}
-      });
+          const tdLink = document.createElement('td');
+          const strongLink = document.createElement('strong');
+          strongLink.textContent = link;
+          tdLink.appendChild(strongLink);
+
+          const tdTs = document.createElement('td');
+          tdTs.textContent = frame.timestamp ? frame.timestamp.toFixed(2) : '--';
+
+          const tdVar = document.createElement('td');
+          tdVar.textContent = det.variance !== undefined ? det.variance.toFixed(2) : '--';
+
+          const tdRssi = document.createElement('td');
+          tdRssi.textContent = det.rssi !== null && det.rssi !== undefined ? `${det.rssi} dBm` : '--';
+
+          const tdRate = document.createElement('td');
+          tdRate.textContent = det.rate !== undefined ? `${det.rate.toFixed(1)} Hz` : '--';
+
+          const tdStat = document.createElement('td');
+          const span = document.createElement('span');
+          const isPerturbed = (det.variance >= 8.0);
+          span.className = `badge-tag ${isPerturbed ? 'amber' : 'green'}`;
+          span.textContent = isPerturbed ? 'PERTURBED' : 'BASELINE';
+          tdStat.appendChild(span);
+
+          tr.append(tdLink, tdTs, tdVar, tdRssi, tdRate, tdStat);
+          tbody.appendChild(tr);
+        });
+      }
     }
 
     /* =====================================================================
@@ -1798,6 +2159,7 @@
       let simPayload = {
         signal_ok: true,
         count: 0,
+        active_zone_count: 0,
         people: [],
         zone: "CLEAR",
         active_links: 8,
@@ -1810,14 +2172,17 @@
       if (scenarioType === 'SW_PERTURBATION') {
         simPayload.zone = 'Z3';
         simPayload.count = 1;
+        simPayload.active_zone_count = 1;
         simPayload.people = [{ id: 1, zone: 'Z3', tx: 'TX3', score: 21.66 }];
       } else if (scenarioType === 'NW_PERTURBATION') {
         simPayload.zone = 'Z2';
         simPayload.count = 1;
+        simPayload.active_zone_count = 1;
         simPayload.people = [{ id: 1, zone: 'Z2', tx: 'TX2', score: 18.52 }];
       } else if (scenarioType === 'NE_PERTURBATION') {
         simPayload.zone = 'Z1';
         simPayload.count = 1;
+        simPayload.active_zone_count = 1;
         simPayload.people = [{ id: 1, zone: 'Z1', tx: 'TX1', score: 19.24 }];
       } else if (scenarioType === 'DEGRADED') {
         simPayload.active_links = 4;
@@ -1830,12 +2195,17 @@
         body: JSON.stringify(simPayload)
       });
 
+      // Ensure active mode is simulation
+      if (STATE.mode !== 'SIMULATION') {
+        await setMode('SIMULATION');
+      }
+
       logEvent('WARNING', 'SIM_INJECTION', `Synthetic scenario '${scenarioType}' injected.`);
       pollSpatialState();
     }
 
     /* =====================================================================
-       SYSTEM EVENTS MANAGEMENT
+       SYSTEM EVENTS MANAGEMENT (SECURE DOM INSERTION)
        ===================================================================== */
     async function fetchEvents() {
       try {
@@ -1866,36 +2236,69 @@
     }
 
     function renderEventLists() {
-      // 1. Overview mini preview
+      // 1. Overview mini preview (Safe DOM elements)
       const previewList = document.getElementById('overview-event-list');
-      previewList.innerHTML = '';
-      STATE.events.slice(-4).reverse().forEach(evt => {
-        const div = document.createElement('div');
-        div.className = 'event-item';
-        div.innerHTML = `
-          <div class="event-left">
-            <span class="badge-tag ${evt.severity === 'WARNING' ? 'amber' : evt.severity === 'ERROR' ? 'red' : 'cyan'}">${evt.severity}</span>
-            <span><strong>${evt.title}:</strong> ${evt.message}</span>
-          </div>
-          <span class="event-time">${evt.time_str || '--'}</span>
-        `;
-        previewList.appendChild(div);
-      });
+      if (previewList) {
+        previewList.textContent = '';
+        STATE.events.slice(-4).reverse().forEach(evt => {
+          const div = document.createElement('div');
+          div.className = 'event-item';
 
-      // 2. Full event table
+          const divLeft = document.createElement('div');
+          divLeft.className = 'event-left';
+
+          const spanSev = document.createElement('span');
+          spanSev.className = `badge-tag ${evt.severity === 'WARNING' ? 'amber' : evt.severity === 'ERROR' ? 'red' : 'cyan'}`;
+          spanSev.textContent = evt.severity || 'INFO';
+
+          const spanMsg = document.createElement('span');
+          const strongTitle = document.createElement('strong');
+          strongTitle.textContent = `${evt.title || 'EVENT'}: `;
+          spanMsg.appendChild(strongTitle);
+          spanMsg.appendChild(document.createTextNode(evt.message || ''));
+
+          divLeft.append(spanSev, spanMsg);
+
+          const spanTime = document.createElement('span');
+          spanTime.className = 'event-time';
+          spanTime.textContent = evt.time_str || '--';
+
+          div.append(divLeft, spanTime);
+          previewList.appendChild(div);
+        });
+      }
+
+      // 2. Full event table (Safe DOM elements)
       const fullTbody = document.getElementById('fullEventTableBody');
-      fullTbody.innerHTML = '';
-      STATE.events.slice().reverse().forEach(evt => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${evt.time_str || '--'}</td>
-          <td><span class="badge-tag ${evt.severity === 'WARNING' ? 'amber' : evt.severity === 'ERROR' ? 'red' : 'cyan'}">${evt.severity}</span></td>
-          <td><strong>${evt.title}</strong></td>
-          <td>${evt.message}</td>
-          <td>${evt.source || 'SYSTEM'}</td>
-        `;
-        fullTbody.appendChild(tr);
-      });
+      if (fullTbody) {
+        fullTbody.textContent = '';
+        STATE.events.slice().reverse().forEach(evt => {
+          const tr = document.createElement('tr');
+
+          const tdTime = document.createElement('td');
+          tdTime.textContent = evt.time_str || '--';
+
+          const tdSev = document.createElement('td');
+          const spanSev = document.createElement('span');
+          spanSev.className = `badge-tag ${evt.severity === 'WARNING' ? 'amber' : evt.severity === 'ERROR' ? 'red' : 'cyan'}`;
+          spanSev.textContent = evt.severity || 'INFO';
+          tdSev.appendChild(spanSev);
+
+          const tdTitle = document.createElement('td');
+          const strongTitle = document.createElement('strong');
+          strongTitle.textContent = evt.title || '--';
+          tdTitle.appendChild(strongTitle);
+
+          const tdMsg = document.createElement('td');
+          tdMsg.textContent = evt.message || '--';
+
+          const tdSrc = document.createElement('td');
+          tdSrc.textContent = evt.source || 'SYSTEM';
+
+          tr.append(tdTime, tdSev, tdTitle, tdMsg, tdSrc);
+          fullTbody.appendChild(tr);
+        });
+      }
     }
   </script>
 </body>
