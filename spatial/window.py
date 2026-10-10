@@ -1,3 +1,4 @@
+import threading
 from collections import deque
 from typing import List, Optional
 from .types import CSIRecord
@@ -9,27 +10,36 @@ class MultiLinkWindow:
         self.step = step
         self.records = deque()
         self.last_emit = None
+        self.lock = threading.Lock()
+
+    def _get_time(self, record: CSIRecord) -> float:
+        m = getattr(record, "monotonic_time", 0.0)
+        return m if m > 0.0 else record.timestamp
 
     def add(self, record: CSIRecord) -> Optional[List[CSIRecord]]:
-        self.records.append(record)
-        cutoff = record.timestamp - self.seconds
+        with self.lock:
+            self.records.append(record)
+            t = self._get_time(record)
+            cutoff = t - self.seconds
 
-        while self.records and self.records[0].timestamp < cutoff:
-            self.records.popleft()
+            while self.records and self._get_time(self.records[0]) < cutoff:
+                self.records.popleft()
 
-        if self.last_emit is None:
-            self.last_emit = record.timestamp
-            return list(self.records)
+            if self.last_emit is None:
+                self.last_emit = t
+                return list(self.records)
 
-        if record.timestamp - self.last_emit >= self.step:
-            self.last_emit = record.timestamp
-            return list(self.records)
+            if t - self.last_emit >= self.step:
+                self.last_emit = t
+                return list(self.records)
 
-        return None
+            return None
 
     def get_current(self) -> List[CSIRecord]:
-        return list(self.records)
+        with self.lock:
+            return list(self.records)
 
     def clear(self):
-        self.records.clear()
-        self.last_emit = None
+        with self.lock:
+            self.records.clear()
+            self.last_emit = None

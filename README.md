@@ -11,28 +11,26 @@
 WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array using standard COTS ESP32 microcontrollers:
 
 ```
-                      [TX1: North / Breach]
-                                ▲
-                                │
-[TX2: West / Core] ─────────────┼───────────── [TX3: East / Flank]
-                                │
-                                ▼
-                      [TX4: South / Deep]
-
-                  ┌──────────────────────────┐
-                  │    ROOM SENSING GRID     │
-                  │   (8 Candidate Links)    │
-                  └──────────────────────────┘
-                        ▲              ▲
-                       /                \
-                      /                  \
-            [RX1: Port 1]              [RX2: Port 2]
-             (Desk Left)                (Desk Right)
+        [TX2: NW Corner] ─────────────────────── [TX1: NE Corner]
+        (1C:69:20:31:38:08)                      (BC:DD:C2:CC:49:F4)
+               │                                        │
+               │         ┌────────────────────┐         │
+               │         │  ROOM SENSING GRID │         │
+               └─────────►  (8 MESH LINKS)    ◄─────────┘
+                         │                    │
+                         │   [RX1]    [RX2]   │
+                         │  (COM3)    (COM8)  │
+               ┌─────────► (Laptop at Center) ◄─────────┐
+               │         └────────────────────┘         │
+               │                                        │
+        [TX3: SW Corner] ─────────────────────── [TX4: SE Corner]
+        (CC:7B:5C:28:84:70)                      (1C:69:20:31:4B:40)
 ```
 
-- **4 Transmitters (TX1–TX4):** Standalone ESP32 nodes powered by standard 5V wall chargers/powerbanks placed in room sectors.
+- **4 Transmitters (TX1–TX4):** Standalone ESP32 nodes placed in 4 quadrants (TX1=NE, TX2=NW, TX3=SW, TX4=SE) powered by 5V USB chargers.
 - **2 Receivers (RX1, RX2):** ESP32 nodes connected directly to host PC via USB (`COM3` Master AP, `COM8` Passive Sniffer @ 921,600 baud).
 - **8 Candidate Links:** $4 \times 2 = 8$ spatial CSI channels ($RX_1 \to TX_k$ and $RX_2 \to TX_k$ for $k \in \{1,2,3,4\}$).
+- **Inference Mode:** Sector perturbation based on 64-subcarrier temporal variance ranking ($argmax$ strongest active zone). Heuristic spatial zoning, uncalibrated for absolute human count.
 
 ---
 

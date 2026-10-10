@@ -36,13 +36,16 @@ class LiveSpatialEngine:
         }
         self.lock = threading.Lock()
         self.running = False
+        self.last_record_receipt_time = 0.0
 
     def _on_record(self, record: CSIRecord):
+        self.last_record_receipt_time = time.time()
         emitted_window = self.window.add(record)
         if emitted_window is not None:
             self._process_window(emitted_window)
 
     def _process_window(self, records: List[CSIRecord]):
+        self.last_record_receipt_time = time.time()
         health = self.serial_manager.get_health()
         # Signal Quality Gate across active receivers (supports degraded single-receiver mode)
         all_rates = [
@@ -84,4 +87,30 @@ class LiveSpatialEngine:
 
     def get_state(self) -> Dict[str, Any]:
         with self.lock:
-            return dict(self.latest_state)
+            st = dict(self.latest_state)
+            now = time.time()
+            time_since_pkt = now - self.last_record_receipt_time if self.last_record_receipt_time > 0 else 999.0
+
+            health = st.get("receiver_health", {})
+            active_rx = sum(1 for h in health.values() if h.get("running") and h.get("aggregate_rate_hz", 0) >= 1.0)
+
+            if time_since_pkt > 3.0:
+                st["hardware_connected"] = False
+                st["signal_ok"] = False
+                st["mode"] = "HARDWARE OFFLINE (NO RECENT PACKETS)"
+                st["reason"] = "AWAITING_SERIAL_STREAM"
+                st["count"] = 0
+                st["zone"] = "CLEAR"
+                st["people"] = []
+            elif active_rx >= 2:
+                st["hardware_connected"] = True
+                st["mode"] = "LIVE HARDWARE (DUAL-RX 8-LINK)"
+            elif active_rx == 1:
+                st["hardware_connected"] = True
+                st["mode"] = "LIVE HARDWARE (DEGRADED SINGLE-RX)"
+            else:
+                st["hardware_connected"] = False
+                st["signal_ok"] = False
+                st["mode"] = "HARDWARE STANDBY"
+
+            return st

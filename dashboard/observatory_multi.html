@@ -372,9 +372,9 @@
           </div>
         </div>
         <div class="occupancy-hero">
-          <span style="font-size:14px; color:var(--text-muted); letter-spacing:1px;">OCCUPANCY:</span>
+          <span style="font-size:14px; color:var(--text-muted); letter-spacing:1px;">ACTIVE ZONES:</span>
           <span class="hero-count" id="hero-count">0</span>
-          <span style="font-size:14px; color:var(--text-muted); letter-spacing:1px;">PERSONS</span>
+          <span style="font-size:14px; color:var(--text-muted); letter-spacing:1px;">SECTORS</span>
         </div>
       </div>
 
@@ -478,12 +478,24 @@
         const dotMode = document.getElementById('dot-mode');
         const chipMode = document.getElementById('chip-mode');
 
-        if (modeStr.includes('LIVE')) {
-          hdrMode.textContent = 'MODE: LIVE HARDWARE (ONLINE)';
+        if (modeStr.includes('DUAL-RX')) {
+          hdrMode.textContent = 'MODE: LIVE (DUAL-RX 8-LINK)';
           hdrMode.style.color = 'var(--accent-neon-green)';
           dotMode.style.background = 'var(--accent-neon-green)';
           dotMode.style.boxShadow = '0 0 8px var(--accent-neon-green)';
           chipMode.style.borderColor = 'rgba(0, 255, 136, 0.4)';
+        } else if (modeStr.includes('DEGRADED')) {
+          hdrMode.textContent = 'MODE: LIVE (DEGRADED 1-RX)';
+          hdrMode.style.color = 'var(--accent-amber)';
+          dotMode.style.background = 'var(--accent-amber)';
+          dotMode.style.boxShadow = '0 0 8px var(--accent-amber)';
+          chipMode.style.borderColor = 'rgba(255, 170, 0, 0.4)';
+        } else if (modeStr.includes('OFFLINE')) {
+          hdrMode.textContent = 'MODE: HARDWARE OFFLINE';
+          hdrMode.style.color = 'var(--accent-scarlet)';
+          dotMode.style.background = 'var(--accent-scarlet)';
+          dotMode.style.boxShadow = '0 0 8px var(--accent-scarlet)';
+          chipMode.style.borderColor = 'rgba(255, 42, 85, 0.4)';
         } else if (modeStr.includes('INJECTION')) {
           hdrMode.textContent = 'MODE: DEMO INJECTION';
           hdrMode.style.color = 'var(--accent-cyan)';
@@ -491,7 +503,7 @@
           dotMode.style.boxShadow = '0 0 8px var(--accent-cyan)';
           chipMode.style.borderColor = 'rgba(0, 240, 255, 0.4)';
         } else {
-          hdrMode.textContent = 'MODE: STANDBY / DEMO';
+          hdrMode.textContent = 'MODE: STANDBY / INITIALIZING';
           hdrMode.style.color = 'var(--accent-amber)';
           dotMode.style.background = 'var(--accent-amber)';
           dotMode.style.boxShadow = '0 0 8px var(--accent-amber)';
@@ -560,10 +572,12 @@
             if (tray) {
               const avatar = document.createElement('div');
               avatar.className = 'human-avatar';
+              const scoreText = p.score ? `Var ${p.score}` : 'Active';
               avatar.innerHTML = `
-                <div class="avatar-icon">👤</div>
-                <div class="avatar-label">P${p.id}</div>
+                <div class="avatar-icon">⚡</div>
+                <div class="avatar-label">${p.zone} (${scoreText})</div>
               `;
+              avatar.title = `Perturbation Detected in ${p.zone} — CSI Variance Score: ${p.score || 'Triggered'}`;
               tray.appendChild(avatar);
             }
           });

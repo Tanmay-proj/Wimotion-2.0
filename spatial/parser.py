@@ -32,7 +32,8 @@ def parse_line(line: str, receiver_id: str) -> Optional[CSIRecord]:
                 rssi=float(data["rssi"]) if data.get("rssi") is not None else None,
                 amplitudes=[float(x) for x in data["amplitudes"]],
                 rate_hz=float(data["rate_hz"]) if data.get("rate_hz") is not None else None,
-                tx_id=data.get("tx_id")
+                tx_id=data.get("tx_id"),
+                monotonic_time=float(data.get("monotonic_time", time.monotonic()))
             )
         except Exception:
             return None
@@ -64,8 +65,8 @@ def parse_line(line: str, receiver_id: str) -> Optional[CSIRecord]:
             rssi_val = None
 
         # Unified host arrival timestamp ensures cross-receiver clock synchronization
-        # (Firmware timestamp is at meta_fields[18], but independent ESP32 boot clocks are unaligned)
         ts = time.time()
+        mono_ts = time.monotonic()
 
         try:
             csi_raw = [int(x) for x in csi_part.split() if x.strip()]
@@ -91,7 +92,8 @@ def parse_line(line: str, receiver_id: str) -> Optional[CSIRecord]:
             rssi=rssi_val,
             amplitudes=amplitudes,
             rate_hz=None,
-            tx_id=None
+            tx_id=None,
+            monotonic_time=mono_ts
         )
 
     return None

@@ -70,10 +70,7 @@ def get_dashboard():
 def get_spatial():
     global engine_instance
     if engine_instance:
-        state = engine_instance.get_state()
-        state["mode"] = "LIVE HARDWARE"
-        state["hardware_connected"] = True
-        return state
+        return engine_instance.get_state()
     return LATEST_STATE
 
 

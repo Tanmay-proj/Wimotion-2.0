@@ -3,12 +3,12 @@ from typing import List, Dict, Any
 
 
 class SpatialBaseline:
-    def __init__(self):
+    def __init__(self, variance_threshold: float = 8.0):
         self.zones = [
-            "Z1",
-            "Z2",
-            "Z3",
-            "Z4"
+            "Z1",  # NE Quadrant (TX1)
+            "Z2",  # NW Quadrant (TX2)
+            "Z3",  # SW Quadrant (TX3)
+            "Z4"   # SE Quadrant (TX4)
         ]
         self.tx_zone_map = {
             "TX1": "Z1",
@@ -16,6 +16,7 @@ class SpatialBaseline:
             "TX3": "Z3",
             "TX4": "Z4"
         }
+        self.variance_threshold = variance_threshold
 
     def predict(
         self,
@@ -31,6 +32,7 @@ class SpatialBaseline:
                 "zone": "UNKNOWN",
                 "people": [],
                 "active_links": active_links,
+                "confidence": None,
                 "reason": "SIGNAL_UNSTABLE"
             }
 
@@ -41,39 +43,50 @@ class SpatialBaseline:
                 "zone": "UNKNOWN",
                 "people": [],
                 "active_links": 0,
+                "confidence": None,
                 "reason": "NO_VALID_LINKS"
             }
 
         # ----------------------------------------------------
         # Multi-Link Sector Perturbation Detection (Wi-CaL)
+        # Aggregates subcarrier temporal variance across links for each TX
         # ----------------------------------------------------
-        # Identify which transmitters have active link perturbation
-        # Threshold: mean_delta > 0.75 or energy > 0.5 indicates human motion across that link
-        active_tx_scores = {}
+        tx_scores = {}
         for f in features:
             tx = f.get("tx")
-            score = f.get("mean_delta", 0.0)
-            if tx:
-                active_tx_scores[tx] = max(active_tx_scores.get(tx, 0.0), score)
+            if not tx:
+                continue
+            # Primary metric: csi_variance; fallback to delta-energy if synthetic
+            var_score = f.get("csi_variance", 0.0)
+            alt_score = f.get("mean_delta", 0.0) * 4.0 if var_score == 0.0 else 0.0
+            score = max(var_score, alt_score)
+            tx_scores[tx] = tx_scores.get(tx, 0.0) + score
 
-        # Count how many distinct spatial zones exceed perturbation threshold
+        # Rank transmitters by perturbation score (highest to lowest)
+        ranked_tx = sorted(tx_scores.items(), key=lambda x: x[1], reverse=True)
+
+        # Select only transmitters exceeding the calibrated noise floor cutoff
         active_zones = []
-        for tx, score in active_tx_scores.items():
-            if score >= 0.75:
+        people = []
+        for rank, (tx, score) in enumerate(ranked_tx, 1):
+            if score >= self.variance_threshold:
                 zone_name = self.tx_zone_map.get(tx, "Z1")
                 if zone_name not in active_zones:
                     active_zones.append(zone_name)
+                    people.append({
+                        "id": rank,
+                        "zone": zone_name,
+                        "tx": tx,
+                        "score": round(score, 2)
+                    })
+
+        # Strongest Perturbation Selection: primary zone is the argmax score
+        if ranked_tx and ranked_tx[0][1] >= self.variance_threshold:
+            primary_zone = self.tx_zone_map.get(ranked_tx[0][0], "Z1")
+        else:
+            primary_zone = "CLEAR"
 
         count = len(active_zones)
-        primary_zone = active_zones[0] if active_zones else "CLEAR"
-
-        people = [
-            {
-                "id": i + 1,
-                "zone": zone
-            }
-            for i, zone in enumerate(active_zones)
-        ]
 
         return {
             "signal_ok": True,
@@ -81,5 +94,6 @@ class SpatialBaseline:
             "zone": primary_zone,
             "people": people,
             "active_links": active_links,
+            "confidence": None,
             "reason": "BASELINE_OK"
         }

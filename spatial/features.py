@@ -53,6 +53,17 @@ def extract_link_features(records: List[CSIRecord]) -> List[Dict[str, Any]]:
         p95_delta = float(np.percentile(np.abs(delta), 95))
         energy = float(np.mean((x - mean_val) ** 2))
 
+        # Multi-subcarrier temporal variance (WiMotion 2.0 Proximity Metric)
+        matrix_rows = [clean_amplitudes(record.amplitudes)[:64] for record in group]
+        valid_rows = [r for r in matrix_rows if len(r) == 64]
+        if len(valid_rows) >= 3:
+            matrix = np.asarray(valid_rows, dtype=float)
+            sub_vars = np.var(matrix, axis=0)
+            active_vars = sub_vars[sub_vars > 1e-4]
+            csi_var = float(np.mean(active_vars)) if len(active_vars) > 0 else 0.0
+        else:
+            csi_var = 0.0
+
         features.append({
             "receiver": rx,
             "tx": tx,
@@ -62,7 +73,8 @@ def extract_link_features(records: List[CSIRecord]) -> List[Dict[str, Any]]:
             "mean_delta": mean_delta,
             "rms_delta": rms_delta,
             "p95_delta": p95_delta,
-            "energy": energy
+            "energy": energy,
+            "csi_variance": csi_var
         })
 
     return features

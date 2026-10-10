@@ -11,6 +11,7 @@ class CSIRecord:
     amplitudes: List[float]
     rate_hz: Optional[float] = None
     tx_id: Optional[str] = None
+    monotonic_time: float = 0.0
 
 
 @dataclass
