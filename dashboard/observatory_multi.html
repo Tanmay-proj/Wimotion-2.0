@@ -1245,54 +1245,71 @@
        OPERATING MODE & NAVIGATION MANAGER
        ===================================================================== */
     async function setMode(newMode) {
-      if (STATE.mode === newMode) return;
-      
-      // Clean up previous mode state
-      if (STATE.mode === 'REPLAY') {
-        pauseReplay();
-      }
-      // Reset timeline to avoid stitching live and replay/sim traces
-      STATE.timelineHistory = [];
+      if (STATE.mode === newMode || STATE.isSwitchingMode) return;
+      STATE.isSwitchingMode = true;
 
-      STATE.mode = newMode;
-      logEvent('INFO', 'MODE_CHANGED', `System switched operating mode to ${newMode}`);
-
-      // Notify backend authoritative mode manager
+      const previousMode = STATE.mode;
       try {
-        await fetch('/api/mode', {
+        const res = await fetch('/api/mode', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: newMode })
         });
-      } catch (e) {
-        console.warn("Could not synchronize mode with backend:", e);
-      }
 
+        if (!res.ok) {
+          throw new Error(`Server rejected mode switch with HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const committedMode = data.mode || newMode;
+
+        // Clean up previous mode state
+        if (previousMode === 'REPLAY' && committedMode !== 'REPLAY') {
+          pauseReplay();
+        }
+        // Reset timeline history on mode switch to prevent cross-mode sample stitching
+        STATE.timelineHistory = [];
+
+        STATE.mode = committedMode;
+        logEvent('INFO', 'MODE_CHANGED', `System switched operating mode to ${committedMode}`);
+
+        // Update UI controls to match committed mode
+        updateModeUI(committedMode);
+
+        if (committedMode === 'REPLAY') {
+          switchNavTab('tab-replay');
+          if (STATE.replayFrames.length > 0) {
+            renderReplayFrame(STATE.replayCurrentIndex);
+          }
+        } else {
+          pollSpatialState();
+        }
+      } catch (err) {
+        console.error("Mode switch failed, rolling back to previous mode:", err);
+        logEvent('ERROR', 'MODE_SWITCH_FAILED', `Failed switching to ${newMode}: ${err.message}. Retaining ${previousMode}.`);
+        updateModeUI(previousMode);
+      } finally {
+        STATE.isSwitchingMode = false;
+      }
+    }
+
+    function updateModeUI(mode) {
       const btnLive = document.getElementById('btn-mode-live');
       const btnReplay = document.getElementById('btn-mode-replay');
       const btnSim = document.getElementById('btn-mode-sim');
-      if (btnLive) btnLive.className = 'btn-mode' + (newMode === 'LIVE' ? ' active-live' : '');
-      if (btnReplay) btnReplay.className = 'btn-mode' + (newMode === 'REPLAY' ? ' active-replay' : '');
-      if (btnSim) btnSim.className = 'btn-mode' + (newMode === 'SIMULATION' ? ' active-sim' : '');
+      if (btnLive) btnLive.className = 'btn-mode' + (mode === 'LIVE' ? ' active-live' : '');
+      if (btnReplay) btnReplay.className = 'btn-mode' + (mode === 'REPLAY' ? ' active-replay' : '');
+      if (btnSim) btnSim.className = 'btn-mode' + (mode === 'SIMULATION' ? ' active-sim' : '');
 
       const radarBadge = document.getElementById('radar-active-badge');
       if (radarBadge) {
-        radarBadge.textContent = `MODE: ${newMode}`;
-        radarBadge.className = `badge-tag ${newMode === 'LIVE' ? 'green' : newMode === 'REPLAY' ? 'cyan' : 'amber'}`;
+        radarBadge.textContent = `MODE: ${mode}`;
+        radarBadge.className = `badge-tag ${mode === 'LIVE' ? 'green' : mode === 'REPLAY' ? 'cyan' : 'amber'}`;
       }
 
       const simDrawer = document.getElementById('sim-drawer');
       if (simDrawer) {
-        simDrawer.style.display = (newMode === 'SIMULATION') ? 'flex' : 'none';
-      }
-
-      if (newMode === 'REPLAY') {
-        switchNavTab('tab-replay');
-        if (STATE.replayFrames.length > 0) {
-          renderReplayFrame(STATE.replayCurrentIndex);
-        }
-      } else {
-        pollSpatialState();
+        simDrawer.style.display = (mode === 'SIMULATION') ? 'flex' : 'none';
       }
     }
 
@@ -1410,8 +1427,12 @@
 
       Object.entries(rxHealth).forEach(([rx, h]) => {
         const r = h.aggregate_rate_hz || h.rate_hz || 0.0;
-        if (h.running && r > 0) totalRate += r;
-        rxRateStrs.push(`${rx}: ${r.toFixed(1)}Hz`);
+        if (h.running && r > 0) {
+          totalRate += r;
+          rxRateStrs.push(`${rx}: ${r.toFixed(1)}Hz`);
+        } else {
+          rxRateStrs.push(`${rx}: ${isReplay ? 'NO DATA' : 'OFFLINE'}`);
+        }
       });
 
       const rateVal = totalRate > 0 ? totalRate : (data.rate_hz || 0.0);
@@ -1428,7 +1449,7 @@
       }
 
       if (subRateRx) {
-        subRateRx.textContent = rxRateStrs.join(' | ') || (isReplay ? 'Replay link stream' : 'No active streams');
+        subRateRx.textContent = rxRateStrs.join(' | ') || (isReplay ? 'No recorded link stream' : 'No active streams');
       }
 
       if (tagRate) {
@@ -1471,7 +1492,8 @@
       }
 
       // 3. Receiver Health Card
-      const onlineRx = Object.values(rxHealth).filter(h => h.running && (h.aggregate_rate_hz > 0 || isReplay)).length;
+      // A receiver is active only if it is running and has positive recorded/streamed rate
+      const onlineRx = Object.values(rxHealth).filter(h => h.running && (h.aggregate_rate_hz || h.rate_hz || 0) > 0).length;
       const valRxHealth = document.getElementById('val-rx-health');
       const tagRx = document.getElementById('tag-rx-mode');
       if (valRxHealth) {
@@ -1479,8 +1501,16 @@
       }
       if (tagRx) {
         if (isReplay) {
-          tagRx.className = 'badge-tag cyan';
-          tagRx.textContent = 'REPLAY DATA';
+          if (onlineRx >= 2) {
+            tagRx.className = 'badge-tag green';
+            tagRx.textContent = 'DUAL-RX REPLAY';
+          } else if (onlineRx === 1) {
+            tagRx.className = 'badge-tag amber';
+            tagRx.textContent = 'SINGLE-RX REPLAY';
+          } else {
+            tagRx.className = 'badge-tag red';
+            tagRx.textContent = 'NO RECORDED DATA';
+          }
         } else if (onlineRx >= 2) {
           tagRx.className = 'badge-tag green';
           tagRx.textContent = 'DUAL-RX ACTIVE';
@@ -1686,10 +1716,10 @@
           if (elStat) {
             elStat.textContent = '';
             const span = document.createElement('span');
-            if (variance >= 8.0) {
+            if (r > 0 && variance >= 8.0) {
               span.className = 'badge-tag amber';
               span.textContent = 'PERTURBED';
-            } else if (r >= 1.0 || (source === 'REPLAY' && variance > 0)) {
+            } else if (r > 0) {
               span.className = 'badge-tag green';
               span.textContent = 'ACTIVE';
             } else {
@@ -2038,9 +2068,11 @@
       if (!frame) return;
 
       // Synthesize full normalized state from replayed frame to drive ALL dashboard components
-      const activeLinkCount = Object.values(frame.link_details || {}).filter(d => (d.rate || 0) > 0 || (d.variance || 0) > 0).length;
+      // Only count links with valid recorded samples / positive rate in this window
+      const activeLinkCount = Object.values(frame.link_details || {}).filter(d => (d.rate || 0) > 0).length;
       let totalRate = Object.values(frame.link_details || {}).reduce((acc, d) => acc + (d.rate || 0), 0);
-      if (totalRate === 0 && frame.window_rate) totalRate = frame.window_rate;
+      if (totalRate === 0 && frame.rate_hz) totalRate = frame.rate_hz;
+      else if (totalRate === 0 && frame.window_rate) totalRate = frame.window_rate;
 
       const rx1Rates = {};
       const rx2Rates = {};
@@ -2049,6 +2081,9 @@
         if (parts[0] === 'RX1') rx1Rates[parts[1]] = d.rate || 0;
         if (parts[0] === 'RX2') rx2Rates[parts[1]] = d.rate || 0;
       });
+
+      const rx1TotalRate = Object.values(rx1Rates).reduce((a, b) => a + b, 0);
+      const rx2TotalRate = Object.values(rx2Rates).reduce((a, b) => a + b, 0);
 
       const linkFeatures = Object.entries(frame.link_details || {}).map(([link, det]) => {
         const parts = link.split('-');
@@ -2070,13 +2105,13 @@
         rate_hz: totalRate,
         receiver_health: {
           RX1: {
-            running: true,
-            aggregate_rate_hz: Object.values(rx1Rates).reduce((a, b) => a + b, 0),
+            running: rx1TotalRate > 0,
+            aggregate_rate_hz: rx1TotalRate,
             per_link_rates: rx1Rates
           },
           RX2: {
-            running: true,
-            aggregate_rate_hz: Object.values(rx2Rates).reduce((a, b) => a + b, 0),
+            running: rx2TotalRate > 0,
+            aggregate_rate_hz: rx2TotalRate,
             per_link_rates: rx2Rates
           }
         },

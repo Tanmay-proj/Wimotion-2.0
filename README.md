@@ -46,7 +46,7 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Strict Mode Isolation** | ✅ **Implemented** | Authoritative separation between LIVE hardware, REPLAY lab, and SIMULATION (`spatial/server.py`) |
 | **Unified State Renderer** | ✅ **Implemented** | Consistent single-renderer driving metrics, 8-link mesh, timeline, and radar (`dashboard/observatory_multi.html`) |
 | **Safe Replay Lab Engine** | ✅ **Implemented** | Timestamp-based playback with scrub, rate quality gate, and XSS-safe DOM nodes (`spatial/replay_loader.py`) |
-| **Automated Unit Tests** | ✅ **Passing (13/13)** | Mode isolation, stale stream `UNKNOWN`, quality gate, tensor shapes, raw CSI parsing, tracking (`tests/test_spatial.py`) |
+| **Automated Unit Tests** | ✅ **Passing (19/19)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence (`tests/test_spatial.py`) |
 | **Dual-RX Flashed & Listening** | ✅ **Verified** | Master AP (`COM3`) & Passive Sniffer (`COM8`) active @ 921,600 baud |
 | **Labelled Multi-Person Dataset** | ⏳ **Pending Collection** | Capture script ready (`scripts/record_multilink_dataset.py`) |
 | **Trained Multi-Class ML Model** | ⏳ **Pending Dataset** | Scaffold baseline active; real ML model trained after data collection |
@@ -75,6 +75,14 @@ py -3.10 scripts/0_check_multilink_hardware.py --interactive
 
 ## 4. Engineering Principles & Scientific Integrity
 
+- **Aggregate CSI Rate Metric Definition & Units:**
+  The displayed CSI rate represents **valid CSI packets received per second** across all active links within the configured sliding window ($\Delta t = 2.0\text{ s}$ by default):
+  $$\text{Aggregate Rate (Hz)} = \frac{N_{\text{records}}}{\Delta t_{\text{window}}} = \sum_{k=1}^8 \text{Link Rate}_k$$
+  A link is defined as `ACTIVE` only when genuine recorded samples ($N_k > 0$) exist in that window. CSI variance is a physical perturbation measurement, never a substitute for packet presence.
+- **Derived Hardware Availability in Replay:**
+  In Replay Lab, receiver and link statuses are derived directly from empirical recorded coverage. If a session contains only RX1 data, RX2 is truthfully reported as `NO DATA` / `OFFLINE` (yielding `1 / 2 RECORDED`), preventing misleading assumptions of dual-receiver operation.
+- **Transactional Mode Switching:**
+  Operating mode changes (`LIVE`, `REPLAY`, `SIMULATION`) are committed by the UI only after backend confirmation (`POST /api/mode`), rolling back on communication error to prevent desynchronization between user controls and ingested telemetry.
 - **Heuristic Zone Perturbation vs. Validated Human Counting:**
   The current spatial baseline tracks **perturbed RF sectors**, based on temporal CSI variance thresholds (threshold = 8.0). Active zone count reflects perturbed links, NOT an independently verified count of physical humans. A single individual walking across the room can perturb multiple links simultaneously, while two stationary individuals in one sector activate a single quadrant.
 - **Truthful Telemetry Semantics:**

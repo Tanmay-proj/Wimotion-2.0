@@ -285,9 +285,192 @@ class TestSpatial(unittest.TestCase):
 
         self.assertFalse(worker.running)
         self.assertIsNotNone(worker.last_error)
-        self.assertIsNotNone(worker.last_error)
+
+    def test_replay_single_rx_only_records(self):
+        from spatial.replay_loader import evaluate_window_frame
+
+        # Only RX1 records present (no RX2 packets at all)
+        records = [
+            CSIRecord(1.0 + i*0.1, "RX1", "MAC1", -60, [10]*64, 10.0, "TX1") for i in range(10)
+        ] + [
+            CSIRecord(1.0 + i*0.1, "RX1", "MAC2", -60, [10]*64, 10.0, "TX2") for i in range(10)
+        ]
+
+        frame = evaluate_window_frame(
+            window_records=records,
+            window_seconds=2.0,
+            total_duration=10.0,
+            current_offset=1.0,
+            window_end=2.0,
+            latest_gt_count=1,
+            latest_gt_zone="Z1",
+            latest_motion="MOTION"
+        )
+
+        # RX1 links should have positive rates
+        self.assertGreater(frame["link_details"]["RX1-TX1"]["rate"], 0)
+        self.assertGreater(frame["link_details"]["RX1-TX2"]["rate"], 0)
+
+        # RX2 links must have 0 rate and be IDLE
+        for link_name, det in frame["link_details"].items():
+            if link_name.startswith("RX2-"):
+                self.assertEqual(det["rate"], 0.0)
+                self.assertEqual(det["status"], "IDLE")
+
+        # Active links count must strictly reflect only links with valid samples (2 links)
+        self.assertEqual(frame["active_links"], 2)
+
+    def test_replay_link_variance_without_samples_is_not_active(self):
+        from spatial.replay_loader import evaluate_window_frame
+        from unittest.mock import patch
+
+        # Mock feature extractor returning a link with high variance but 0 sample_count
+        fake_features = [
+            {
+                "receiver": "RX1",
+                "tx": "TX1",
+                "csi_variance": 22.5,  # high variance
+                "sample_count": 0,     # NO valid samples in window
+                "rssi": -60.0
+            }
+        ]
+
+        with patch("spatial.replay_loader.extract_link_features", return_value=fake_features):
+            frame = evaluate_window_frame(
+                window_records=[CSIRecord(1.0, "RX1", "MAC1", -60, [10]*64, 0.0, "TX1")],
+                window_seconds=2.0,
+                total_duration=10.0,
+                current_offset=0.0,
+                window_end=1.0,
+                latest_gt_count=0,
+                latest_gt_zone="CLEAR",
+                latest_motion="EMPTY"
+            )
+
+            # Link with 0 samples must remain IDLE despite high variance
+            det = frame["link_details"]["RX1-TX1"]
+            self.assertEqual(det["rate"], 0.0)
+            self.assertEqual(det["status"], "IDLE")
+            self.assertNotEqual(det["status"], "PERTURBED")
+            self.assertNotEqual(det["status"], "ACTIVE")
+            self.assertEqual(frame["active_links"], 0)
+
+    def test_mode_switching_transactional_error_handling(self):
+        import spatial.server as server
+        from fastapi import HTTPException
+
+        server.set_mode({"mode": "LIVE"})
+        self.assertEqual(server.get_mode()["mode"], "LIVE")
+
+        # Reject invalid mode with HTTP 400
+        with self.assertRaises(HTTPException) as ctx:
+            server.set_mode({"mode": "INVALID_CORRUPTED_MODE"})
+        self.assertEqual(ctx.exception.status_code, 400)
+
+        # Verify mode remains unchanged (transactional integrity)
+        self.assertEqual(server.get_mode()["mode"], "LIVE")
+
+    def test_cycle_modes_no_leakage(self):
+        import spatial.server as server
+
+        original_mode = server.CURRENT_MODE
+        try:
+            # 1. LIVE
+            server.set_mode({"mode": "LIVE"})
+            st_live = server.get_spatial()
+            self.assertIn(st_live["source"], ["LIVE", "LIVE_STANDBY"])
+
+            # 2. REPLAY
+            server.set_mode({"mode": "REPLAY"})
+            st_replay = server.get_spatial()
+            self.assertEqual(st_replay["source"], "REPLAY")
+
+            # 3. SIMULATION with injection
+            server.set_mode({"mode": "SIMULATION"})
+            server.update_simulate({"zone": "Z4", "active_zone_count": 1})
+            st_sim = server.get_spatial()
+            self.assertEqual(st_sim["source"], "SIMULATION")
+            self.assertEqual(st_sim["zone"], "Z4")
+
+            # 4. Return to LIVE -> Simulation state cleared
+            server.set_mode({"mode": "LIVE"})
+            st_live_again = server.get_spatial()
+            self.assertIn(st_live_again["source"], ["LIVE", "LIVE_STANDBY"])
+            self.assertNotEqual(st_live_again["zone"], "Z4")
+            self.assertEqual(server.SIMULATION_STATE["zone"], "CLEAR")
+            self.assertEqual(server.SIMULATION_STATE["active_zone_count"], 0)
+        finally:
+            server.set_mode({"mode": original_mode})
+
+    def test_replay_aggregate_rate_formula_and_units(self):
+        from spatial.replay_loader import evaluate_window_frame
+
+        # Window duration: 2.0s
+        # 10 records for RX1-TX1 -> 5.0 Hz
+        # 6 records for RX1-TX2 -> 3.0 Hz
+        # Total records = 16 -> Total aggregate rate = 8.0 Hz
+        records = [
+            CSIRecord(1.0 + i*0.1, "RX1", "MAC1", -60, [10]*64, 5.0, "TX1") for i in range(10)
+        ] + [
+            CSIRecord(1.0 + i*0.1, "RX1", "MAC2", -60, [10]*64, 3.0, "TX2") for i in range(6)
+        ]
+
+        frame = evaluate_window_frame(
+            window_records=records,
+            window_seconds=2.0,
+            total_duration=10.0,
+            current_offset=1.0,
+            window_end=2.0,
+            latest_gt_count=1,
+            latest_gt_zone="Z1",
+            latest_motion="MOTION"
+        )
+
+        self.assertEqual(frame["rate_hz"], 8.0)
+        self.assertEqual(frame["link_details"]["RX1-TX1"]["rate"], 5.0)
+        self.assertEqual(frame["link_details"]["RX1-TX2"]["rate"], 3.0)
+        
+        # Verify sum of per-link rates equals aggregate rate
+        sum_link_rates = sum(d["rate"] for d in frame["link_details"].values())
+        self.assertAlmostEqual(sum_link_rates, frame["rate_hz"], places=1)
+
+    def test_bisect_window_slicing_equivalence(self):
+        import bisect
+        from spatial.types import CSIRecord
+
+        # Generate 200 synthetic records with strictly monotonic timestamps
+        records_by_time = []
+        timestamps = []
+        for i in range(200):
+            t = 100.0 + i * 0.05
+            r = CSIRecord(t, "RX1", "MAC1", -60, [10]*64, 20.0, "TX1")
+            records_by_time.append((t, r, 0, "CLEAR", "EMPTY"))
+            timestamps.append(t)
+
+        # Test 10 arbitrary window intervals
+        window_seconds = 2.0
+        for offset in [0.0, 0.5, 1.25, 2.5, 4.0, 5.5, 7.0, 8.2]:
+            window_end = 100.0 + offset
+            window_start = window_end - window_seconds
+
+            # Method A: Linear scan (original baseline)
+            linear_records = [
+                item[1]
+                for item in records_by_time
+                if window_start <= item[0] <= window_end
+            ]
+
+            # Method B: O(log N) Bisect search (optimized)
+            idx_start = bisect.bisect_left(timestamps, window_start)
+            idx_end = bisect.bisect_right(timestamps, window_end)
+            bisect_records = [item[1] for item in records_by_time[idx_start:idx_end]]
+
+            # Must be 100% equivalent in length and contents
+            self.assertEqual(len(linear_records), len(bisect_records))
+            self.assertEqual([r.timestamp for r in linear_records], [r.timestamp for r in bisect_records])
 
 
 if __name__ == "__main__":
     unittest.main()
+
 

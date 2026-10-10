@@ -2,6 +2,7 @@ import csv
 import json
 import os
 import time
+import bisect
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
@@ -190,33 +191,29 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         return None
 
     records_by_time.sort(key=lambda x: x[0])
-    start_ts = records_by_time[0][0]
-    end_ts = records_by_time[-1][0]
+    timestamps = [item[0] for item in records_by_time]
+    start_ts = timestamps[0]
+    end_ts = timestamps[-1]
     total_duration = max(0.1, end_ts - start_ts)
 
     model = SpatialBaseline()
     frames = []
 
-    # Process sliding windows at uniform step_seconds intervals
+    # Process sliding windows at uniform step_seconds intervals using O(log N) bisect
     current_offset = 0.0
     while current_offset <= total_duration:
         window_end = start_ts + current_offset
         window_start = window_end - window_seconds
 
-        # Select records within window
-        window_records = [
-            item[1]
-            for item in records_by_time
-            if window_start <= item[0] <= window_end
-        ]
+        # Fast binary search slicing for window range [window_start, window_end]
+        idx_start = bisect.bisect_left(timestamps, window_start)
+        idx_end = bisect.bisect_right(timestamps, window_end)
+        window_records = [item[1] for item in records_by_time[idx_start:idx_end]]
 
-        # Latest ground truth in window
-        latest_items = [
-            item for item in records_by_time
-            if item[0] <= window_end
-        ]
-        if latest_items:
-            _, _, latest_gt_count, latest_gt_zone, latest_motion = latest_items[-1]
+        # Fast binary search for latest ground truth prior to or at window_end
+        idx_latest = bisect.bisect_right(timestamps, window_end)
+        if idx_latest > 0:
+            _, _, latest_gt_count, latest_gt_zone, latest_motion = records_by_time[idx_latest - 1]
         else:
             latest_gt_count, latest_gt_zone, latest_motion = 0, "CLEAR", "UNKNOWN"
 
@@ -255,11 +252,19 @@ def evaluate_window_frame(
     latest_motion: str = "UNKNOWN",
     model: Optional[SpatialBaseline] = None
 ) -> Dict[str, Any]:
-    """Evaluates a single sliding-window of CSI records against quality gates and ground truth."""
+    """Evaluates a single sliding-window of CSI records against quality gates and ground truth.
+    
+    CSI Rate Definition & Metrics:
+    - window_rate (aggregate_rate_hz): total valid CSI records received per second in this window.
+      Unit: Hz (records/sec). Formula: len(window_records) / window_seconds.
+    - per_link_rate: link samples received per second (link_sample_count / window_seconds).
+    - Sum of per-link rates equals aggregate rate.
+    - Active links: Links with valid recorded samples in window (rate > 0). Variance alone does NOT mark a link active.
+    """
     if model is None:
         model = SpatialBaseline()
 
-    features = extract_link_features(window_records) if window_records else []
+    features = extract_link_features(window_records)
     window_rate = len(window_records) / window_seconds if window_seconds > 0 else 0.0
     
     # Rigorous Signal Quality Gate: at least 8 packets, rate >= 4.0 Hz
@@ -274,13 +279,30 @@ def evaluate_window_frame(
         tx = f.get("tx")
         link_key = f"{rx}-{tx}"
         var = f.get("csi_variance", 0.0)
+        sample_count = f.get("sample_count", 0)
+        link_rate = round(sample_count / window_seconds, 1) if window_seconds > 0 else 0.0
+        
         per_tx_var[tx] = max(per_tx_var.get(tx, 0.0), round(var, 2))
+
+        # Only links with genuine recorded packets in this window are ACTIVE / PERTURBED.
+        # Variance is never a proxy for link data availability.
+        if link_rate > 0 and var >= 8.0:
+            link_status = "PERTURBED"
+        elif link_rate > 0:
+            link_status = "ACTIVE"
+        else:
+            link_status = "IDLE"
+
         link_details[link_key] = {
             "variance": round(var, 2),
             "rssi": round(f.get("rssi", -60.0), 1) if f.get("rssi") is not None else -60.0,
-            "rate": round(f.get("sample_count", 0) / window_seconds, 1),
-            "status": "ACTIVE" if var >= 8.0 else "BASELINE"
+            "rate": link_rate,
+            "samples": sample_count,
+            "status": link_status
         }
+
+    # Count only links that actually have recorded samples in this window
+    active_link_count = sum(1 for det in link_details.values() if det["rate"] > 0)
 
     # Determine evaluation comparison
     pred_zone = pred.get("zone", "UNKNOWN")
@@ -302,7 +324,7 @@ def evaluate_window_frame(
         "model_decision": "HUMAN_PERTURBATION" if pred_zone not in ["CLEAR", "UNKNOWN"] else ("EMPTY_ROOM" if pred_zone == "CLEAR" else "UNAVAILABLE"),
         "model_score": max(per_tx_var.values()) if per_tx_var else 0.0,
         "eval_status": eval_status,
-        "active_links": len(features),
+        "active_links": active_link_count,
         "link_count": 8,
         "per_tx_variance": per_tx_var,
         "link_details": link_details,
