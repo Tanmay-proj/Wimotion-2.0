@@ -595,10 +595,22 @@ class TestSpatial(unittest.TestCase):
         self.assertTrue(all(55.0 <= f["time_offset"] < 85.0 for f in p2_frames))
         self.assertTrue(all(55.0 <= f["time_offset"] < 85.0 for f in p3_frames))
 
-        # Verify marker gliding coordinates change monotonically during transitions
-        glide_p1 = [f["people"][0]["x"] for f in frames if 30.0 <= f["time_offset"] <= 33.5]
-        # X moves from 285.0 down toward 125.0
-        self.assertTrue(glide_p1[0] > glide_p1[-1])
+        # Verify markers are strictly placed in their discrete zones without floating between zones
+        for f in frames:
+            if 15.0 <= f["time_offset"] < 30.0:
+                self.assertEqual(f["people"][0]["zone"], "Z1")
+                self.assertEqual((f["people"][0]["x"], f["people"][0]["y"]), (285.0, 125.0))
+            elif 30.0 <= f["time_offset"] < 45.0:
+                self.assertEqual(f["people"][0]["zone"], "Z3")
+                self.assertEqual((f["people"][0]["x"], f["people"][0]["y"]), (125.0, 275.0))
+            elif 55.0 <= f["time_offset"] < 70.0:
+                self.assertEqual(f["people"][0]["zone"], "Z2")
+                self.assertEqual(f["people"][1]["zone"], "Z4")
+            elif 70.0 <= f["time_offset"] < 85.0:
+                self.assertEqual(f["people"][0]["zone"], "Z1")
+                self.assertEqual(f["people"][1]["zone"], "Z1")
+                self.assertEqual((f["people"][0]["x"], f["people"][0]["y"]), (270.0, 115.0))
+                self.assertEqual((f["people"][1]["x"], f["people"][1]["y"]), (295.0, 135.0))
 
 
 if __name__ == "__main__":

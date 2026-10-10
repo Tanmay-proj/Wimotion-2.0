@@ -158,15 +158,7 @@ def generate_demo_session_frames(step_seconds: float = 0.5, total_duration: floa
             gt_zone = "Z3"
             gt_motion = "PERSON_1_IN_ZONE_3"
             model_zone = "Z3"
-            if t < 33.5:
-                prog = (t - 30.0) / 3.5
-                cur_x = round(285.0 + (125.0 - 285.0) * prog, 1)
-                cur_y = round(125.0 + (275.0 - 125.0) * prog, 1)
-                z = "Z1" if prog < 0.5 else "Z3"
-            else:
-                cur_x, cur_y = 125.0, 275.0
-                z = "Z3"
-            people = [{"id": "P1", "zone": z, "x": cur_x, "y": cur_y, "score": 22.0, "color": "#45C486"}]
+            people = [{"id": "P1", "zone": "Z3", "x": 125.0, "y": 275.0, "score": 22.0, "color": "#45C486"}]
             link_details["RX1-TX3"]["variance"] = 22.0
             link_details["RX1-TX3"]["status"] = "ACTIVE"
             per_tx_var["TX3"] = 22.0
@@ -196,18 +188,9 @@ def generate_demo_session_frames(step_seconds: float = 0.5, total_duration: floa
             gt_zone = "Z1"
             gt_motion = "TWO_PERSONS_IN_ZONE_1"
             model_zone = "Z1"
-            if t < 73.5:
-                prog = (t - 70.0) / 3.5
-                p2_x = round(125.0 + (270.0 - 125.0) * prog, 1)
-                p2_y = round(125.0 + (115.0 - 125.0) * prog, 1)
-                p3_x = round(285.0 + (295.0 - 285.0) * prog, 1)
-                p3_y = round(275.0 + (135.0 - 275.0) * prog, 1)
-            else:
-                p2_x, p2_y = 270.0, 115.0
-                p3_x, p3_y = 295.0, 135.0
             people = [
-                {"id": "P2", "zone": "Z1", "x": p2_x, "y": p2_y, "score": 24.0, "color": "#35C5D5"},
-                {"id": "P3", "zone": "Z1", "x": p3_x, "y": p3_y, "score": 26.5, "color": "#B388FF"}
+                {"id": "P2", "zone": "Z1", "x": 270.0, "y": 115.0, "score": 24.0, "color": "#35C5D5"},
+                {"id": "P3", "zone": "Z1", "x": 295.0, "y": 135.0, "score": 26.5, "color": "#B388FF"}
             ]
             link_details["RX1-TX1"]["variance"] = 26.5
             link_details["RX1-TX1"]["status"] = "ACTIVE"
