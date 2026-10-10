@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WiMotion 2.0 — Multi-Link RF Spatial Sensing & Occupancy HUD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Orbitron:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-deep: #090b10;
+      --bg-panel: rgba(16, 21, 33, 0.75);
+      --border-panel: rgba(0, 240, 255, 0.18);
+      --accent-cyan: #00f0ff;
+      --accent-neon-green: #00ff88;
+      --accent-scarlet: #ff2a55;
+      --accent-amber: #ffaa00;
+      --text-main: #f0f4fc;
+      --text-muted: #8896b0;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-deep);
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, transparent 60%),
+        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Military Header */
+    header {
+      background: rgba(10, 14, 22, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-panel);
+      padding: 16px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .badge-lrp {
+      background: rgba(255, 42, 85, 0.15);
+      border: 1px solid var(--accent-scarlet);
+      color: var(--accent-scarlet);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 4px;
+      letter-spacing: 1.5px;
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    h1 span { color: var(--accent-cyan); text-shadow: 0 0 16px rgba(0, 240, 255, 0.6); }
+
+    .header-telemetry {
+      display: flex;
+      gap: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+    }
+    .tele-chip {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      padding: 6px 14px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-neon-green);
+      box-shadow: 0 0 8px var(--accent-neon-green);
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      padding: 24px 32px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      max-width: 1540px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Tactical Tactical Floorplan Screen */
+    .tactical-viewport {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 12px;
+      padding: 24px;
+      backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+    }
+    .viewport-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .vp-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 15px;
+      letter-spacing: 1.5px;
+      color: var(--accent-cyan);
+    }
+    .occupancy-hero {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 26px;
+      font-weight: 900;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .hero-count {
+      color: var(--accent-neon-green);
+      text-shadow: 0 0 18px rgba(0, 255, 136, 0.6);
+    }
+
+    /* 2D Tactical Room Grid (Z1 - Z4) */
+    .room-grid-canvas {
+      flex: 1;
+      min-height: 440px;
+      background: rgba(8, 12, 20, 0.8);
+      border: 2px dashed rgba(0, 240, 255, 0.25);
+      border-radius: 10px;
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 12px;
+      padding: 16px;
+      overflow: hidden;
+    }
+
+    /* Zones */
+    .zone-cell {
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      border-radius: 8px;
+      padding: 16px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      background: rgba(14, 20, 32, 0.4);
+    }
+    .zone-cell.active-zone {
+      border-color: var(--accent-neon-green);
+      background: rgba(0, 255, 136, 0.08);
+      box-shadow: inset 0 0 24px rgba(0, 255, 136, 0.15);
+    }
+    .zone-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: var(--accent-cyan);
+    }
+    .zone-name {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* RF Node Markers */
+    .rf-node-marker {
+      position: absolute;
+      background: #0f172a;
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 4px;
+      z-index: 10;
+      box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+    }
+    .node-tx2 { top: 8px; left: 8px; }
+    .node-tx1 { top: 8px; right: 8px; }
+    .node-tx3 { bottom: 8px; left: 8px; }
+    .node-tx4 { bottom: 8px; right: 8px; }
+    .node-rx1 {
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #091a1a;
+      border: 1.5px solid var(--accent-neon-green);
+      color: var(--accent-neon-green);
+      box-shadow: 0 0 18px rgba(0, 255, 136, 0.5);
+      z-index: 20;
+    }
+
+    /* Avatars Container inside Zones */
+    .avatar-tray {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+    }
+    .human-avatar {
+      background: rgba(0, 255, 136, 0.2);
+      border: 2px solid var(--accent-neon-green);
+      border-radius: 50%;
+      width: 52px;
+      height: 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
+      animation: float 2.5s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .avatar-icon { font-size: 20px; }
+    .avatar-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    /* Sidebar Telemetry */
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .panel-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-panel);
+      border-radius: 12px;
+      padding: 20px;
+      backdrop-filter: blur(16px);
+    }
+    .panel-card h3 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1.5px;
+      color: var(--accent-cyan);
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* 8-Link Grid Visualizer */
+    .link-list {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .link-item {
+      background: rgba(10, 15, 24, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .link-status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-neon-green);
+    }
+
+    /* Simulation Control Tray */
+    .sim-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .btn-sim {
+      background: rgba(0, 240, 255, 0.08);
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    .btn-sim:hover {
+      background: var(--accent-cyan);
+      color: #000;
+      box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="badge-lrp">LRP MCTE</div>
+      <h1>WIMOTION <span>2.0</span> HUD</h1>
+    </div>
+    <div class="header-telemetry">
+      <div class="tele-chip" id="chip-mode" style="border-color: rgba(255, 170, 0, 0.4);">
+        <div class="pulse-dot" id="dot-mode" style="background: var(--accent-amber); box-shadow: 0 0 8px var(--accent-amber);"></div>
+        <span id="hdr-mode" style="font-weight: 700; color: var(--accent-amber);">MODE: STANDBY / DEMO</span>
+      </div>
+      <div class="tele-chip">
+        <span style="color:var(--text-muted)">LINKS:</span>
+        <strong id="hdr-links" style="color:var(--accent-cyan)">0 / 8 ACTIVE</strong>
+      </div>
+      <div class="tele-chip">
+        <span style="color:var(--text-muted)">RATE:</span>
+        <strong id="hdr-rate" style="color:var(--text-muted)">-- Hz</strong>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Tactical Viewport -->
+    <section class="tactical-viewport">
+      <div class="viewport-header">
+        <div>
+          <div class="vp-title">TACTICAL RF OCCUPANCY & SECTOR MAPPING</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
+            Dual-Receiver Cross-Beam Spatial Interferometry (Wi-CaL Architecture)
+          </div>
+        </div>
+        <div class="occupancy-hero">
+          <span style="font-size:14px; color:var(--text-muted); letter-spacing:1px;">ACTIVE ZONES:</span>
+          <span class="hero-count" id="hero-count">0</span>
+          <span style="font-size:14px; color:var(--text-muted); letter-spacing:1px;">SECTORS</span>
+        </div>
+      </div>
+
+      <!-- 2D Room Floorplan with 4 Quadrants -->
+      <div class="room-grid-canvas">
+        <div class="rf-node-marker node-tx2">TX2 (NW CORNER)</div>
+        <div class="rf-node-marker node-tx1">TX1 (NE CORNER)</div>
+        <div class="rf-node-marker node-tx3">TX3 (SW CORNER)</div>
+        <div class="rf-node-marker node-tx4">TX4 (SE CORNER)</div>
+        <div class="rf-node-marker node-rx1">💻 RX1 (LAPTOP CENTER)</div>
+
+        <!-- Zone 2 (Top-Left: NW) -->
+        <div class="zone-cell" id="zone-Z2">
+          <div>
+            <div class="zone-tag">SECTOR Z2</div>
+            <div class="zone-name">NW QUADRANT (TX2)</div>
+          </div>
+          <div class="avatar-tray" id="avatars-Z2"></div>
+        </div>
+
+        <!-- Zone 1 (Top-Right: NE) -->
+        <div class="zone-cell" id="zone-Z1">
+          <div>
+            <div class="zone-tag">SECTOR Z1</div>
+            <div class="zone-name">NE QUADRANT (TX1)</div>
+          </div>
+          <div class="avatar-tray" id="avatars-Z1"></div>
+        </div>
+
+        <!-- Zone 3 (Bottom-Left: SW) -->
+        <div class="zone-cell" id="zone-Z3">
+          <div>
+            <div class="zone-tag">SECTOR Z3</div>
+            <div class="zone-name">SW QUADRANT (TX3)</div>
+          </div>
+          <div class="avatar-tray" id="avatars-Z3"></div>
+        </div>
+
+        <!-- Zone 4 (Bottom-Right: SE) -->
+        <div class="zone-cell" id="zone-Z4">
+          <div>
+            <div class="zone-tag">SECTOR Z4</div>
+            <div class="zone-name">SE QUADRANT (TX4)</div>
+          </div>
+          <div class="avatar-tray" id="avatars-Z4"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <!-- 8 Candidate Links -->
+      <div class="panel-card">
+        <h3>8-LINK RF MESH <span style="font-size:11px; color:var(--accent-neon-green)">FULL DUAL-RX ONLINE</span></h3>
+        <div class="link-list">
+          <div class="link-item" id="lnk-RX1-TX1"><span>RX1-TX1</span><div class="link-status-dot" id="dot-RX1-TX1"></div></div>
+          <div class="link-item" id="lnk-RX1-TX2"><span>RX1-TX2</span><div class="link-status-dot" id="dot-RX1-TX2"></div></div>
+          <div class="link-item" id="lnk-RX1-TX3"><span>RX1-TX3</span><div class="link-status-dot" id="dot-RX1-TX3"></div></div>
+          <div class="link-item" id="lnk-RX1-TX4"><span>RX1-TX4</span><div class="link-status-dot" id="dot-RX1-TX4"></div></div>
+          <div class="link-item" id="lnk-RX2-TX1"><span>RX2-TX1</span><div class="link-status-dot" id="dot-RX2-TX1"></div></div>
+          <div class="link-item" id="lnk-RX2-TX2"><span>RX2-TX2</span><div class="link-status-dot" id="dot-RX2-TX2"></div></div>
+          <div class="link-item" id="lnk-RX2-TX3"><span>RX2-TX3</span><div class="link-status-dot" id="dot-RX2-TX3"></div></div>
+          <div class="link-item" id="lnk-RX2-TX4"><span>RX2-TX4</span><div class="link-status-dot" id="dot-RX2-TX4"></div></div>
+        </div>
+      </div>
+
+      <!-- Live Pipeline State -->
+      <div class="panel-card">
+        <h3>STATE SUMMARY</h3>
+        <div style="font-family:'JetBrains Mono', monospace; font-size:12px; display:flex; flex-direction:column; gap:8px;">
+          <div>STATUS: <strong id="val-status" style="color:var(--accent-neon-green)">ACTIVE</strong></div>
+          <div>PRIMARY ZONE: <strong id="val-zone" style="color:var(--accent-cyan)">CLEAR</strong></div>
+          <div>CONFIDENCE: <strong id="val-conf" style="color:var(--text-main)">85.0%</strong></div>
+          <div>GATE: <strong style="color:var(--accent-neon-green)">PASS (&ge; 4.0 Hz)</strong></div>
+        </div>
+      </div>
+
+      <!-- Multi-Person Demo Controls -->
+      <div class="panel-card">
+        <h3>DEMO INJECTION</h3>
+        <div class="sim-controls">
+          <button class="btn-sim" onclick="sendSim(0, [])">0 People (Empty Room)</button>
+          <button class="btn-sim" onclick="sendSim(1, [{id:1, zone:'Z1'}])">1 Person (At Doorway Z1)</button>
+          <button class="btn-sim" onclick="sendSim(2, [{id:1, zone:'Z1'}, {id:2, zone:'Z3'}])">2 People (Z1 Door &amp; Z3 Flank)</button>
+          <button class="btn-sim" onclick="sendSim(3, [{id:1, zone:'Z1'}, {id:2, zone:'Z2'}, {id:3, zone:'Z4'}])">3 People (Tactical Spread)</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    async function updateHUD() {
+      try {
+        const res = await fetch('/api/spatial');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // Mode & Status chip update
+        const modeStr = data.mode || 'STANDBY / DEMO';
+        const hdrMode = document.getElementById('hdr-mode');
+        const dotMode = document.getElementById('dot-mode');
+        const chipMode = document.getElementById('chip-mode');
+
+        if (modeStr.includes('DUAL-RX')) {
+          hdrMode.textContent = 'MODE: LIVE (DUAL-RX 8-LINK)';
+          hdrMode.style.color = 'var(--accent-neon-green)';
+          dotMode.style.background = 'var(--accent-neon-green)';
+          dotMode.style.boxShadow = '0 0 8px var(--accent-neon-green)';
+          chipMode.style.borderColor = 'rgba(0, 255, 136, 0.4)';
+        } else if (modeStr.includes('DEGRADED')) {
+          hdrMode.textContent = 'MODE: LIVE (DEGRADED 1-RX)';
+          hdrMode.style.color = 'var(--accent-amber)';
+          dotMode.style.background = 'var(--accent-amber)';
+          dotMode.style.boxShadow = '0 0 8px var(--accent-amber)';
+          chipMode.style.borderColor = 'rgba(255, 170, 0, 0.4)';
+        } else if (modeStr.includes('OFFLINE')) {
+          hdrMode.textContent = 'MODE: HARDWARE OFFLINE';
+          hdrMode.style.color = 'var(--accent-scarlet)';
+          dotMode.style.background = 'var(--accent-scarlet)';
+          dotMode.style.boxShadow = '0 0 8px var(--accent-scarlet)';
+          chipMode.style.borderColor = 'rgba(255, 42, 85, 0.4)';
+        } else if (modeStr.includes('INJECTION')) {
+          hdrMode.textContent = 'MODE: DEMO INJECTION';
+          hdrMode.style.color = 'var(--accent-cyan)';
+          dotMode.style.background = 'var(--accent-cyan)';
+          dotMode.style.boxShadow = '0 0 8px var(--accent-cyan)';
+          chipMode.style.borderColor = 'rgba(0, 240, 255, 0.4)';
+        } else {
+          hdrMode.textContent = 'MODE: STANDBY / INITIALIZING';
+          hdrMode.style.color = 'var(--accent-amber)';
+          dotMode.style.background = 'var(--accent-amber)';
+          dotMode.style.boxShadow = '0 0 8px var(--accent-amber)';
+          chipMode.style.borderColor = 'rgba(255, 170, 0, 0.4)';
+        }
+
+        // Occupancy hero
+        document.getElementById('hero-count').textContent = data.count || 0;
+        document.getElementById('val-zone').textContent = data.zone || 'CLEAR';
+        document.getElementById('hdr-links').textContent = `${data.active_links || 0} / ${data.link_count || 8} ACTIVE`;
+        
+        const confStr = data.confidence !== null && data.confidence !== undefined 
+          ? `${(data.confidence * 100).toFixed(1)}%` 
+          : 'HEURISTIC (UNCALIBRATED)';
+        document.getElementById('val-conf').textContent = confStr;
+        document.getElementById('val-status').textContent = data.signal_ok ? 'ACTIVE' : (data.active_links > 0 ? 'PARTIAL' : 'STANDBY');
+        
+        let totalRate = 0.0;
+        if (data.receiver_health) {
+          Object.values(data.receiver_health).forEach(h => {
+            if (h.running && (h.aggregate_rate_hz || h.rate_hz)) {
+              totalRate += (h.aggregate_rate_hz || h.rate_hz);
+            }
+          });
+        }
+        const rateVal = totalRate > 0 ? totalRate : (data.rate_hz || null);
+        document.getElementById('hdr-rate').textContent = rateVal ? `${rateVal.toFixed(1)} Hz` : '-- Hz';
+        document.getElementById('hdr-rate').style.color = rateVal ? 'var(--accent-neon-green)' : 'var(--text-muted)';
+
+        // Update active status for all 8 links (RX1 and RX2)
+        ['RX1', 'RX2'].forEach(rx => {
+          if (data.receiver_health && data.receiver_health[rx] && data.receiver_health[rx].per_link_rates) {
+            const rates = data.receiver_health[rx].per_link_rates;
+            ['TX1', 'TX2', 'TX3', 'TX4'].forEach(tx => {
+              const dot = document.getElementById(`dot-${rx}-${tx}`);
+              const lnk = document.getElementById(`lnk-${rx}-${tx}`);
+              if (dot && lnk) {
+                const r = rates[tx] || 0.0;
+                if (r > 0) {
+                  dot.style.background = 'var(--accent-neon-green)';
+                  dot.style.boxShadow = '0 0 8px var(--accent-neon-green)';
+                  lnk.title = `${rx}-${tx}: ${r.toFixed(1)} Hz`;
+                } else {
+                  dot.style.background = 'var(--accent-amber)';
+                  dot.style.boxShadow = 'none';
+                }
+              }
+            });
+          }
+        });
+
+        // Clear all zone active states and trays
+        ['Z1', 'Z2', 'Z3', 'Z4'].forEach(z => {
+          const cell = document.getElementById(`zone-${z}`);
+          const tray = document.getElementById(`avatars-${z}`);
+          if (cell) cell.classList.remove('active-zone');
+          if (tray) tray.innerHTML = '';
+        });
+
+        // Render detected people in zones
+        if (data.people && data.people.length > 0) {
+          data.people.forEach(p => {
+            const cell = document.getElementById(`zone-${p.zone}`);
+            const tray = document.getElementById(`avatars-${p.zone}`);
+            if (cell) cell.classList.add('active-zone');
+            if (tray) {
+              const avatar = document.createElement('div');
+              avatar.className = 'human-avatar';
+              const scoreText = p.score ? `Var ${p.score}` : 'Active';
+              avatar.innerHTML = `
+                <div class="avatar-icon">⚡</div>
+                <div class="avatar-label">${p.zone} (${scoreText})</div>
+              `;
+              avatar.title = `Perturbation Detected in ${p.zone} — CSI Variance Score: ${p.score || 'Triggered'}`;
+              tray.appendChild(avatar);
+            }
+          });
+        }
+      } catch (e) {
+        // Fallback or offline
+      }
+    }
+
+    async function sendSim(count, people) {
+      const primaryZone = people.length > 0 ? people[0].zone : 'CLEAR';
+      await fetch('/api/spatial/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          signal_ok: true,
+          count: count,
+          people: people,
+          zone: primaryZone,
+          active_links: 8,
+          confidence: 0.88,
+          reason: 'DEMO_INJECTION'
+        })
+      });
+      updateHUD();
+    }
+
+    // Polling every 500ms
+    setInterval(updateHUD, 500);
+    updateHUD();
+  </script>
+</body>
+</html>

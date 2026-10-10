@@ -59,11 +59,47 @@ def shutdown_event():
         engine_instance.stop()
 
 
+from .config import load_config
+from .replay_loader import list_recordings, load_recording_frames
+
+SYSTEM_EVENTS = [
+    {
+        "id": 1,
+        "timestamp": time.time(),
+        "time_str": time.strftime("%H:%M:%S"),
+        "severity": "INFO",
+        "title": "ENGINE_BOOT",
+        "message": "WiMotion 2.0 Spatial API server initialized",
+        "source": "SYSTEM"
+    }
+]
+
+
 @app.get("/")
 def get_dashboard():
     if DASHBOARD_PATH.exists():
         return FileResponse(DASHBOARD_PATH)
     return HTMLResponse("<h1>WiMotion 2.0 Spatial API Running</h1><p>Visit /api/spatial</p>")
+
+
+@app.get("/api/config")
+def get_config():
+    """Returns configured nodes, ports, transmitters, and sampling rules."""
+    try:
+        cfg = load_config()
+        return {
+            "receivers": cfg.receivers,
+            "transmitters": cfg.transmitters,
+            "zones": cfg.zones,
+            "sampling": {
+                "target_hz": cfg.sampling.target_hz,
+                "minimum_hz": cfg.sampling.minimum_hz,
+                "window_seconds": cfg.sampling.window_seconds,
+                "step_seconds": cfg.sampling.step_seconds
+            }
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.get("/api/spatial")
@@ -82,6 +118,48 @@ def update_simulate(state: dict):
     LATEST_STATE["mode"] = "DEMO INJECTION (SIMULATED)"
     LATEST_STATE["timestamp"] = time.time()
     return {"status": "updated", "state": LATEST_STATE}
+
+
+@app.get("/api/recordings")
+def get_recordings():
+    """Returns list of all discoverable raw CSI dataset recordings."""
+    return {
+        "recordings": list_recordings(),
+        "storage_path": "data/raw",
+        "schema": "multilink_data_<zone>_<count>P_<motion_state>.csv + metadata.json"
+    }
+
+
+@app.get("/api/recordings/{session_id}/data")
+def get_recording_data(session_id: str):
+    """Loads and computes playback frames for the selected recorded session."""
+    data = load_recording_frames(session_id)
+    if data is None:
+        return {"error": f"Recording session '{session_id}' not found or empty."}
+    return data
+
+
+@app.get("/api/events")
+def get_events():
+    """Returns recent system and playback events."""
+    return {"events": SYSTEM_EVENTS[-50:]}
+
+
+@app.post("/api/events")
+def post_event(event: dict):
+    """Allows logging client-side navigation, replay, or simulation events."""
+    event_id = len(SYSTEM_EVENTS) + 1
+    new_evt = {
+        "id": event_id,
+        "timestamp": event.get("timestamp", time.time()),
+        "time_str": event.get("time_str", time.strftime("%H:%M:%S")),
+        "severity": event.get("severity", "INFO"),
+        "title": event.get("title", "USER_ACTION"),
+        "message": event.get("message", ""),
+        "source": event.get("source", "FRONTEND")
+    }
+    SYSTEM_EVENTS.append(new_evt)
+    return {"status": "logged", "event": new_evt}
 
 
 @app.get("/health")

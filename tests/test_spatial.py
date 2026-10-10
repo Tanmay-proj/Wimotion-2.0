@@ -128,6 +128,21 @@ class TestSpatial(unittest.TestCase):
         self.assertGreater(record.timestamp, 1700000000.0)
 
 
+    def test_replay_loader_benchmark(self):
+        from spatial.replay_loader import list_recordings, load_recording_frames
+        recs = list_recordings()
+        self.assertGreater(len(recs), 0)
+        benchmark = recs[0]
+        self.assertIn("session_id", benchmark)
+        self.assertIn("format", benchmark)
+        
+        frames_data = load_recording_frames(benchmark["session_id"])
+        self.assertIsNotNone(frames_data)
+        self.assertIn("frames", frames_data)
+        self.assertGreater(len(frames_data["frames"]), 0)
+        self.assertIn("model_zone", frames_data["frames"][0])
+
+
 if __name__ == "__main__":
     unittest.main()
 

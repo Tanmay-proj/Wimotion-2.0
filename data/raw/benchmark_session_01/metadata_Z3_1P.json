@@ -1,0 +1,12 @@
+{
+  "session_id": "benchmark_session_01",
+  "room_id": "ROOM_MCTE_BENCHMARK",
+  "operator_id": "RESEARCH_BENCHMARK",
+  "ground_truth_count": 1,
+  "ground_truth_zone": "Z3",
+  "motion_state": "DYNAMIC_SW_STATIONARY",
+  "duration_seconds": 20.0,
+  "total_records": 3200,
+  "description": "Standard benchmark session reconstructing verified South-West (TX3) human proximity trial.",
+  "created_at": "2024-10-10 16:50:00"
+}

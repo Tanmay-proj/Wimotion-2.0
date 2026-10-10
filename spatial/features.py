@@ -64,6 +64,9 @@ def extract_link_features(records: List[CSIRecord]) -> List[Dict[str, Any]]:
         else:
             csi_var = 0.0
 
+        rssi_vals = [record.rssi for record in group if record.rssi is not None]
+        rssi_mean = float(np.mean(rssi_vals)) if rssi_vals else None
+
         features.append({
             "receiver": rx,
             "tx": tx,
@@ -74,7 +77,8 @@ def extract_link_features(records: List[CSIRecord]) -> List[Dict[str, Any]]:
             "rms_delta": rms_delta,
             "p95_delta": p95_delta,
             "energy": energy,
-            "csi_variance": csi_var
+            "csi_variance": csi_var,
+            "rssi": rssi_mean
         })
 
     return features

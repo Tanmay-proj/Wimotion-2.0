@@ -3,611 +3,1900 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WiMotion 2.0 — Multi-Link RF Spatial Sensing & Occupancy HUD</title>
+  <title>WiMotion 2.0 — Wi-Fi CSI Spatial Sensing & Telemetry Console</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Orbitron:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg-deep: #090b10;
-      --bg-panel: rgba(16, 21, 33, 0.75);
-      --border-panel: rgba(0, 240, 255, 0.18);
-      --accent-cyan: #00f0ff;
-      --accent-neon-green: #00ff88;
-      --accent-scarlet: #ff2a55;
-      --accent-amber: #ffaa00;
-      --text-main: #f0f4fc;
-      --text-muted: #8896b0;
+      --bg-base: #0B1017;
+      --bg-panel: #151E29;
+      --bg-panel-sub: #101822;
+      --border: #273444;
+      --border-focus: #35C5D5;
+      --accent-cyan: #35C5D5;
+      --accent-green: #45C486;
+      --accent-amber: #E6AC55;
+      --accent-red: #E36B72;
+      --text-main: #E7EDF5;
+      --text-muted: #92A0B2;
+      --text-dim: #607289;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      background-color: var(--bg-deep);
-      background-image: 
-        radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, transparent 60%),
-        linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
-      background-size: 100% 100%, 40px 40px, 40px 40px;
+      background-color: var(--bg-base);
       color: var(--text-main);
-      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       overflow-x: hidden;
+      font-size: 13px;
+      line-height: 1.5;
     }
 
-    /* Top Military Header */
+    /* Restrained, Crisp Header */
     header {
-      background: rgba(10, 14, 22, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border-panel);
-      padding: 16px 32px;
+      background: #0D141E;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       position: sticky;
       top: 0;
-      z-index: 100;
+      z-index: 1000;
     }
-    .brand {
+    .header-left {
       display: flex;
       align-items: center;
       gap: 16px;
     }
-    .badge-lrp {
-      background: rgba(255, 42, 85, 0.15);
-      border: 1px solid var(--accent-scarlet);
-      color: var(--accent-scarlet);
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
+    .brand-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 16px;
       font-weight: 800;
-      padding: 4px 10px;
-      border-radius: 4px;
-      letter-spacing: 1.5px;
-    }
-    h1 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: 2px;
+      letter-spacing: 0.5px;
       color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    h1 span { color: var(--accent-cyan); text-shadow: 0 0 16px rgba(0, 240, 255, 0.6); }
-
-    .header-telemetry {
-      display: flex;
-      gap: 20px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 13px;
-    }
-    .tele-chip {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-panel);
-      padding: 6px 14px;
-      border-radius: 6px;
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .pulse-dot {
-      width: 8px;
-      height: 8px;
+    .brand-title span { color: var(--accent-cyan); font-weight: 700; }
+    .brand-subtitle {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: var(--text-muted);
+      letter-spacing: 0.8px;
+      border-left: 1px solid var(--border);
+      padding-left: 12px;
+      text-transform: uppercase;
+    }
+
+    /* Navigation Tabs */
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-panel-sub);
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .nav-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .nav-tab:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.04); }
+    .nav-tab.active {
+      color: #fff;
+      background: var(--bg-panel);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Mode Selector & Status */
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .mode-selector {
+      display: flex;
+      background: var(--bg-panel-sub);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px;
+    }
+    .btn-mode {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-mode.active-live { background: rgba(69, 196, 134, 0.15); color: var(--accent-green); border: 1px solid var(--accent-green); }
+    .btn-mode.active-replay { background: rgba(53, 197, 213, 0.15); color: var(--accent-cyan); border: 1px solid var(--accent-cyan); }
+    .btn-mode.active-sim { background: rgba(230, 172, 85, 0.15); color: var(--accent-amber); border: 1px solid var(--accent-amber); }
+
+    .telemetry-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: var(--bg-panel-sub);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-dot {
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: var(--accent-neon-green);
-      box-shadow: 0 0 8px var(--accent-neon-green);
-      animation: pulse 1.5s infinite;
+      background: var(--text-dim);
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.85); }
-    }
+    .status-dot.green { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+    .status-dot.amber { background: var(--accent-amber); box-shadow: 0 0 6px var(--accent-amber); }
+    .status-dot.red { background: var(--accent-red); box-shadow: 0 0 6px var(--accent-red); }
 
     /* Main Container */
     main {
       flex: 1;
-      padding: 24px 32px;
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 24px;
-      max-width: 1540px;
+      padding: 18px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      max-width: 1600px;
       margin: 0 auto;
       width: 100%;
     }
 
-    /* Tactical Tactical Floorplan Screen */
-    .tactical-viewport {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-panel);
-      border-radius: 12px;
-      padding: 24px;
-      backdrop-filter: blur(16px);
-      display: flex;
-      flex-direction: column;
-      position: relative;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
-    }
-    .viewport-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-    }
-    .vp-title {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 15px;
-      letter-spacing: 1.5px;
-      color: var(--accent-cyan);
-    }
-    .occupancy-hero {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 26px;
-      font-weight: 900;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .hero-count {
-      color: var(--accent-neon-green);
-      text-shadow: 0 0 18px rgba(0, 255, 136, 0.6);
-    }
+    /* Views Switcher */
+    .tab-content { display: none; }
+    .tab-content.active { display: flex; flex-direction: column; gap: 16px; }
 
-    /* 2D Tactical Room Grid (Z1 - Z4) */
-    .room-grid-canvas {
-      flex: 1;
-      min-height: 440px;
-      background: rgba(8, 12, 20, 0.8);
-      border: 2px dashed rgba(0, 240, 255, 0.25);
-      border-radius: 10px;
-      position: relative;
+    /* Top Metric Cards */
+    .metric-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
-      gap: 12px;
-      padding: 16px;
-      overflow: hidden;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
     }
-
-    /* Zones */
-    .zone-cell {
-      border: 1px solid rgba(0, 240, 255, 0.15);
+    .metric-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 16px;
-      position: relative;
+      padding: 14px 16px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-      background: rgba(14, 20, 32, 0.4);
+      position: relative;
     }
-    .zone-cell.active-zone {
-      border-color: var(--accent-neon-green);
-      background: rgba(0, 255, 136, 0.08);
-      box-shadow: inset 0 0 24px rgba(0, 255, 136, 0.15);
-    }
-    .zone-tag {
+    .metric-label {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      color: var(--accent-cyan);
-    }
-    .zone-name {
-      font-size: 13px;
+      font-size: 11px;
+      font-weight: 600;
       color: var(--text-muted);
-      margin-top: 2px;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .metric-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+      margin: 6px 0 2px 0;
+      font-variant-numeric: tabular-nums;
+    }
+    .metric-footer {
+      font-size: 11px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .badge-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+    .badge-tag.green { background: rgba(69, 196, 134, 0.15); color: var(--accent-green); border: 1px solid rgba(69, 196, 134, 0.3); }
+    .badge-tag.amber { background: rgba(230, 172, 85, 0.15); color: var(--accent-amber); border: 1px solid rgba(230, 172, 85, 0.3); }
+    .badge-tag.red { background: rgba(227, 107, 114, 0.15); color: var(--accent-red); border: 1px solid rgba(227, 107, 114, 0.3); }
+    .badge-tag.cyan { background: rgba(53, 197, 213, 0.15); color: var(--accent-cyan); border: 1px solid rgba(53, 197, 213, 0.3); }
+
+    /* Overview Primary Workspace: Radar + Telemetry */
+    .overview-workspace {
+      display: grid;
+      grid-template-columns: 520px 1fr;
+      gap: 16px;
     }
 
-    /* RF Node Markers */
-    .rf-node-marker {
-      position: absolute;
-      background: #0f172a;
-      border: 1px solid var(--accent-cyan);
-      color: var(--accent-cyan);
+    /* Radar Panel */
+    .panel-radar {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    .panel-title-bar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      padding-bottom: 8px;
+    }
+    .panel-heading {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+    .radar-disclaimer {
+      font-family: 'Inter', sans-serif;
+      font-size: 10.5px;
+      color: var(--text-dim);
+    }
+
+    /* Radar SVG Visualizer */
+    .radar-container {
+      width: 420px;
+      height: 420px;
+      position: relative;
+      margin: 10px 0;
+    }
+    .radar-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+    .quadrant-bg {
+      fill: rgba(16, 24, 34, 0.6);
+      transition: fill 0.2s ease;
+      cursor: pointer;
+    }
+    .quadrant-bg:hover { fill: rgba(53, 197, 213, 0.08); }
+    .quadrant-bg.active-quadrant { fill: rgba(69, 196, 134, 0.18); stroke: var(--accent-green); stroke-width: 1.5; }
+    .quadrant-bg.selected-quadrant { stroke: var(--accent-cyan); stroke-width: 1.5; }
+
+    /* Radar Rings and Axis */
+    .radar-ring { fill: none; stroke: var(--border); stroke-width: 1; stroke-dasharray: 3 3; }
+    .radar-axis { stroke: var(--border); stroke-width: 1.5; }
+    .radar-label {
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
       font-weight: 700;
-      padding: 4px 8px;
-      border-radius: 4px;
-      z-index: 10;
-      box-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
+      fill: var(--text-muted);
+      pointer-events: none;
     }
-    .node-tx2 { top: 8px; left: 8px; }
-    .node-tx1 { top: 8px; right: 8px; }
-    .node-tx3 { bottom: 8px; left: 8px; }
-    .node-tx4 { bottom: 8px; right: 8px; }
-    .node-rx1 {
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #091a1a;
-      border: 1.5px solid var(--accent-neon-green);
-      color: var(--accent-neon-green);
-      box-shadow: 0 0 18px rgba(0, 255, 136, 0.5);
-      z-index: 20;
+    .node-pin {
+      cursor: pointer;
+      transition: transform 0.15s ease;
     }
+    .node-pin:hover { transform: scale(1.15); }
 
-    /* Avatars Container inside Zones */
-    .avatar-tray {
+    /* Tactical Radar Legend */
+    .radar-legend {
+      width: 100%;
       display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      justify-content: center;
-      flex: 1;
+      justify-content: space-around;
+      background: var(--bg-panel-sub);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-top: 10px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
     }
-    .human-avatar {
-      background: rgba(0, 255, 136, 0.2);
-      border: 2px solid var(--accent-neon-green);
-      border-radius: 50%;
-      width: 52px;
-      height: 52px;
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+
+    /* Right Column: Telemetry & Link Matrix */
+    .overview-details {
       display: flex;
       flex-direction: column;
+      gap: 16px;
+    }
+
+    /* 8-Link Health Table */
+    .panel-box {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 8px;
+    }
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11.5px;
+      font-family: 'JetBrains Mono', monospace;
+      text-align: left;
+    }
+    table.data-table th {
+      padding: 8px 10px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 10.5px;
+      letter-spacing: 0.5px;
+    }
+    table.data-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+    table.data-table tr.clickable:hover {
+      background: rgba(53, 197, 213, 0.05);
+      cursor: pointer;
+    }
+    table.data-table tr.selected-row {
+      background: rgba(53, 197, 213, 0.12);
+    }
+
+    /* Signal Diagnostics Timeline */
+    .timeline-container {
+      position: relative;
+      width: 100%;
+      height: 180px;
+      background: var(--bg-panel-sub);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    canvas#timelineCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Event Log List */
+    .event-log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+      margin-top: 8px;
+    }
+    .event-item {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
-      box-shadow: 0 0 20px rgba(0, 255, 136, 0.5);
-      animation: float 2.5s ease-in-out infinite;
+      background: var(--bg-panel-sub);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
     }
-    @keyframes float {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-6px); }
+    .event-left { display: flex; align-items: center; gap: 8px; }
+    .event-time { color: var(--text-dim); font-size: 10px; }
+
+    /* REPLAY LAB STYLES */
+    .replay-grid {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 16px;
     }
-    .avatar-icon { font-size: 20px; }
-    .avatar-label {
+    .session-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 520px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .session-card {
+      background: var(--bg-panel-sub);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .session-card:hover { border-color: var(--accent-cyan); background: rgba(53, 197, 213, 0.05); }
+    .session-card.selected-session {
+      border-color: var(--accent-cyan);
+      background: rgba(53, 197, 213, 0.1);
+    }
+    .session-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: #fff;
+      font-size: 12px;
+    }
+    .session-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    /* Replay Transport Controls */
+    .playback-transport {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .transport-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .transport-btns {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-transport {
+      background: var(--bg-panel-sub);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.15s ease;
+    }
+    .btn-transport:hover { border-color: var(--accent-cyan); color: #fff; }
+    .btn-transport.primary { background: var(--accent-cyan); color: #000; border-color: var(--accent-cyan); }
+    .speed-btn-group {
+      display: flex;
+      gap: 4px;
+    }
+    .speed-btn {
+      background: var(--bg-panel-sub);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 8px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .speed-btn.active { color: var(--accent-cyan); border-color: var(--accent-cyan); font-weight: 700; }
+
+    .scrub-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .scrub-slider {
+      flex: 1;
+      accent-color: var(--accent-cyan);
+      cursor: pointer;
+    }
+    .scrub-timer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--accent-cyan);
+      min-width: 100px;
+      text-align: right;
+    }
+
+    /* Ground Truth vs Inference Evaluation Box */
+    .evaluation-matrix {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .eval-card {
+      background: var(--bg-panel-sub);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+    }
+    .eval-title {
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
-      font-weight: 800;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .eval-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 700;
       color: #fff;
     }
 
-    /* Sidebar Telemetry */
-    .sidebar {
+    /* Simulation Drawer */
+    .sim-panel {
+      background: rgba(230, 172, 85, 0.05);
+      border: 1px solid rgba(230, 172, 85, 0.3);
+      border-radius: 8px;
+      padding: 14px 18px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 10px;
+      margin-top: 10px;
     }
-    .panel-card {
-      background: var(--bg-panel);
-      border: 1px solid var(--border-panel);
-      border-radius: 12px;
-      padding: 20px;
-      backdrop-filter: blur(16px);
-    }
-    .panel-card h3 {
-      font-family: 'Orbitron', sans-serif;
-      font-size: 13px;
-      letter-spacing: 1.5px;
-      color: var(--accent-cyan);
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    /* 8-Link Grid Visualizer */
-    .link-list {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .link-item {
-      background: rgba(10, 15, 24, 0.7);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 6px;
-      padding: 8px 10px;
+    .sim-header {
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-amber);
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .link-status-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--accent-neon-green);
-    }
-
-    /* Simulation Control Tray */
-    .sim-controls {
+    .sim-scenarios {
       display: flex;
-      flex-direction: column;
       gap: 8px;
+      flex-wrap: wrap;
     }
-    .btn-sim {
-      background: rgba(0, 240, 255, 0.08);
-      border: 1px solid var(--accent-cyan);
-      color: var(--accent-cyan);
-      padding: 8px 12px;
-      border-radius: 6px;
+    .btn-scenario {
+      background: var(--bg-panel);
+      border: 1px solid rgba(230, 172, 85, 0.3);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 4px;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      font-weight: 600;
+      font-size: 11px;
       cursor: pointer;
-      transition: all 0.2s;
-      text-align: left;
+      transition: all 0.15s ease;
     }
-    .btn-sim:hover {
-      background: var(--accent-cyan);
-      color: #000;
-      box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
+    .btn-scenario:hover { background: rgba(230, 172, 85, 0.2); color: #fff; }
+
+    /* Footer status bar */
+    footer {
+      background: #090E14;
+      border-top: 1px solid var(--border);
+      padding: 6px 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      color: var(--text-dim);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
   </style>
 </head>
 <body>
 
+  <!-- Global Header -->
   <header>
-    <div class="brand">
-      <div class="badge-lrp">LRP MCTE</div>
-      <h1>WIMOTION <span>2.0</span> HUD</h1>
+    <div class="header-left">
+      <div class="brand-title">
+        WIMOTION <span>2.0</span>
+      </div>
+      <div class="brand-subtitle">
+        Wi-Fi CSI Sensing & Spatial Monitoring
+      </div>
+      
+      <!-- Nav Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab active" data-tab="tab-overview" onclick="switchNavTab('tab-overview')">OVERVIEW</button>
+        <button class="nav-tab" data-tab="tab-replay" onclick="switchNavTab('tab-replay')">REPLAY LAB</button>
+        <button class="nav-tab" data-tab="tab-diagnostics" onclick="switchNavTab('tab-diagnostics')">SIGNAL DIAGNOSTICS</button>
+        <button class="nav-tab" data-tab="tab-events" onclick="switchNavTab('tab-events')">EVENTS</button>
+      </nav>
     </div>
-    <div class="header-telemetry">
-      <div class="tele-chip" id="chip-mode" style="border-color: rgba(255, 170, 0, 0.4);">
-        <div class="pulse-dot" id="dot-mode" style="background: var(--accent-amber); box-shadow: 0 0 8px var(--accent-amber);"></div>
-        <span id="hdr-mode" style="font-weight: 700; color: var(--accent-amber);">MODE: STANDBY / DEMO</span>
+
+    <!-- Operating Mode Selector -->
+    <div class="header-right">
+      <div class="mode-selector">
+        <button class="btn-mode active-live" id="btn-mode-live" onclick="setMode('LIVE')">
+          <span class="status-dot green" id="mode-dot-live"></span> LIVE HARDWARE
+        </button>
+        <button class="btn-mode" id="btn-mode-replay" onclick="setMode('REPLAY')">
+          <span class="status-dot" id="mode-dot-replay"></span> RECORDED REPLAY
+        </button>
+        <button class="btn-mode" id="btn-mode-sim" onclick="setMode('SIMULATION')">
+          <span class="status-dot" id="mode-dot-sim"></span> SIMULATION
+        </button>
       </div>
-      <div class="tele-chip">
-        <span style="color:var(--text-muted)">LINKS:</span>
-        <strong id="hdr-links" style="color:var(--accent-cyan)">0 / 8 ACTIVE</strong>
+
+      <div class="telemetry-pill">
+        <span class="status-dot green" id="hdr-conn-dot"></span>
+        <span id="hdr-conn-text" style="color:var(--text-main);">BACKEND OK</span>
       </div>
-      <div class="tele-chip">
-        <span style="color:var(--text-muted)">RATE:</span>
-        <strong id="hdr-rate" style="color:var(--text-muted)">-- Hz</strong>
+
+      <div class="telemetry-pill">
+        <span style="color:var(--text-muted);">LAST CSI:</span>
+        <span id="hdr-last-csi" style="color:var(--text-main);">--</span>
       </div>
     </div>
   </header>
 
+  <!-- Main Viewport -->
   <main>
-    <!-- Tactical Viewport -->
-    <section class="tactical-viewport">
-      <div class="viewport-header">
-        <div>
-          <div class="vp-title">TACTICAL RF OCCUPANCY & SECTOR MAPPING</div>
-          <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">
-            Dual-Receiver Cross-Beam Spatial Interferometry (Wi-CaL Architecture)
+
+    <!-- VIEW 1: OVERVIEW -->
+    <div class="tab-content active" id="tab-overview">
+
+      <!-- Top 4 Metric Cards -->
+      <section class="metric-grid">
+        <!-- Card 1: VALID CSI RATE -->
+        <div class="metric-card">
+          <div class="metric-label">
+            <span>VALID CSI RATE</span>
+            <span class="badge-tag green" id="tag-rate-status">MEASURED</span>
+          </div>
+          <div class="metric-value" id="val-csi-rate">-- Hz</div>
+          <div class="metric-footer">
+            <span id="sub-rate-window">Window: 2.0s sliding</span>
+            <span id="sub-rate-rx">RX1: -- | RX2: --</span>
           </div>
         </div>
-        <div class="occupancy-hero">
-          <span style="font-size:14px; color:var(--text-muted); letter-spacing:1px;">ACTIVE ZONES:</span>
-          <span class="hero-count" id="hero-count">0</span>
-          <span style="font-size:14px; color:var(--text-muted); letter-spacing:1px;">SECTORS</span>
+
+        <!-- Card 2: ACTIVE LINKS -->
+        <div class="metric-card">
+          <div class="metric-label">
+            <span>ACTIVE LINKS</span>
+            <span class="badge-tag cyan" id="tag-links-mesh">MESH 8-LINK</span>
+          </div>
+          <div class="metric-value" id="val-active-links">0 / 8 ACTIVE</div>
+          <div class="metric-footer">
+            <span id="sub-links-quality">Freshness: < 3.0s</span>
+            <span id="sub-links-stale" style="color:var(--accent-amber)">0 STALE</span>
+          </div>
         </div>
-      </div>
 
-      <!-- 2D Room Floorplan with 4 Quadrants -->
-      <div class="room-grid-canvas">
-        <div class="rf-node-marker node-tx2">TX2 (NW CORNER)</div>
-        <div class="rf-node-marker node-tx1">TX1 (NE CORNER)</div>
-        <div class="rf-node-marker node-tx3">TX3 (SW CORNER)</div>
-        <div class="rf-node-marker node-tx4">TX4 (SE CORNER)</div>
-        <div class="rf-node-marker node-rx1">💻 RX1 (LAPTOP CENTER)</div>
+        <!-- Card 3: RECEIVER HEALTH -->
+        <div class="metric-card">
+          <div class="metric-label">
+            <span>RECEIVER HEALTH</span>
+            <span class="badge-tag amber" id="tag-rx-mode">STANDBY</span>
+          </div>
+          <div class="metric-value" id="val-rx-health">0 / 2 ONLINE</div>
+          <div class="metric-footer">
+            <span id="sub-rx-ports">RX1 (COM3) · RX2 (COM8)</span>
+            <span id="sub-rx-sync">Unsynchronized</span>
+          </div>
+        </div>
 
-        <!-- Zone 2 (Top-Left: NW) -->
-        <div class="zone-cell" id="zone-Z2">
+        <!-- Card 4: PRESENCE STATE -->
+        <div class="metric-card">
+          <div class="metric-label">
+            <span>PRESENCE STATE</span>
+            <span class="badge-tag" id="tag-gate-status">GATE ACTIVE</span>
+          </div>
+          <div class="metric-value" id="val-presence-state" style="color:var(--accent-cyan)">CLEAR</div>
+          <div class="metric-footer">
+            <span id="sub-presence-score">Max Var: 0.0</span>
+            <span style="font-size:10px; color:var(--text-dim);">UNCALIBRATED HEURISTIC</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Primary Workspace: Radar Circle + Telemetry Matrix -->
+      <section class="overview-workspace">
+        
+        <!-- Four-Quadrant Radar Circle -->
+        <div class="panel-radar">
+          <div class="panel-title-bar">
+            <div>
+              <div class="panel-heading">FOUR-QUADRANT SPATIAL RADAR</div>
+              <div class="radar-disclaimer">Illustrative four-zone view · not a calibrated 3D map</div>
+            </div>
+            <div id="radar-active-badge" class="badge-tag cyan">MODE: LIVE</div>
+          </div>
+
+          <!-- SVG Circular Radar -->
+          <div class="radar-container">
+            <svg class="radar-svg" viewBox="0 0 400 400" id="radarSvg">
+              <!-- Outer Boundary & Background -->
+              <circle cx="200" cy="200" r="180" fill="#0D141E" stroke="var(--border)" stroke-width="1.5" />
+
+              <!-- Quadrant Hit Areas -->
+              <!-- Z2: Top-Left (NW) -->
+              <path d="M 200 200 L 20 200 A 180 180 0 0 1 200 20 Z" class="quadrant-bg" id="quad-Z2" onclick="selectZone('Z2')" />
+              <!-- Z1: Top-Right (NE) -->
+              <path d="M 200 200 L 200 20 A 180 180 0 0 1 380 200 Z" class="quadrant-bg" id="quad-Z1" onclick="selectZone('Z1')" />
+              <!-- Z3: Bottom-Left (SW) -->
+              <path d="M 200 200 L 20 200 A 180 180 0 0 0 200 380 Z" class="quadrant-bg" id="quad-Z3" onclick="selectZone('Z3')" />
+              <!-- Z4: Bottom-Right (SE) -->
+              <path d="M 200 200 L 200 380 A 180 180 0 0 0 380 200 Z" class="quadrant-bg" id="quad-Z4" onclick="selectZone('Z4')" />
+
+              <!-- Concentric Range Rings -->
+              <circle cx="200" cy="200" r="60" class="radar-ring" />
+              <circle cx="200" cy="200" r="120" class="radar-ring" />
+              <circle cx="200" cy="200" r="180" class="radar-ring" />
+
+              <!-- Crosshair Axes -->
+              <line x1="20" y1="200" x2="380" y2="200" class="radar-axis" />
+              <line x1="200" y1="20" x2="200" y2="380" class="radar-axis" />
+
+              <!-- Link Mesh Lines (Center to 4 Transmitters) -->
+              <line x1="200" y1="200" x2="80" y2="80" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX2" />
+              <line x1="200" y1="200" x2="320" y2="80" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX1" />
+              <line x1="200" y1="200" x2="80" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX3" />
+              <line x1="200" y1="200" x2="320" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX4" />
+
+              <!-- Quadrant Compass Labels -->
+              <text x="50" y="50" class="radar-label">NW · SECTOR Z2 (TX2)</text>
+              <text x="250" y="50" class="radar-label">NE · SECTOR Z1 (TX1)</text>
+              <text x="50" y="365" class="radar-label">SW · SECTOR Z3 (TX3)</text>
+              <text x="250" y="365" class="radar-label">SE · SECTOR Z4 (TX4)</text>
+
+              <!-- Transmitter Nodes -->
+              <!-- TX2: NW -->
+              <g class="node-pin" onclick="selectLink('RX1-TX2')" id="pin-TX2">
+                <circle cx="80" cy="80" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX2" />
+                <text x="80" y="84" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX2</text>
+              </g>
+
+              <!-- TX1: NE -->
+              <g class="node-pin" onclick="selectLink('RX1-TX1')" id="pin-TX1">
+                <circle cx="320" cy="80" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX1" />
+                <text x="320" y="84" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX1</text>
+              </g>
+
+              <!-- TX3: SW -->
+              <g class="node-pin" onclick="selectLink('RX1-TX3')" id="pin-TX3">
+                <circle cx="80" cy="320" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX3" />
+                <text x="80" y="324" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX3</text>
+              </g>
+
+              <!-- TX4: SE -->
+              <g class="node-pin" onclick="selectLink('RX1-TX4')" id="pin-TX4">
+                <circle cx="320" cy="320" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX4" />
+                <text x="320" y="324" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX4</text>
+              </g>
+
+              <!-- Center Receiver Node (Host PC) -->
+              <g class="node-pin" id="pin-RX">
+                <rect x="182" y="182" width="36" height="36" rx="4" fill="#151E29" stroke="var(--accent-cyan)" stroke-width="2" />
+                <text x="200" y="204" text-anchor="middle" font-family="'JetBrains Mono'" font-size="10" fill="var(--accent-cyan)" font-weight="700">RX</text>
+              </g>
+
+              <!-- Sector Perturbation Badges (Rendered dynamically) -->
+              <g id="radar-perturbation-badges"></g>
+            </svg>
+          </div>
+
+          <!-- Tactical Radar Legend -->
+          <div class="radar-legend">
+            <div class="legend-item"><span class="status-dot green"></span> Active Link</div>
+            <div class="legend-item"><span class="status-dot amber"></span> Perturbed Sector</div>
+            <div class="legend-item"><span class="status-dot"></span> Quiet Baseline</div>
+            <div class="legend-item"><span style="color:var(--accent-cyan)">■</span> Receiver (Center)</div>
+          </div>
+        </div>
+
+        <!-- Right Side: 8-Link Health Matrix + Live Signal Timeline -->
+        <div class="overview-details">
+          
+          <!-- 8-Link Health Table -->
+          <div class="panel-box">
+            <div class="panel-title-bar">
+              <div class="panel-heading">8-LINK RF MESH TELEMETRY</div>
+              <span id="selected-link-label" class="badge-tag cyan">SELECTED: ALL LINKS</span>
+            </div>
+            
+            <div class="table-container">
+              <table class="data-table" id="linkTable">
+                <thead>
+                  <tr>
+                    <th>LINK</th>
+                    <th>RECEIVER</th>
+                    <th>TRANSMITTER</th>
+                    <th>RATE (Hz)</th>
+                    <th>RSSI</th>
+                    <th>VARIANCE</th>
+                    <th>STATUS</th>
+                  </tr>
+                </thead>
+                <tbody id="linkTableBody">
+                  <!-- Generated dynamically from backend config & telemetry -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Signal Diagnostics Timeline -->
+          <div class="panel-box">
+            <div class="panel-title-bar">
+              <div class="panel-heading">REAL-TIME SIGNAL TELEMETRY (30-SECOND WINDOW)</div>
+              <div style="display:flex; gap:8px;">
+                <button class="btn-transport" style="font-size:10px; padding:3px 8px;" id="btn-pause-timeline" onclick="toggleTimelinePause()">PAUSE</button>
+                <button class="btn-transport" style="font-size:10px; padding:3px 8px;" onclick="resetTimelineZoom()">RETURN TO LIVE</button>
+              </div>
+            </div>
+            <div class="timeline-container">
+              <canvas id="timelineCanvas"></canvas>
+            </div>
+            <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:10.5px; font-family:'JetBrains Mono',monospace; color:var(--text-muted);">
+              <div><span style="color:#35C5D5">■</span> CSI Rate (Hz) &nbsp; <span style="color:#E6AC55">■</span> CSI Variance &nbsp; <span style="color:#45C486">■</span> RSSI (dBm/2)</div>
+              <div id="timeline-hover-info">Hover across trace to inspect values</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Event Log Preview -->
+      <section class="panel-box">
+        <div class="panel-title-bar">
+          <div class="panel-heading">RECENT SYSTEM LIFECYCLE EVENTS</div>
+          <button class="btn-transport" style="font-size:11px;" onclick="switchNavTab('tab-events')">VIEW ALL EVENTS</button>
+        </div>
+        <div class="event-log-list" id="overview-event-list">
+          <!-- Rendered dynamically -->
+        </div>
+      </section>
+
+    </div>
+
+    <!-- VIEW 2: REPLAY LAB -->
+    <div class="tab-content" id="tab-replay">
+      <div class="playback-transport">
+        <div class="transport-bar">
           <div>
-            <div class="zone-tag">SECTOR Z2</div>
-            <div class="zone-name">NW QUADRANT (TX2)</div>
+            <div style="font-family:'Plus Jakarta Sans'; font-size:14px; font-weight:700; color:#fff;" id="replay-active-title">
+              RECORDED REPLAY LAB
+            </div>
+            <div style="font-size:11px; color:var(--text-muted);" id="replay-active-desc">
+              Select an empirical recorded session to review timestamped RF propagation and zone perturbations.
+            </div>
           </div>
-          <div class="avatar-tray" id="avatars-Z2"></div>
+
+          <!-- Transport Buttons -->
+          <div class="transport-btns">
+            <button class="btn-transport primary" id="btn-replay-play" onclick="toggleReplayPlay()">▶ PLAY</button>
+            <button class="btn-transport" onclick="restartReplay()">⏮ RESTART</button>
+            <button class="btn-transport" onclick="stepReplay(-1.0)">-1s</button>
+            <button class="btn-transport" onclick="stepReplay(1.0)">+1s</button>
+            
+            <div class="speed-btn-group">
+              <button class="speed-btn" onclick="setReplaySpeed(0.25)">0.25×</button>
+              <button class="speed-btn" onclick="setReplaySpeed(0.5)">0.5×</button>
+              <button class="speed-btn active" id="spd-1" onclick="setReplaySpeed(1.0)">1.0×</button>
+              <button class="speed-btn" onclick="setReplaySpeed(2.0)">2.0×</button>
+            </div>
+          </div>
         </div>
 
-        <!-- Zone 1 (Top-Right: NE) -->
-        <div class="zone-cell" id="zone-Z1">
-          <div>
-            <div class="zone-tag">SECTOR Z1</div>
-            <div class="zone-name">NE QUADRANT (TX1)</div>
-          </div>
-          <div class="avatar-tray" id="avatars-Z1"></div>
+        <!-- Scrubber Progress Bar -->
+        <div class="scrub-container">
+          <input type="range" class="scrub-slider" id="replay-scrubber" min="0" max="100" value="0" step="0.5" oninput="onScrubInput(this.value)">
+          <div class="scrub-timer" id="replay-timer-display">0.0s / 0.0s</div>
         </div>
 
-        <!-- Zone 3 (Bottom-Left: SW) -->
-        <div class="zone-cell" id="zone-Z3">
-          <div>
-            <div class="zone-tag">SECTOR Z3</div>
-            <div class="zone-name">SW QUADRANT (TX3)</div>
+        <!-- Ground Truth vs Model Evaluation Cards -->
+        <div class="evaluation-matrix">
+          <div class="eval-card">
+            <div class="eval-title">GROUND TRUTH (SESSION ANNOTATION)</div>
+            <div class="eval-value" id="eval-gt-display" style="color:var(--accent-cyan)">CLEAR / EMPTY ROOM</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;" id="eval-gt-sub">Count: 0 | Motion: EMPTY</div>
           </div>
-          <div class="avatar-tray" id="avatars-Z3"></div>
-        </div>
 
-        <!-- Zone 4 (Bottom-Right: SE) -->
-        <div class="zone-cell" id="zone-Z4">
-          <div>
-            <div class="zone-tag">SECTOR Z4</div>
-            <div class="zone-name">SE QUADRANT (TX4)</div>
+          <div class="eval-card">
+            <div class="eval-title">MODEL INFERENCE OUTPUT</div>
+            <div class="eval-value" id="eval-model-display" style="color:var(--accent-green)">CLEAR (SCORE: 0.0)</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;" id="eval-model-sub">Decision: EMPTY ROOM</div>
           </div>
-          <div class="avatar-tray" id="avatars-Z4"></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <!-- 8 Candidate Links -->
-      <div class="panel-card">
-        <h3>8-LINK RF MESH <span style="font-size:11px; color:var(--accent-neon-green)">FULL DUAL-RX ONLINE</span></h3>
-        <div class="link-list">
-          <div class="link-item" id="lnk-RX1-TX1"><span>RX1-TX1</span><div class="link-status-dot" id="dot-RX1-TX1"></div></div>
-          <div class="link-item" id="lnk-RX1-TX2"><span>RX1-TX2</span><div class="link-status-dot" id="dot-RX1-TX2"></div></div>
-          <div class="link-item" id="lnk-RX1-TX3"><span>RX1-TX3</span><div class="link-status-dot" id="dot-RX1-TX3"></div></div>
-          <div class="link-item" id="lnk-RX1-TX4"><span>RX1-TX4</span><div class="link-status-dot" id="dot-RX1-TX4"></div></div>
-          <div class="link-item" id="lnk-RX2-TX1"><span>RX2-TX1</span><div class="link-status-dot" id="dot-RX2-TX1"></div></div>
-          <div class="link-item" id="lnk-RX2-TX2"><span>RX2-TX2</span><div class="link-status-dot" id="dot-RX2-TX2"></div></div>
-          <div class="link-item" id="lnk-RX2-TX3"><span>RX2-TX3</span><div class="link-status-dot" id="dot-RX2-TX3"></div></div>
-          <div class="link-item" id="lnk-RX2-TX4"><span>RX2-TX4</span><div class="link-status-dot" id="dot-RX2-TX4"></div></div>
         </div>
       </div>
 
-      <!-- Live Pipeline State -->
-      <div class="panel-card">
-        <h3>STATE SUMMARY</h3>
-        <div style="font-family:'JetBrains Mono', monospace; font-size:12px; display:flex; flex-direction:column; gap:8px;">
-          <div>STATUS: <strong id="val-status" style="color:var(--accent-neon-green)">ACTIVE</strong></div>
-          <div>PRIMARY ZONE: <strong id="val-zone" style="color:var(--accent-cyan)">CLEAR</strong></div>
-          <div>CONFIDENCE: <strong id="val-conf" style="color:var(--text-main)">85.0%</strong></div>
-          <div>GATE: <strong style="color:var(--accent-neon-green)">PASS (&ge; 4.0 Hz)</strong></div>
+      <!-- Replay Library Grid -->
+      <div class="replay-grid">
+        <div class="panel-box">
+          <div class="panel-title-bar">
+            <div class="panel-heading">SESSION LIBRARY</div>
+            <span class="badge-tag cyan" id="lib-count-tag">1 DISCOVERED</span>
+          </div>
+          <div class="session-list" id="replay-session-list">
+            <!-- Dynamically populated from /api/recordings -->
+          </div>
+        </div>
+
+        <!-- Replay Active Telemetry -->
+        <div class="panel-box">
+          <div class="panel-title-bar">
+            <div class="panel-heading">REPLAY MULTI-LINK METRICS</div>
+            <span class="badge-tag green" id="replay-status-badge">REPLAY READY</span>
+          </div>
+          <div class="table-container">
+            <table class="data-table" id="replayTable">
+              <thead>
+                <tr>
+                  <th>LINK</th>
+                  <th>TIMESTAMP (EPOCH)</th>
+                  <th>VARIANCE</th>
+                  <th>RSSI</th>
+                  <th>RATE (Hz)</th>
+                  <th>STATUS</th>
+                </tr>
+              </thead>
+              <tbody id="replayTableBody">
+                <!-- Dynamically populated from active replay frame -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: SIGNAL DIAGNOSTICS -->
+    <div class="tab-content" id="tab-diagnostics">
+      <div class="panel-box">
+        <div class="panel-title-bar">
+          <div class="panel-heading">TRANSMITTER VARIANCE SPECTRUM COMPARISON</div>
+          <span class="badge-tag cyan">NOISE FLOOR CUTOFF: 8.0</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-top:10px;">
+          <div class="eval-card" id="diag-card-TX1">
+            <div class="eval-title">TX1 · NE SECTOR (BC:DD:C2:CC:49:F4)</div>
+            <div class="eval-value" id="diag-var-TX1">--</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Threshold: 8.0 | Sector Z1</div>
+          </div>
+          <div class="eval-card" id="diag-card-TX2">
+            <div class="eval-title">TX2 · NW SECTOR (1C:69:20:31:38:08)</div>
+            <div class="eval-value" id="diag-var-TX2">--</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Threshold: 8.0 | Sector Z2</div>
+          </div>
+          <div class="eval-card" id="diag-card-TX3">
+            <div class="eval-title">TX3 · SW SECTOR (CC:7B:5C:28:84:70)</div>
+            <div class="eval-value" id="diag-var-TX3">--</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Threshold: 8.0 | Sector Z3</div>
+          </div>
+          <div class="eval-card" id="diag-card-TX4">
+            <div class="eval-title">TX4 · SE SECTOR (1C:69:20:31:4B:40)</div>
+            <div class="eval-value" id="diag-var-TX4">--</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:4px;">Threshold: 8.0 | Sector Z4</div>
+          </div>
         </div>
       </div>
 
-      <!-- Multi-Person Demo Controls -->
-      <div class="panel-card">
-        <h3>DEMO INJECTION</h3>
-        <div class="sim-controls">
-          <button class="btn-sim" onclick="sendSim(0, [])">0 People (Empty Room)</button>
-          <button class="btn-sim" onclick="sendSim(1, [{id:1, zone:'Z1'}])">1 Person (At Doorway Z1)</button>
-          <button class="btn-sim" onclick="sendSim(2, [{id:1, zone:'Z1'}, {id:2, zone:'Z3'}])">2 People (Z1 Door &amp; Z3 Flank)</button>
-          <button class="btn-sim" onclick="sendSim(3, [{id:1, zone:'Z1'}, {id:2, zone:'Z2'}, {id:3, zone:'Z4'}])">3 People (Tactical Spread)</button>
+      <div class="panel-box">
+        <div class="panel-title-bar">
+          <div class="panel-heading">HARDWARE SERIAL CONFIGURATION AUDIT</div>
+          <span class="badge-tag green">CONFIG LOADED DYNAMICALLY</span>
+        </div>
+        <div class="table-container">
+          <table class="data-table" id="diagConfigTable">
+            <thead>
+              <tr>
+                <th>NODE</th>
+                <th>ROLE</th>
+                <th>PORT / MAC</th>
+                <th>BAUD RATE / CHANNEL</th>
+                <th>STATUS</th>
+              </tr>
+            </thead>
+            <tbody id="diagConfigTableBody"></tbody>
+          </table>
         </div>
       </div>
-    </aside>
+    </div>
+
+    <!-- VIEW 4: EVENTS -->
+    <div class="tab-content" id="tab-events">
+      <div class="panel-box">
+        <div class="panel-title-bar">
+          <div class="panel-heading">CHRONOLOGICAL EVENT AUDIT LOG</div>
+          <button class="btn-transport" style="font-size:11px;" onclick="fetchEvents()">REFRESH EVENTS</button>
+        </div>
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>TIME</th>
+                <th>SEVERITY</th>
+                <th>EVENT</th>
+                <th>MESSAGE</th>
+                <th>SOURCE</th>
+              </tr>
+            </thead>
+            <tbody id="fullEventTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIMULATION CONTROL DRAWER (When in Simulation mode) -->
+    <div class="sim-panel" id="sim-drawer" style="display:none;">
+      <div class="sim-header">
+        <span>⚡ SIMULATION CONTROLS — SYNTHETIC BENCHMARK DATA</span>
+        <span class="badge-tag amber">SYNTHETIC INJECTION ACTIVE</span>
+      </div>
+      <div style="font-size:11.5px; color:var(--text-muted);">
+        Select a synthetic test case to illustrate UI spatial quadrant mapping without modifying or overwriting genuine recordings:
+      </div>
+      <div class="sim-scenarios">
+        <button class="btn-scenario" onclick="runSimScenario('EMPTY')">1. Empty Room Baseline (All Quiet)</button>
+        <button class="btn-scenario" onclick="runSimScenario('SW_PERTURBATION')">2. South-West Perturbation (TX3 ~21.7 Var)</button>
+        <button class="btn-scenario" onclick="runSimScenario('NW_PERTURBATION')">3. North-West Perturbation (TX2 ~18.5 Var)</button>
+        <button class="btn-scenario" onclick="runSimScenario('NE_PERTURBATION')">4. North-East Perturbation (TX1 ~19.2 Var)</button>
+        <button class="btn-scenario" onclick="runSimScenario('DEGRADED')">5. Single-Receiver Degraded Mesh (RX2 Offline)</button>
+      </div>
+    </div>
+
   </main>
 
+  <!-- Global Footer -->
+  <footer>
+    <div>WiMotion 2.0 Spatial Sensing Engine · LRP MCTE Research Architecture</div>
+    <div id="footer-system-clock">UTC 00:00:00</div>
+  </footer>
+
   <script>
-    async function updateHUD() {
+    /* =====================================================================
+       GLOBAL STATE MANAGER
+       ===================================================================== */
+    const STATE = {
+      mode: 'LIVE', // 'LIVE', 'REPLAY', 'SIMULATION'
+      config: null,
+      liveState: null,
+      selectedLink: null,
+      selectedZone: null,
+      
+      // Replay State
+      replaySession: null,
+      replayFrames: [],
+      replayCurrentIndex: 0,
+      replayIsPlaying: false,
+      replaySpeed: 1.0,
+      replayTimerId: null,
+
+      // Timeline Data Buffer
+      timelineHistory: [],
+      timelinePaused: false,
+
+      // Events
+      events: []
+    };
+
+    /* =====================================================================
+       INITIALIZATION
+       ===================================================================== */
+    window.addEventListener('DOMContentLoaded', async () => {
+      await loadSystemConfig();
+      await fetchRecordings();
+      await fetchEvents();
+      initTimelineCanvas();
+      
+      // Polling loops
+      setInterval(pollSpatialState, 500);
+      setInterval(updateSystemClock, 1000);
+      updateSystemClock();
+    });
+
+    function updateSystemClock() {
+      const now = new Date();
+      document.getElementById('footer-system-clock').textContent = 
+        `SYS TIME: ${now.toLocaleTimeString()} · HOST EPOCH: ${Math.floor(now.getTime() / 1000)}`;
+    }
+
+    /* =====================================================================
+       SYSTEM CONFIG & REST API LOADER
+       ===================================================================== */
+    async function loadSystemConfig() {
       try {
-        const res = await fetch('/api/spatial');
-        if (!res.ok) return;
-        const data = await res.json();
-
-        // Mode & Status chip update
-        const modeStr = data.mode || 'STANDBY / DEMO';
-        const hdrMode = document.getElementById('hdr-mode');
-        const dotMode = document.getElementById('dot-mode');
-        const chipMode = document.getElementById('chip-mode');
-
-        if (modeStr.includes('DUAL-RX')) {
-          hdrMode.textContent = 'MODE: LIVE (DUAL-RX 8-LINK)';
-          hdrMode.style.color = 'var(--accent-neon-green)';
-          dotMode.style.background = 'var(--accent-neon-green)';
-          dotMode.style.boxShadow = '0 0 8px var(--accent-neon-green)';
-          chipMode.style.borderColor = 'rgba(0, 255, 136, 0.4)';
-        } else if (modeStr.includes('DEGRADED')) {
-          hdrMode.textContent = 'MODE: LIVE (DEGRADED 1-RX)';
-          hdrMode.style.color = 'var(--accent-amber)';
-          dotMode.style.background = 'var(--accent-amber)';
-          dotMode.style.boxShadow = '0 0 8px var(--accent-amber)';
-          chipMode.style.borderColor = 'rgba(255, 170, 0, 0.4)';
-        } else if (modeStr.includes('OFFLINE')) {
-          hdrMode.textContent = 'MODE: HARDWARE OFFLINE';
-          hdrMode.style.color = 'var(--accent-scarlet)';
-          dotMode.style.background = 'var(--accent-scarlet)';
-          dotMode.style.boxShadow = '0 0 8px var(--accent-scarlet)';
-          chipMode.style.borderColor = 'rgba(255, 42, 85, 0.4)';
-        } else if (modeStr.includes('INJECTION')) {
-          hdrMode.textContent = 'MODE: DEMO INJECTION';
-          hdrMode.style.color = 'var(--accent-cyan)';
-          dotMode.style.background = 'var(--accent-cyan)';
-          dotMode.style.boxShadow = '0 0 8px var(--accent-cyan)';
-          chipMode.style.borderColor = 'rgba(0, 240, 255, 0.4)';
-        } else {
-          hdrMode.textContent = 'MODE: STANDBY / INITIALIZING';
-          hdrMode.style.color = 'var(--accent-amber)';
-          dotMode.style.background = 'var(--accent-amber)';
-          dotMode.style.boxShadow = '0 0 8px var(--accent-amber)';
-          chipMode.style.borderColor = 'rgba(255, 170, 0, 0.4)';
-        }
-
-        // Occupancy hero
-        document.getElementById('hero-count').textContent = data.count || 0;
-        document.getElementById('val-zone').textContent = data.zone || 'CLEAR';
-        document.getElementById('hdr-links').textContent = `${data.active_links || 0} / ${data.link_count || 8} ACTIVE`;
-        
-        const confStr = data.confidence !== null && data.confidence !== undefined 
-          ? `${(data.confidence * 100).toFixed(1)}%` 
-          : 'HEURISTIC (UNCALIBRATED)';
-        document.getElementById('val-conf').textContent = confStr;
-        document.getElementById('val-status').textContent = data.signal_ok ? 'ACTIVE' : (data.active_links > 0 ? 'PARTIAL' : 'STANDBY');
-        
-        let totalRate = 0.0;
-        if (data.receiver_health) {
-          Object.values(data.receiver_health).forEach(h => {
-            if (h.running && (h.aggregate_rate_hz || h.rate_hz)) {
-              totalRate += (h.aggregate_rate_hz || h.rate_hz);
-            }
-          });
-        }
-        const rateVal = totalRate > 0 ? totalRate : (data.rate_hz || null);
-        document.getElementById('hdr-rate').textContent = rateVal ? `${rateVal.toFixed(1)} Hz` : '-- Hz';
-        document.getElementById('hdr-rate').style.color = rateVal ? 'var(--accent-neon-green)' : 'var(--text-muted)';
-
-        // Update active status for all 8 links (RX1 and RX2)
-        ['RX1', 'RX2'].forEach(rx => {
-          if (data.receiver_health && data.receiver_health[rx] && data.receiver_health[rx].per_link_rates) {
-            const rates = data.receiver_health[rx].per_link_rates;
-            ['TX1', 'TX2', 'TX3', 'TX4'].forEach(tx => {
-              const dot = document.getElementById(`dot-${rx}-${tx}`);
-              const lnk = document.getElementById(`lnk-${rx}-${tx}`);
-              if (dot && lnk) {
-                const r = rates[tx] || 0.0;
-                if (r > 0) {
-                  dot.style.background = 'var(--accent-neon-green)';
-                  dot.style.boxShadow = '0 0 8px var(--accent-neon-green)';
-                  lnk.title = `${rx}-${tx}: ${r.toFixed(1)} Hz`;
-                } else {
-                  dot.style.background = 'var(--accent-amber)';
-                  dot.style.boxShadow = 'none';
-                }
-              }
-            });
-          }
-        });
-
-        // Clear all zone active states and trays
-        ['Z1', 'Z2', 'Z3', 'Z4'].forEach(z => {
-          const cell = document.getElementById(`zone-${z}`);
-          const tray = document.getElementById(`avatars-${z}`);
-          if (cell) cell.classList.remove('active-zone');
-          if (tray) tray.innerHTML = '';
-        });
-
-        // Render detected people in zones
-        if (data.people && data.people.length > 0) {
-          data.people.forEach(p => {
-            const cell = document.getElementById(`zone-${p.zone}`);
-            const tray = document.getElementById(`avatars-${p.zone}`);
-            if (cell) cell.classList.add('active-zone');
-            if (tray) {
-              const avatar = document.createElement('div');
-              avatar.className = 'human-avatar';
-              const scoreText = p.score ? `Var ${p.score}` : 'Active';
-              avatar.innerHTML = `
-                <div class="avatar-icon">⚡</div>
-                <div class="avatar-label">${p.zone} (${scoreText})</div>
-              `;
-              avatar.title = `Perturbation Detected in ${p.zone} — CSI Variance Score: ${p.score || 'Triggered'}`;
-              tray.appendChild(avatar);
-            }
-          });
+        const res = await fetch('/api/config');
+        if (res.ok) {
+          STATE.config = await res.json();
+          renderLinkTableSkeleton();
+          renderDiagnosticsConfig();
         }
       } catch (e) {
-        // Fallback or offline
+        console.warn("Could not load /api/config:", e);
       }
     }
 
-    async function sendSim(count, people) {
-      const primaryZone = people.length > 0 ? people[0].zone : 'CLEAR';
+    function renderLinkTableSkeleton() {
+      if (!STATE.config) return;
+      const tbody = document.getElementById('linkTableBody');
+      tbody.innerHTML = '';
+
+      const rxKeys = Object.keys(STATE.config.receivers || {});
+      const txKeys = Object.keys(STATE.config.transmitters || {});
+
+      rxKeys.forEach(rx => {
+        txKeys.forEach(tx => {
+          const linkId = `${rx}-${tx}`;
+          const tr = document.createElement('tr');
+          tr.id = `row-link-${linkId}`;
+          tr.className = 'clickable';
+          tr.onclick = () => selectLink(linkId);
+          tr.innerHTML = `
+            <td><strong style="color:var(--text-main);">${linkId}</strong></td>
+            <td>${rx}</td>
+            <td>${tx}</td>
+            <td id="rate-${linkId}">--</td>
+            <td id="rssi-${linkId}">--</td>
+            <td id="var-${linkId}">--</td>
+            <td id="stat-${linkId}"><span class="badge-tag">IDLE</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+      });
+    }
+
+    function renderDiagnosticsConfig() {
+      if (!STATE.config) return;
+      const tbody = document.getElementById('diagConfigTableBody');
+      tbody.innerHTML = '';
+
+      Object.entries(STATE.config.receivers || {}).forEach(([rx, cfg]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${rx}</strong></td>
+          <td>RECEIVER (INGESTION)</td>
+          <td>${cfg.port}</td>
+          <td>${cfg.baud} baud</td>
+          <td><span class="badge-tag green">CONFIGURED</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      Object.entries(STATE.config.transmitters || {}).forEach(([tx, cfg]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${tx}</strong></td>
+          <td>TRANSMITTER (BEACON)</td>
+          <td>${cfg.mac}</td>
+          <td>CH 11 (2.4 GHz)</td>
+          <td><span class="badge-tag cyan">CONFIGURED</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* =====================================================================
+       OPERATING MODE & NAVIGATION MANAGER
+       ===================================================================== */
+    function setMode(newMode) {
+      if (STATE.mode === newMode) return;
+      
+      // Clean up previous mode
+      if (STATE.mode === 'REPLAY') {
+        pauseReplay();
+      }
+
+      STATE.mode = newMode;
+      logEvent('INFO', `MODE_CHANGED`, `System switched operating mode to ${newMode}`);
+
+      document.getElementById('btn-mode-live').className = 'btn-mode' + (newMode === 'LIVE' ? ' active-live' : '');
+      document.getElementById('btn-mode-replay').className = 'btn-mode' + (newMode === 'REPLAY' ? ' active-replay' : '');
+      document.getElementById('btn-mode-sim').className = 'btn-mode' + (newMode === 'SIMULATION' ? ' active-sim' : '');
+
+      document.getElementById('radar-active-badge').textContent = `MODE: ${newMode}`;
+      document.getElementById('radar-active-badge').className = `badge-tag ${newMode === 'LIVE' ? 'green' : newMode === 'REPLAY' ? 'cyan' : 'amber'}`;
+
+      const simDrawer = document.getElementById('sim-drawer');
+      simDrawer.style.display = (newMode === 'SIMULATION') ? 'flex' : 'none';
+
+      if (newMode === 'REPLAY') {
+        switchNavTab('tab-replay');
+      } else if (newMode === 'LIVE') {
+        pollSpatialState();
+      }
+    }
+
+    function switchNavTab(tabId) {
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+      });
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.toggle('active', content.id === tabId);
+      });
+    }
+
+    /* =====================================================================
+       POLLING SPATIAL STATE (LIVE HARDWARE & SIMULATION)
+       ===================================================================== */
+    async function pollSpatialState() {
+      if (STATE.mode === 'REPLAY') return; // Replay has its own playback clock
+
+      try {
+        const res = await fetch('/api/spatial');
+        if (!res.ok) {
+          updateConnectionStatus(false);
+          return;
+        }
+
+        const data = await res.json();
+        updateConnectionStatus(true);
+        STATE.liveState = data;
+
+        updateTopMetricCards(data);
+        updateRadarVisualizer(data);
+        updateLinkMatrix(data);
+        appendTimelineSample(data);
+
+      } catch (e) {
+        updateConnectionStatus(false);
+      }
+    }
+
+    function updateConnectionStatus(connected) {
+      const dot = document.getElementById('hdr-conn-dot');
+      const txt = document.getElementById('hdr-conn-text');
+      if (connected) {
+        dot.className = 'status-dot green';
+        txt.textContent = 'BACKEND OK';
+      } else {
+        dot.className = 'status-dot red';
+        txt.textContent = 'BACKEND UNREACHABLE';
+      }
+    }
+
+    /* =====================================================================
+       METRIC CARDS & TELEMETRY DISPLAY
+       ===================================================================== */
+    function updateTopMetricCards(data) {
+      // 1. CSI Rate Card
+      const rxHealth = data.receiver_health || {};
+      let totalRate = 0.0;
+      let rxRateStrs = [];
+
+      Object.entries(rxHealth).forEach(([rx, h]) => {
+        const r = h.aggregate_rate_hz || h.rate_hz || 0.0;
+        if (h.running && r > 0) totalRate += r;
+        rxRateStrs.push(`${rx}: ${r.toFixed(1)}Hz`);
+      });
+
+      const rateVal = totalRate > 0 ? totalRate : (data.rate_hz || 0.0);
+      document.getElementById('val-csi-rate').textContent = rateVal > 0 ? `${rateVal.toFixed(1)} Hz` : '-- Hz';
+      document.getElementById('sub-rate-rx').textContent = rxRateStrs.join(' | ') || 'No active streams';
+      
+      const rateTag = document.getElementById('tag-rate-status');
+      if (rateVal >= 8.0) {
+        rateTag.className = 'badge-tag green';
+        rateTag.textContent = 'OPTIMAL RATE';
+      } else if (rateVal > 0) {
+        rateTag.className = 'badge-tag amber';
+        rateTag.textContent = 'DEGRADED';
+      } else {
+        rateTag.className = 'badge-tag red';
+        rateTag.textContent = 'OFFLINE';
+      }
+
+      // 2. Active Links Card
+      const activeCount = data.active_links || 0;
+      document.getElementById('val-active-links').textContent = `${activeCount} / 8 ACTIVE`;
+      const meshTag = document.getElementById('tag-links-mesh');
+      if (activeCount >= 8) {
+        meshTag.className = 'badge-tag green';
+        meshTag.textContent = 'FULL MESH';
+      } else if (activeCount > 0) {
+        meshTag.className = 'badge-tag amber';
+        meshTag.textContent = 'PARTIAL MESH';
+      } else {
+        meshTag.className = 'badge-tag red';
+        meshTag.textContent = 'NO LINKS';
+      }
+
+      // 3. Receiver Health Card
+      const onlineRx = Object.values(rxHealth).filter(h => h.running && h.aggregate_rate_hz >= 1.0).length;
+      document.getElementById('val-rx-health').textContent = `${onlineRx} / 2 ONLINE`;
+      const rxTag = document.getElementById('tag-rx-mode');
+      if (onlineRx >= 2) {
+        rxTag.className = 'badge-tag green';
+        rxTag.textContent = 'DUAL-RX ACTIVE';
+      } else if (onlineRx === 1) {
+        rxTag.className = 'badge-tag amber';
+        rxTag.textContent = 'DEGRADED 1-RX';
+      } else {
+        rxTag.className = 'badge-tag red';
+        rxTag.textContent = 'STANDBY';
+      }
+
+      // 4. Presence State Card
+      const zone = data.zone || 'CLEAR';
+      document.getElementById('val-presence-state').textContent = zone === 'CLEAR' ? 'CLEAR' : `SECTOR ${zone}`;
+      document.getElementById('val-presence-state').style.color = zone === 'CLEAR' ? 'var(--text-main)' : 'var(--accent-amber)';
+
+      const gateTag = document.getElementById('tag-gate-status');
+      if (data.signal_ok) {
+        gateTag.className = 'badge-tag green';
+        gateTag.textContent = 'SIGNAL OK';
+      } else {
+        gateTag.className = 'badge-tag amber';
+        gateTag.textContent = 'SIGNAL UNSTABLE';
+      }
+
+      // Last valid timestamp
+      if (data.last_valid_data_time && data.last_valid_data_time > 0) {
+        const lastDate = new Date(data.last_valid_data_time * 1000);
+        document.getElementById('hdr-last-csi').textContent = lastDate.toLocaleTimeString();
+      } else {
+        document.getElementById('hdr-last-csi').textContent = '--';
+      }
+    }
+
+    /* =====================================================================
+       FOUR-QUADRANT RADAR VISUALIZATION
+       ===================================================================== */
+    function updateRadarVisualizer(data) {
+      // Clear all active quadrant highlights
+      ['Z1', 'Z2', 'Z3', 'Z4'].forEach(z => {
+        const el = document.getElementById(`quad-${z}`);
+        if (el) el.classList.remove('active-quadrant');
+      });
+
+      const badgeGroup = document.getElementById('radar-perturbation-badges');
+      badgeGroup.innerHTML = '';
+
+      // If active people / sectors exist
+      if (data.people && data.people.length > 0) {
+        data.people.forEach(p => {
+          const qEl = document.getElementById(`quad-${p.zone}`);
+          if (qEl) qEl.classList.add('active-quadrant');
+
+          // Add clean perturbation text badge in quadrant center
+          const coords = getZoneCenterCoords(p.zone);
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', coords.x);
+          text.setAttribute('y', coords.y);
+          text.setAttribute('text-anchor', 'middle');
+          text.setAttribute('fill', 'var(--accent-amber)');
+          text.setAttribute('font-family', "'JetBrains Mono', monospace");
+          text.setAttribute('font-size', '11');
+          text.setAttribute('font-weight', '700');
+          text.textContent = `⚡ PERTURBED (Var: ${p.score || '--'})`;
+          badgeGroup.appendChild(text);
+        });
+      }
+
+      // Update Node circles color based on active links
+      const activeRx = data.receiver_health || {};
+      ['TX1', 'TX2', 'TX3', 'TX4'].forEach(tx => {
+        const circle = document.getElementById(`circle-${tx}`);
+        const meshLine = document.getElementById(`mesh-${tx}`);
+        let hasActive = false;
+        
+        Object.values(activeRx).forEach(h => {
+          if (h.per_link_rates && h.per_link_rates[tx] > 0) hasActive = true;
+        });
+
+        if (circle) {
+          circle.setAttribute('stroke', hasActive ? 'var(--accent-green)' : 'var(--text-dim)');
+        }
+        if (meshLine) {
+          meshLine.setAttribute('stroke', hasActive ? 'rgba(69, 196, 134, 0.4)' : 'rgba(255,255,255,0.06)');
+          meshLine.setAttribute('stroke-width', hasActive ? '1.5' : '1');
+        }
+      });
+    }
+
+    function getZoneCenterCoords(zone) {
+      switch(zone) {
+        case 'Z2': return { x: 110, y: 130 }; // NW
+        case 'Z1': return { x: 290, y: 130 }; // NE
+        case 'Z3': return { x: 110, y: 270 }; // SW
+        case 'Z4': return { x: 290, y: 270 }; // SE
+        default: return { x: 200, y: 200 };
+      }
+    }
+
+    function selectZone(zone) {
+      STATE.selectedZone = (STATE.selectedZone === zone) ? null : zone;
+      ['Z1', 'Z2', 'Z3', 'Z4'].forEach(z => {
+        const el = document.getElementById(`quad-${z}`);
+        if (el) el.classList.toggle('selected-quadrant', z === STATE.selectedZone);
+      });
+      document.getElementById('selected-link-label').textContent = 
+        STATE.selectedZone ? `FILTER: SECTOR ${STATE.selectedZone}` : 'SELECTED: ALL LINKS';
+    }
+
+    function selectLink(linkId) {
+      STATE.selectedLink = (STATE.selectedLink === linkId) ? null : linkId;
+      document.querySelectorAll('#linkTableBody tr').forEach(tr => {
+        tr.classList.toggle('selected-row', tr.id === `row-link-${STATE.selectedLink}`);
+      });
+      document.getElementById('selected-link-label').textContent = 
+        STATE.selectedLink ? `SELECTED: ${STATE.selectedLink}` : 'SELECTED: ALL LINKS';
+    }
+
+    /* =====================================================================
+       8-LINK MATRIX TELEMETRY UPDATE
+       ===================================================================== */
+    function updateLinkMatrix(data) {
+      const rxHealth = data.receiver_health || {};
+      const features = data.link_features || [];
+
+      // Create lookup of link features
+      const featMap = {};
+      features.forEach(f => {
+        const k = `${f.receiver}-${f.tx}`;
+        featMap[k] = f;
+      });
+
+      // Update Diagnostics transmitter cards
+      const txMaxVar = {};
+
+      Object.entries(rxHealth).forEach(([rx, h]) => {
+        const rates = h.per_link_rates || {};
+        ['TX1', 'TX2', 'TX3', 'TX4'].forEach(tx => {
+          const linkId = `${rx}-${tx}`;
+          const r = rates[tx] || 0.0;
+          const feat = featMap[linkId] || {};
+          const variance = feat.csi_variance !== undefined ? feat.csi_variance : 0.0;
+          const rssi = feat.rssi !== null && feat.rssi !== undefined ? feat.rssi.toFixed(1) : '--';
+
+          txMaxVar[tx] = Math.max(txMaxVar[tx] || 0.0, variance);
+
+          const elRate = document.getElementById(`rate-${linkId}`);
+          const elRssi = document.getElementById(`rssi-${linkId}`);
+          const elVar = document.getElementById(`var-${linkId}`);
+          const elStat = document.getElementById(`stat-${linkId}`);
+
+          if (elRate) elRate.textContent = r > 0 ? `${r.toFixed(1)} Hz` : '--';
+          if (elRssi) elRssi.textContent = rssi !== '--' ? `${rssi} dBm` : '--';
+          if (elVar) elVar.textContent = variance > 0 ? variance.toFixed(2) : '0.00';
+
+          if (elStat) {
+            if (variance >= 8.0) {
+              elStat.innerHTML = '<span class="badge-tag amber">PERTURBED</span>';
+            } else if (r >= 1.0) {
+              elStat.innerHTML = '<span class="badge-tag green">ACTIVE</span>';
+            } else {
+              elStat.innerHTML = '<span class="badge-tag">IDLE</span>';
+            }
+          }
+        });
+      });
+
+      // Update Diagnostic Variance Cards
+      ['TX1', 'TX2', 'TX3', 'TX4'].forEach(tx => {
+        const valEl = document.getElementById(`diag-var-${tx}`);
+        const cardEl = document.getElementById(`diag-card-${tx}`);
+        const v = txMaxVar[tx] || 0.0;
+        if (valEl) valEl.textContent = `Var: ${v.toFixed(2)}`;
+        if (cardEl) {
+          cardEl.style.borderColor = (v >= 8.0) ? 'var(--accent-amber)' : 'var(--border)';
+        }
+      });
+    }
+
+    /* =====================================================================
+       TIMELINE GRAPH (CANVAS ROLLING HISTORY)
+       ===================================================================== */
+    let canvas, ctx;
+
+    function initTimelineCanvas() {
+      canvas = document.getElementById('timelineCanvas');
+      if (!canvas) return;
+      ctx = canvas.getContext('2d');
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      requestAnimationFrame(drawTimeline);
+    }
+
+    function resizeCanvas() {
+      if (!canvas) return;
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+
+    function appendTimelineSample(data) {
+      if (STATE.timelinePaused) return;
+
+      const rateVal = data.rate_hz || 0.0;
+      let maxVar = 0.0;
+      let avgRssi = -60.0;
+
+      if (data.link_features && data.link_features.length > 0) {
+        maxVar = Math.max(...data.link_features.map(f => f.csi_variance || 0.0));
+        const rssis = data.link_features.map(f => f.rssi).filter(r => r !== null && r !== undefined);
+        if (rssis.length) avgRssi = rssis.reduce((a,b)=>a+b, 0) / rssis.length;
+      }
+
+      STATE.timelineHistory.push({
+        time: Date.now(),
+        rate: rateVal,
+        variance: maxVar,
+        rssi: avgRssi
+      });
+
+      // Retain 60 samples (approx 30 seconds at 500ms intervals)
+      if (STATE.timelineHistory.length > 60) {
+        STATE.timelineHistory.shift();
+      }
+    }
+
+    function drawTimeline() {
+      if (!ctx || !canvas) return;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const w = canvas.width;
+      const h = canvas.height;
+
+      // Draw horizontal grid lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      ctx.lineWidth = 1;
+      for (let y = 0; y < h; y += 35) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      const history = STATE.timelineHistory;
+      if (history.length < 2) {
+        requestAnimationFrame(drawTimeline);
+        return;
+      }
+
+      const step = w / 60;
+      const startX = w - (history.length * step);
+
+      // 1. Draw CSI Rate trace (Cyan)
+      drawLineSeries(history.map(d => d.rate), 0, 160, startX, step, '#35C5D5');
+
+      // 2. Draw CSI Variance trace (Amber)
+      drawLineSeries(history.map(d => d.variance), 0, 30, startX, step, '#E6AC55');
+
+      // 3. Draw Threshold guideline at variance = 8.0
+      const threshY = h - ((8.0 / 30.0) * h);
+      ctx.strokeStyle = 'rgba(230, 172, 85, 0.4)';
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, threshY);
+      ctx.lineTo(w, threshY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      requestAnimationFrame(drawTimeline);
+    }
+
+    function drawLineSeries(dataArray, minVal, maxVal, startX, step, color) {
+      const h = canvas.height;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+
+      dataArray.forEach((val, i) => {
+        const norm = Math.max(0, Math.min(1, (val - minVal) / (maxVal - minVal)));
+        const x = startX + (i * step);
+        const y = h - (norm * (h - 20)) - 10;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    function toggleTimelinePause() {
+      STATE.timelinePaused = !STATE.timelinePaused;
+      document.getElementById('btn-pause-timeline').textContent = 
+        STATE.timelinePaused ? 'RESUME' : 'PAUSE';
+    }
+
+    function resetTimelineZoom() {
+      STATE.timelinePaused = false;
+      document.getElementById('btn-pause-timeline').textContent = 'PAUSE';
+    }
+
+    /* =====================================================================
+       REPLAY LAB ENGINE (DETERMINISTIC PLAYBACK & SCRUBBING)
+       ===================================================================== */
+    async function fetchRecordings() {
+      try {
+        const res = await fetch('/api/recordings');
+        if (!res.ok) return;
+        const data = await res.json();
+        renderSessionList(data.recordings || []);
+      } catch (e) {
+        console.warn("Could not fetch recordings:", e);
+      }
+    }
+
+    function renderSessionList(recordings) {
+      const listEl = document.getElementById('replay-session-list');
+      listEl.innerHTML = '';
+      document.getElementById('lib-count-tag').textContent = `${recordings.length} SESSIONS`;
+
+      if (recordings.length === 0) {
+        listEl.innerHTML = `
+          <div style="padding:14px; color:var(--text-dim); font-size:11px;">
+            No recordings found in data/raw.<br>Run scripts/record_multilink_dataset.py to collect sessions.
+          </div>
+        `;
+        return;
+      }
+
+      recordings.forEach((rec, idx) => {
+        const card = document.createElement('div');
+        card.className = 'session-card' + (idx === 0 ? ' selected-session' : '');
+        card.onclick = () => loadSession(rec.session_id);
+        card.innerHTML = `
+          <div class="session-header">
+            <span>${rec.session_id}</span>
+            <span style="color:var(--accent-cyan); font-weight:600;">${rec.duration_seconds}s</span>
+          </div>
+          <div class="session-meta">
+            <span>GT Zone: <strong style="color:#fff">${rec.ground_truth_zone}</strong> (${rec.motion_state})</span>
+            <span>Frames: ${rec.total_records} | Date: ${rec.created_at}</span>
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+
+      if (recordings.length > 0 && !STATE.replaySession) {
+        loadSession(recordings[0].session_id);
+      }
+    }
+
+    async function loadSession(sessionId) {
+      try {
+        const res = await fetch(`/api/recordings/${sessionId}/data`);
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        STATE.replaySession = data;
+        STATE.replayFrames = data.frames || [];
+        STATE.replayCurrentIndex = 0;
+
+        document.getElementById('replay-active-title').textContent = `REPLAY SESSION: ${data.session_id}`;
+        document.getElementById('replay-active-desc').textContent = 
+          `Duration: ${data.total_duration}s | Frames: ${data.total_frames} | Format: Raw CSI CSV (64-Subcarrier)`;
+
+        const scrubber = document.getElementById('replay-scrubber');
+        scrubber.max = data.frames.length - 1;
+        scrubber.value = 0;
+
+        renderReplayFrame(0);
+        logEvent('INFO', 'REPLAY_LOADED', `Loaded session ${sessionId} (${data.total_frames} frames)`);
+
+      } catch (e) {
+        console.error("Failed to load recording:", e);
+      }
+    }
+
+    function toggleReplayPlay() {
+      if (STATE.replayIsPlaying) pauseReplay();
+      else playReplay();
+    }
+
+    function playReplay() {
+      if (!STATE.replayFrames.length) return;
+      STATE.replayIsPlaying = true;
+      document.getElementById('btn-replay-play').textContent = '⏸ PAUSE';
+      document.getElementById('replay-status-badge').textContent = 'PLAYING';
+      document.getElementById('replay-status-badge').className = 'badge-tag green';
+
+      const intervalMs = (500 / STATE.replaySpeed);
+      STATE.replayTimerId = setInterval(() => {
+        if (STATE.replayCurrentIndex >= STATE.replayFrames.length - 1) {
+          pauseReplay();
+          document.getElementById('replay-status-badge').textContent = 'REPLAY COMPLETE';
+          document.getElementById('replay-status-badge').className = 'badge-tag cyan';
+          return;
+        }
+        STATE.replayCurrentIndex++;
+        document.getElementById('replay-scrubber').value = STATE.replayCurrentIndex;
+        renderReplayFrame(STATE.replayCurrentIndex);
+      }, intervalMs);
+    }
+
+    function pauseReplay() {
+      STATE.replayIsPlaying = false;
+      if (STATE.replayTimerId) clearInterval(STATE.replayTimerId);
+      document.getElementById('btn-replay-play').textContent = '▶ PLAY';
+      document.getElementById('replay-status-badge').textContent = 'PAUSED';
+      document.getElementById('replay-status-badge').className = 'badge-tag amber';
+    }
+
+    function restartReplay() {
+      pauseReplay();
+      STATE.replayCurrentIndex = 0;
+      document.getElementById('replay-scrubber').value = 0;
+      renderReplayFrame(0);
+    }
+
+    function stepReplay(deltaSec) {
+      if (!STATE.replayFrames.length) return;
+      const stepFrames = Math.round(deltaSec / 0.5);
+      STATE.replayCurrentIndex = Math.max(0, Math.min(STATE.replayFrames.length - 1, STATE.replayCurrentIndex + stepFrames));
+      document.getElementById('replay-scrubber').value = STATE.replayCurrentIndex;
+      renderReplayFrame(STATE.replayCurrentIndex);
+    }
+
+    function setReplaySpeed(spd) {
+      STATE.replaySpeed = spd;
+      document.querySelectorAll('.speed-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent === `${spd}×`);
+      });
+      if (STATE.replayIsPlaying) {
+        pauseReplay();
+        playReplay();
+      }
+    }
+
+    function onScrubInput(val) {
+      STATE.replayCurrentIndex = parseInt(val);
+      renderReplayFrame(STATE.replayCurrentIndex);
+    }
+
+    function renderReplayFrame(idx) {
+      const frame = STATE.replayFrames[idx];
+      if (!frame) return;
+
+      document.getElementById('replay-timer-display').textContent = 
+        `${frame.time_offset.toFixed(1)}s / ${frame.duration.toFixed(1)}s`;
+
+      // Update Evaluation Cards
+      document.getElementById('eval-gt-display').textContent = 
+        frame.gt_zone === 'CLEAR' ? 'CLEAR (EMPTY ROOM)' : `SECTOR ${frame.gt_zone} (PRESENT)`;
+      document.getElementById('eval-gt-sub').textContent = 
+        `Ground Truth Count: ${frame.gt_count} | State: ${frame.gt_motion}`;
+
+      document.getElementById('eval-model-display').textContent = 
+        frame.model_zone === 'CLEAR' ? 'CLEAR (0.0)' : `SECTOR ${frame.model_zone} (SCORE: ${frame.model_score.toFixed(1)})`;
+      document.getElementById('eval-model-sub').textContent = 
+        `Inference Decision: ${frame.model_decision} (${frame.eval_status})`;
+
+      // Render Replay Links Table
+      const tbody = document.getElementById('replayTableBody');
+      tbody.innerHTML = '';
+      Object.entries(frame.link_details || {}).forEach(([link, det]) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${link}</strong></td>
+          <td>${frame.timestamp}</td>
+          <td>${det.variance}</td>
+          <td>${det.rssi} dBm</td>
+          <td>${det.rate} Hz</td>
+          <td><span class="badge-tag ${det.variance >= 8.0 ? 'amber' : 'green'}">${det.variance >= 8.0 ? 'PERTURBED' : 'BASELINE'}</span></td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Update radar with replayed frame
+      updateRadarVisualizer({
+        zone: frame.model_zone,
+        people: frame.people,
+        receiver_health: {}
+      });
+    }
+
+    /* =====================================================================
+       SIMULATION SCENARIO INJECTION
+       ===================================================================== */
+    async function runSimScenario(scenarioType) {
+      let simPayload = {
+        signal_ok: true,
+        count: 0,
+        people: [],
+        zone: "CLEAR",
+        active_links: 8,
+        link_count: 8,
+        confidence: null,
+        rate_hz: 148.8,
+        mode: "DEMO INJECTION (SIMULATED)"
+      };
+
+      if (scenarioType === 'SW_PERTURBATION') {
+        simPayload.zone = 'Z3';
+        simPayload.count = 1;
+        simPayload.people = [{ id: 1, zone: 'Z3', tx: 'TX3', score: 21.66 }];
+      } else if (scenarioType === 'NW_PERTURBATION') {
+        simPayload.zone = 'Z2';
+        simPayload.count = 1;
+        simPayload.people = [{ id: 1, zone: 'Z2', tx: 'TX2', score: 18.52 }];
+      } else if (scenarioType === 'NE_PERTURBATION') {
+        simPayload.zone = 'Z1';
+        simPayload.count = 1;
+        simPayload.people = [{ id: 1, zone: 'Z1', tx: 'TX1', score: 19.24 }];
+      } else if (scenarioType === 'DEGRADED') {
+        simPayload.active_links = 4;
+        simPayload.mode = "DEMO INJECTION (DEGRADED SINGLE-RX)";
+      }
+
       await fetch('/api/spatial/simulate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          signal_ok: true,
-          count: count,
-          people: people,
-          zone: primaryZone,
-          active_links: 8,
-          confidence: 0.88,
-          reason: 'DEMO_INJECTION'
-        })
+        body: JSON.stringify(simPayload)
       });
-      updateHUD();
+
+      logEvent('WARNING', 'SIM_INJECTION', `Synthetic scenario '${scenarioType}' injected.`);
+      pollSpatialState();
     }
 
-    // Polling every 500ms
-    setInterval(updateHUD, 500);
-    updateHUD();
+    /* =====================================================================
+       SYSTEM EVENTS MANAGEMENT
+       ===================================================================== */
+    async function fetchEvents() {
+      try {
+        const res = await fetch('/api/events');
+        if (!res.ok) return;
+        const data = await res.json();
+        STATE.events = data.events || [];
+        renderEventLists();
+      } catch (e) {
+        console.warn("Could not fetch events:", e);
+      }
+    }
+
+    async function logEvent(severity, title, message) {
+      try {
+        await fetch('/api/events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            severity: severity,
+            title: title,
+            message: message,
+            source: STATE.mode
+          })
+        });
+        fetchEvents();
+      } catch (e) {}
+    }
+
+    function renderEventLists() {
+      // 1. Overview mini preview
+      const previewList = document.getElementById('overview-event-list');
+      previewList.innerHTML = '';
+      STATE.events.slice(-4).reverse().forEach(evt => {
+        const div = document.createElement('div');
+        div.className = 'event-item';
+        div.innerHTML = `
+          <div class="event-left">
+            <span class="badge-tag ${evt.severity === 'WARNING' ? 'amber' : evt.severity === 'ERROR' ? 'red' : 'cyan'}">${evt.severity}</span>
+            <span><strong>${evt.title}:</strong> ${evt.message}</span>
+          </div>
+          <span class="event-time">${evt.time_str || '--'}</span>
+        `;
+        previewList.appendChild(div);
+      });
+
+      // 2. Full event table
+      const fullTbody = document.getElementById('fullEventTableBody');
+      fullTbody.innerHTML = '';
+      STATE.events.slice().reverse().forEach(evt => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${evt.time_str || '--'}</td>
+          <td><span class="badge-tag ${evt.severity === 'WARNING' ? 'amber' : evt.severity === 'ERROR' ? 'red' : 'cyan'}">${evt.severity}</span></td>
+          <td><strong>${evt.title}</strong></td>
+          <td>${evt.message}</td>
+          <td>${evt.source || 'SYSTEM'}</td>
+        `;
+        fullTbody.appendChild(tr);
+      });
+    }
   </script>
 </body>
 </html>

@@ -64,6 +64,7 @@ class LiveSpatialEngine:
         with self.lock:
             self.latest_state = {
                 "timestamp": time.time(),
+                "last_valid_data_time": self.last_record_receipt_time,
                 "signal_ok": pred["signal_ok"],
                 "count": pred["count"],
                 "people": tracked,
@@ -72,7 +73,8 @@ class LiveSpatialEngine:
                 "link_count": 8,
                 "confidence": None,  # Non-probabilistic; uncalibrated heuristic
                 "reason": pred.get("reason", "OK"),
-                "receiver_health": health
+                "receiver_health": health,
+                "link_features": features
             }
 
     def start(self):
