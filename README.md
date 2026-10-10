@@ -1,5 +1,7 @@
 # WiMotion 2.0 (Wi-CaL Multi-Link Sensing Edition)
 
+[![WiMotion 2.0 CI](https://github.com/Tanmay-proj/Wimotion-2.0/actions/workflows/ci.yml/badge.svg)](https://github.com/Tanmay-proj/Wimotion-2.0/actions/workflows/ci.yml)
+
 **Project:** WiMotion 2.0 — Multi-Link RF Spatial Sensing, Occupancy Estimation & Sector Mapping  
 **Evolution of:** Project WiMotion v1.0 (`wimotion/`)  
 **Scientific Foundation:** Inspired by Wi-CaL (IEEE Access, Vol. 10, 2022) Multi-Link CSI Sensing Framework  
@@ -47,7 +49,7 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Unified State Renderer** | ✅ **Implemented** | Consistent single-renderer driving metrics, 8-link mesh, timeline, and radar (`dashboard/observatory_multi.html`) |
 | **Safe Replay Lab Engine** | ✅ **Implemented** | Timestamp-based playback with scrub, rate quality gate, and XSS-safe DOM nodes (`spatial/replay_loader.py`) |
 | **Automated Unit Tests** | ✅ **Passing (20/20)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate (`tests/test_spatial.py`) |
-| **Dual-RX Flashed & Listening** | ✅ **Verified** | Master AP (`COM3`) & Passive Sniffer (`COM8`) active @ 921,600 baud |
+| **Dual-RX Hardware Status** | ⚠️ **Safe Standby (Disconnected)** | Flashed firmware verified (`COM3`, `COM8`). Disconnected on host PC to prevent Windows DPC Watchdog BSOD until driver diagnosis is complete. |
 | **Labelled Multi-Person Dataset** | ⏳ **Pending Collection** | Capture script ready (`scripts/record_multilink_dataset.py`) |
 | **Trained Multi-Class ML Model** | ⏳ **Pending Dataset** | Scaffold baseline active; real ML model trained after data collection |
 
@@ -55,10 +57,13 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 
 ## 3. Quickstart & Verification
 
-### 1. Run Automated Unit Tests
+### 1. Run Automated Unit Tests (20/20) & 6-Point Audit Suite
 ```bash
 py -3.10 -m unittest discover -s tests -v
+py -3.10 scripts/verify_six_checks.py
 ```
+Both test suites verify all core engineering constraints: single-RX isolation, variance-rate independence, transactional mode rollback, zero telemetry leakage, rate formula equivalence, and quality gating.
+
 
 ### 2. Launch Tactical Console & Web Server
 ```bash

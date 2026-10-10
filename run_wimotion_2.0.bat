@@ -32,8 +32,11 @@ goto MENU
 
 :TESTS
 echo.
-echo [*] Running Multi-Link Unit Tests...
+echo [*] Running Multi-Link Unit Tests (20/20)...
 py -3.10 -m unittest discover -s tests -v
+echo.
+echo [*] Running 6-Point Colleague Audit Verification Suite...
+py -3.10 scripts/verify_six_checks.py
 pause
 goto MENU
 
