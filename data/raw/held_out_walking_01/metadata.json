@@ -1,0 +1,15 @@
+{
+  "session_id": "held_out_walking_01",
+  "display_name": "Held-Out Benchmark: Walking Presence (Genuine Hardware)",
+  "source_type": "hardware_recorded",
+  "provenance": "hardware_recorded",
+  "is_held_out": true,
+  "original_source_file": "walking_session_06.csv",
+  "ground_truth_count": 1,
+  "ground_truth_zone": "Z1",
+  "motion_state": "WALKING",
+  "duration_seconds": 32.27,
+  "total_records": 400,
+  "description": "Held-out test session (walking presence) from original WiMotion hardware trials, untouched during training.",
+  "created_at": "2026-10-04 02:30:00"
+}

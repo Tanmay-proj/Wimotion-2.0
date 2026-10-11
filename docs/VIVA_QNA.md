@@ -13,14 +13,10 @@ This guide contains the most probable questions examiners will ask during projec
 
 ### Q2: What is the hardware topology of WiMotion 2.0?
 **Answer:**
-> "WiMotion 2.0 uses a distributed multi-node mesh architecture:
-> - **Two Receivers (RX1 and RX2)**: ESP32 development boards listening in CSI promiscuous monitor mode at 921,600 baud.
-> - **Four Transmitter Beacons (TX1, TX2, TX3, TX4)**: Positioned in four distinct room sectors:
->   - TX1 in North-East (Zone 1)
->   - TX2 in North-West (Zone 2)
->   - TX3 in South-West (Zone 3)
->   - TX4 in South-East (Zone 4)
-> - This forms an **8-link distributed sensing mesh** ($2 \times 4$). By comparing which transmitter-receiver links experience elevated variance, we localize perturbations to specific room sectors."
+> "Theoretically, WiMotion 2.0 specifies an **8-link distributed sensing mesh** formed by:
+> - **Two Receivers (RX1 and RX2)**: ESP32 development boards listening in CSI promiscuous monitor mode at 921,600 baud (`COM3` Master AP, `COM8` Passive Sniffer).
+> - **Four Transmitter Beacons (TX1, TX2, TX3, TX4)**: Positioned in four distinct room sectors (TX1=NE/Z1, TX2=NW/Z2, TX3=SW/Z3, TX4=SE/Z4).
+> In our **physical laboratory kit**, we currently possess **4 physical COTS ESP32 microcontrollers** (deployed as 1 Master RX + 3 TX Beacons, or 2 RX + 2 TX). The software and telemetry pipeline are fully designed to support the full 6-node / 8-link mesh while gracefully operating over 3–4 physical links without synthesizing fake hardware data."
 
 ---
 
@@ -52,3 +48,12 @@ This guide contains the most probable questions examiners will ask during projec
 > "1. **Multi-path interference from static obstacles**: Metallic objects and concrete walls cause static reflections, which we mitigate using median baseline subtraction.
 > 2. **LOS vs. NLOS sensitivity**: Non-Line-of-Sight human movement attenuates higher subcarrier frequencies more rapidly, which we capture using subcarrier-selective variance.
 > 3. **Concurrency limits**: Precise continuous centroid localization for more than 2-3 overlapping targets in the same sector requires Angle-of-Arrival (AoA) antenna arrays, which is our proposed future extension."
+
+---
+
+### Q7: How does your system differentiate between the ML model and the spatial heuristic?
+**Answer:**
+> "We maintain complete separation of responsibilities:
+> 1. **Stage 1 (ML Presence Gating)**: Driven by the original WiMotion model (`HistGradientBoostingClassifier`) using 217 temporal-spectral features (Doppler power, SVD spatial coherence, subcarrier variance). On untouched held-out hardware sessions, it achieves **77.98% accuracy (F1 = 83.1%)**.
+> 2. **Stage 2 (Spatial Sector Localization)**: Driven by the `SpatialBaseline` algorithm based on Wi-CaL multi-link CSI variance ratio ranking ($argmax$). It determines whether perturbation is in Sector Z1, Z2, Z3, or Z4.
+> We never conflate heuristic sector ranking with trained ML classification, and our evaluation suite benchmarks both independently with full confusion matrices."

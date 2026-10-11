@@ -77,3 +77,71 @@ Every session is uniquely identified with honest backend metadata:
 - `scripted_presentation`: Deterministic 95-second dual-person scenario for viva/presentation video synchronization.
 - `public_dataset`: External benchmark data (e.g. ESP-Fi HAR) with attributed paper/license metadata.
 - `synthetic_augmented`: Controlled offline transformations tracking parent session ID, noise standard deviation, and random seed.
+
+---
+
+## 4. Dual-Engine Call Paths & Inference Consistency
+
+To ensure scientific honesty and complete architectural transparency, WiMotion 2.0 strictly decouples **Learned ML Binary Presence Detection** from **Heuristic Multi-Link Sector Localization**:
+
+```
+[Raw CSI Packet Stream]
+         │
+         ▼
+[Sliding Window Slicing] (Δt = 2.0s, step = 0.5s, rate quality gate >= 4.0 Hz)
+         │
+         ├───► [Stage 1: ML Binary Presence Gating]
+         │     ├── Caller: LiveSpatialEngine._process_window() OR load_recording_frames()
+         │     ├── Engine: spatial.v1_adapter.V1PresenceModelAdapter
+         │     ├── Classifier: HistGradientBoostingClassifier (Original wimotion model)
+         │     ├── Pipeline: 217 temporal-spectral statistical features per link stream
+         │     └── Output: {"global_presence": "human_present" | "empty_room", "confidence": float}
+         │
+         └───► [Stage 2: Spatial Sector Localization]
+               ├── Caller: LiveSpatialEngine._process_window() OR load_recording_frames()
+               ├── Engine: spatial.baseline.SpatialBaseline (Wi-CaL Energy Comparison)
+               ├── Metric: Multi-link CSI temporal variance ratio (argmax across Z1..Z4)
+               └── Output: {"model_zone": "Z1" | "Z2" | "Z3" | "Z4" | "CLEAR" | "UNKNOWN"}
+```
+
+### Call Trace by Operational Mode:
+1. **LIVE HARDWARE Mode (`spatial/live.py` -> `spatial/server.py`)**:
+   - `LiveSpatialEngine.run()` ingests asynchronous packets from `SerialCaptureManager`.
+   - `_process_window()` calls `self.v1_adapter.evaluate_multilink_window(records)` for ML presence and `self.baseline.evaluate(window_df, records)` for sector mapping.
+   - Result is exposed through `GET /api/spatial` when authoritative mode is `LIVE`.
+2. **RECORDED REPLAY Mode (`spatial/replay_loader.py` -> `spatial/server.py`)**:
+   - `load_recording_frames(session_id)` loads session CSV records and uses binary search (`bisect`) for sliding window slicing.
+   - For every window, invokes `v1_adapter.evaluate_multilink_window(window_records)` and `spatial_baseline.evaluate(window_df, window_records)`.
+   - Cached frames with real ML + heuristic outputs are returned via `GET /api/recordings/{session_id}/data`.
+3. **SIMULATION / SCRIPTED Mode (`spatial/server.py` & `demo_session`)**:
+   - Deterministic 95-second timeline built for viva video synchronization.
+   - Explicitly tagged with `source_type: "scripted_presentation"`; ML model evaluations on this synthetic signal reflect lack of physical Doppler dynamics (evaluated truthfully as ~37.17% accuracy).
+
+---
+
+## 5. Physical Hardware Deployment vs. Theoretical Grid
+
+| Specification | Physical Lab Deployment | Theoretical Research Grid |
+| :--- | :--- | :--- |
+| **Total ESP32 Boards** | **4 COTS Microcontrollers** | **6 Microcontrollers** |
+| **Receiver (RX) Nodes** | 1 Master RX (`COM3`) or 2 RX (`COM3`, `COM8`) | 2 RX Nodes (RX1, RX2) |
+| **Transmitter (TX) Nodes** | 3 Beacons (TX1, TX2, TX3) or 2 Beacons | 4 Beacons (TX1, TX2, TX3, TX4) |
+| **Active Spatial Links** | 3 to 4 Links | 8 Links ($2 \text{ RX} \times 4 \text{ TX}$) |
+| **Baud Rate & Mode** | 921,600 baud, 802.11n HT20 promiscuous | 921,600 baud, 802.11n HT20 promiscuous |
+| **Safe Standby Policy** | **Active on Host**: USB-UART ingestion defaults to disconnected standby to prevent Windows CP210x/CH340 driver DPC watchdog timeout BSODs. | Assumes dedicated RTOS or Linux host environment. |
+
+> [!NOTE]
+> WiMotion 2.0 software fully supports the complete 6-node 8-link mesh. However, in physical lab presentations where 4 ESP32 boards are connected, the system operates in graceful single-RX or degraded 4-link mode without crashing or synthesizing fake link data.
+
+---
+
+## 6. External Dataset Attributions & Academic Licences
+
+All external benchmark datasets integrated into WiMotion 2.0 are attributed to their upstream academic research sources:
+
+| Dataset Identifier | Upstream Source & Authors | Upstream Repository / Publication | Upstream Licence | Data Format & Subcarriers |
+| :--- | :--- | :--- | :--- | :--- |
+| **`ESP_FI_HAR`** | AutoSmartGroup (IEEE IoT Journal 2023) | [GitHub: AutoSmartGroup/ESP-Fi-HAR](https://github.com/AutoSmartGroup/ESP-Fi-HAR) | Open Academic / MIT | 52 subcarriers @ 100 Hz, 3-antenna ESP32 CSV/MAT |
+| **`RF_ESP32`** | Mohammed-Baqir | [GitHub: Mohammed-Baqir/RF_ESP32_Dataset](https://github.com/Mohammed-Baqir/RF_ESP32_Dataset) | Open Academic Research | 64 subcarriers @ 50 Hz, single-link indoor CSV |
+| **`WICAL`** | Fuhai Wang et al. (IEEE Access 2022) | [GitHub: fuhaiwang/WiCAL](https://github.com/fuhaiwang/WiCAL) | Open Academic Research | Multi-AP CSI coordinates & subcarrier amplitudes |
+

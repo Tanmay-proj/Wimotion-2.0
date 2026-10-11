@@ -29,10 +29,12 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
         (CC:7B:5C:28:84:70)                      (1C:69:20:31:4B:40)
 ```
 
-- **4 Transmitters (TX1–TX4):** Standalone ESP32 nodes placed in 4 quadrants (TX1=NE, TX2=NW, TX3=SW, TX4=SE) powered by 5V USB chargers.
-- **2 Receivers (RX1, RX2):** ESP32 nodes connected directly to host PC via USB (`COM3` Master AP, `COM8` Passive Sniffer @ 921,600 baud).
-- **8 Candidate Links:** $4 \times 2 = 8$ spatial CSI channels ($RX_1 \to TX_k$ and $RX_2 \to TX_k$ for $k \in \{1,2,3,4\}$).
-- **Inference Mode:** Sector perturbation based on 64-subcarrier temporal variance ranking ($argmax$ strongest active zone). Heuristic spatial zoning, uncalibrated for absolute human count.
+- **Hardware Deployment Reality:**
+  - **Lab Inventory:** **4 physical COTS ESP32 microcontrollers** (typically deployed as 1 Master RX on `COM3` + 3 TX Beacons in Z1, Z2, Z3, or 2 RX + 2 TX).
+  - **Theoretical Grid:** 2 Receivers (`COM3`, `COM8`) $\times$ 4 Transmitters (TX1..TX4) forming an 8-link distributed mesh. Fully supported in firmware and software architecture.
+- **Dual-Engine Inference Mode:**
+  - **Presence Gating:** Original WiMotion ML Model (`HistGradientBoostingClassifier`, 217 temporal-spectral features) via `spatial/v1_adapter.py`. Achieves **77.98% accuracy (83.1% F1)** on untouched held-out hardware sessions.
+  - **Sector Localization:** Spatial perturbation based on multi-link CSI variance ratio ranking ($argmax$). Heuristic spatial zoning, uncalibrated for absolute human count.
 
 ---
 
@@ -50,11 +52,12 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Safe Replay Lab Engine** | ✅ **Implemented** | Timestamp-based playback with scrub, rate quality gate, and XSS-safe DOM nodes (`spatial/replay_loader.py`) |
 | **Automated Unit Tests** | ✅ **Passing (29/29)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter, rogue TX rejection (`tests/test_spatial.py`) |
 | **Colleague Audit Suite** | ✅ **Passing (6/6)** | Hardware coverage integrity, rate conservation, zero-sample link gating (`scripts/verify_six_checks.py`) |
-| **V1 Model Adapter** | ✅ **Integrated** | Exact 217-feature extraction pipeline & HistGradientBoosting classifier (`spatial/v1_adapter.py`) |
-| **Public Dataset Adapters** | ✅ **Implemented** | ESP-Fi HAR, RF_ESP32, and WiCAL dataset adapters (`spatial/dataset_adapters/`) |
+| **V1 Model Adapter** | ✅ **Actively Integrated** | Real 217-feature extraction pipeline & HistGradientBoosting classifier called in Live and Replay (`spatial/v1_adapter.py`) |
+| **Session-Level Evaluation** | ✅ **Verified (77.98% Acc)** | Untouched held-out hardware validation with confusion matrix, precision, recall, and F1 (`scripts/evaluate_models.py`) |
+| **Public Dataset Adapters** | ✅ **Implemented** | ESP-Fi HAR, RF_ESP32, and WiCAL dataset adapters with upstream academic citations (`spatial/dataset_adapters/`) |
 | **Controlled Synthetic Augmentation** | ✅ **Implemented** | Physics-informed RF gain & Gaussian multipath perturbation with parent tracking (`spatial/augmentation.py`) |
-| **Dual-RX Hardware Status** | ⚠️ **Safe Standby (Disconnected)** | Flashed firmware verified (`COM3`, `COM8`). Disconnected on host PC to prevent Windows DPC Watchdog BSOD until driver diagnosis is complete. |
-| **Labelled Multi-Person Dataset** | ✅ **Standard Benchmark Captured** | `benchmark_session_01` (1.49 MB) + public sample (`public_esp_fi_01`) |
+| **Hardware Inventory & Standby** | ⚠️ **4 Boards / Safe Standby** | 4 physical ESP32 boards in kit. Host USB-UART defaults to Safe Standby (Disconnected) to prevent Windows DPC Watchdog BSODs until dedicated demo capture. |
+| **Labelled Benchmark Datasets** | ✅ **Standard Benchmarks Captured** | `benchmark_session_01` (1.49 MB), `held_out_empty_01`, `held_out_walking_01`, `public_esp_fi_01` |
 
 ---
 

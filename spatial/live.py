@@ -8,6 +8,7 @@ from .config import load_config, NodeConfig
 from .window import MultiLinkWindow
 from .features import extract_link_features, fuse_features
 from .inference import SpatialBaseline
+from .v1_adapter import V1PresenceModelAdapter
 from .tracker import PersonTracker
 from .serial_manager import MultiSerialManager
 
@@ -20,6 +21,7 @@ class LiveSpatialEngine:
             step=self.config.sampling.step_seconds
         )
         self.model = SpatialBaseline()
+        self.v1_adapter = V1PresenceModelAdapter()
         self.tracker = PersonTracker()
         self.serial_manager = MultiSerialManager(self.config, self._on_record)
 
@@ -61,6 +63,14 @@ class LiveSpatialEngine:
         pred = self.model.predict(features, active, signal_ok)
         tracked = self.tracker.update(pred["people"])
 
+        # Real Original Machine Learning Model Adapter Evaluation (217 features)
+        v1_eval = None
+        if signal_ok and self.v1_adapter.is_available():
+            try:
+                v1_eval = self.v1_adapter.evaluate_multilink_window(records)
+            except Exception as e:
+                v1_eval = {"model_available": False, "error": str(e), "global_presence": "UNKNOWN", "confidence": None}
+
         with self.lock:
             self.latest_state = {
                 "timestamp": time.time(),
@@ -73,10 +83,17 @@ class LiveSpatialEngine:
                 "inference_status": pred.get("inference_status", "ACTIVE" if pred["zone"] != "CLEAR" else "CLEAR"),
                 "active_links": active,
                 "link_count": 8,
-                "confidence": None,  # Non-probabilistic; uncalibrated heuristic
+                "confidence": None,  # Heuristic confidence
                 "reason": pred.get("reason", "OK"),
                 "receiver_health": health,
-                "link_features": features
+                "link_features": features,
+                "v1_model": v1_eval or {
+                    "model_available": False,
+                    "global_presence": "UNAVAILABLE" if not signal_ok else "MODEL_NOT_LOADED",
+                    "confidence": None
+                },
+                "v1_presence": v1_eval.get("global_presence", "UNKNOWN") if v1_eval else "UNKNOWN",
+                "v1_confidence": v1_eval.get("confidence") if v1_eval else None
             }
 
     def start(self):

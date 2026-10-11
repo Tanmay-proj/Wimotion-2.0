@@ -373,6 +373,12 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
     total_duration = max(0.1, end_ts - start_ts)
 
     model = SpatialBaseline()
+    try:
+        from .v1_adapter import V1PresenceModelAdapter
+        v1_adapter = V1PresenceModelAdapter()
+    except Exception:
+        v1_adapter = None
+
     frames = []
 
     # Process sliding windows at uniform step_seconds intervals using O(log N) bisect
@@ -402,7 +408,8 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
             latest_gt_count=latest_gt_count,
             latest_gt_zone=latest_gt_zone,
             latest_motion=latest_motion,
-            model=model
+            model=model,
+            v1_adapter=v1_adapter
         )
         frames.append(frame)
         current_offset += step_seconds
@@ -434,7 +441,8 @@ def evaluate_window_frame(
     latest_gt_count: int = 0,
     latest_gt_zone: str = "CLEAR",
     latest_motion: str = "UNKNOWN",
-    model: Optional[SpatialBaseline] = None
+    model: Optional[SpatialBaseline] = None,
+    v1_adapter: Optional[Any] = None
 ) -> Dict[str, Any]:
     """Evaluates a single sliding-window of CSI records against quality gates and ground truth.
     
@@ -455,6 +463,19 @@ def evaluate_window_frame(
     signal_ok = (len(window_records) >= 8) and (len(features) >= 1) and (window_rate >= 4.0)
 
     pred = model.predict(features, len(features), signal_ok)
+
+    # Real Original Machine Learning Model Adapter Evaluation (217 features)
+    v1_eval = None
+    if signal_ok and v1_adapter and getattr(v1_adapter, "is_available", lambda: False)():
+        try:
+            v1_eval = v1_adapter.evaluate_multilink_window(window_records)
+        except Exception as e:
+            v1_eval = {
+                "model_available": False,
+                "error": str(e),
+                "global_presence": "UNKNOWN",
+                "confidence": None
+            }
 
     per_tx_var = {}
     link_details = {}
@@ -514,5 +535,10 @@ def evaluate_window_frame(
         "link_details": link_details,
         "people": pred.get("people", []),
         "window_records_count": len(window_records),
-        "rate_hz": round(window_rate, 1)
+        "rate_hz": round(window_rate, 1),
+        "v1_model": v1_eval or {
+            "model_available": False,
+            "global_presence": "UNAVAILABLE" if not signal_ok else "MODEL_NOT_LOADED",
+            "confidence": None
+        }
     }
