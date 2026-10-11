@@ -50,7 +50,7 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Strict Mode Isolation** | ✅ **Implemented** | Authoritative separation between LIVE hardware, REPLAY lab, and SIMULATION (`spatial/server.py`) |
 | **Unified State Renderer** | ✅ **Implemented** | Consistent single-renderer driving metrics, 8-link mesh, timeline, and radar (`dashboard/observatory_multi.html`) |
 | **Safe Replay Lab Engine** | ✅ **Implemented** | Timestamp-based playback with scrub, rate quality gate, and XSS-safe DOM nodes (`spatial/replay_loader.py`) |
-| **Automated Unit Tests** | ✅ **Passing (34/34)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts (missing model, insufficient frames, empty multi-link), zero-denominator metric safety, held-out session integrity, and rogue TX suppression resilience (`tests/test_spatial.py`) |
+| **Automated Unit Tests** | ⏳ **CI Validation (36 Tests)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts (missing model, cross-NumPy unpickling), benchmark generator metadata contract, zero-denominator metric safety, held-out session integrity, and rogue TX suppression resilience (`tests/test_spatial.py`) |
 | **Colleague Audit Suite** | ✅ **Passing (6/6)** | Hardware coverage integrity, rate conservation, zero-sample link gating (`scripts/verify_six_checks.py`) |
 | **V1 Model Adapter** | ✅ **Actively Integrated** | Real 217-feature extraction pipeline & HistGradientBoosting classifier (`presence_model.pkl`) called in Live and Replay (`spatial/v1_adapter.py`) |
 | **Session-Level Evaluation** | ✅ **Verified (81.25% Valid Acc)** | Untouched held-out single-link hardware validation with zero silent fallback, undefined metric safety (N/A for pure empty recall), and separate invalid window tracking (`scripts/evaluate_models.py`) |
@@ -63,7 +63,7 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 
 ## 3. Quickstart & Verification
 
-### 1. Run Automated Unit Tests (34/34) & 6-Point Audit Suite
+### 1. Run Automated Unit Tests (36 Tests) & 6-Point Audit Suite
 ```bash
 py -3.10 -m unittest discover -s tests -v
 py -3.10 scripts/verify_six_checks.py

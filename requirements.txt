@@ -1,5 +1,5 @@
 # WiMotion 2.0 Dependencies (Tested & Verified on Python 3.10)
-numpy>=1.26.0,<2.0.0
+numpy>=2.0.0
 pyserial>=3.5
 fastapi>=0.115.0
 uvicorn>=0.30.0

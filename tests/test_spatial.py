@@ -663,7 +663,7 @@ class TestSpatial(unittest.TestCase):
         from spatial.v1_adapter import V1PresenceModelAdapter, extract_v1_features
 
         adapter = V1PresenceModelAdapter()
-        self.assertTrue(adapter.is_available())
+        self.assertTrue(adapter.is_available(), f"Model failed to load: {adapter.load_error}")
 
         # Exact 217-feature dimension contract
         dummy_window = np.ones((20, 64), dtype=float) * 60.0
@@ -704,6 +704,38 @@ class TestSpatial(unittest.TestCase):
         missing_multi = missing_adapter.evaluate_multilink_window([])
         self.assertFalse(missing_multi["model_available"])
         self.assertEqual(missing_multi["global_presence"], "UNKNOWN")
+
+    def test_compat_unpickler_cross_numpy_support(self):
+        from spatial.v1_adapter import CompatUnpickler, ROOT
+
+        model_path = ROOT / "models" / "presence_model.pkl"
+        self.assertTrue(model_path.exists())
+        with open(model_path, "rb") as f:
+            obj = CompatUnpickler(f).load()
+        self.assertIsInstance(obj, dict)
+        self.assertIn("model", obj)
+        self.assertEqual(obj.get("classifier_name"), "HistGradientBoosting")
+
+    def test_benchmark_generator_honest_metadata_contract(self):
+        from spatial.v1_adapter import ROOT
+        import json
+
+        script_path = ROOT / "scripts" / "create_benchmark_session.py"
+        self.assertTrue(script_path.exists())
+
+        # Verify generator source code enforces honest metadata and does not claim verified physical trial
+        script_content = script_path.read_text(encoding="utf-8")
+        self.assertNotIn("reconstructing verified South-West", script_content)
+        self.assertIn('"source_type": "synthetic_generated_benchmark"', script_content)
+
+        # Verify metadata file on disk has matching provenance and software-generated description
+        meta_file = ROOT / "data" / "raw" / "benchmark_session_01" / "metadata_Z3_1P.json"
+        self.assertTrue(meta_file.exists())
+        meta = json.loads(meta_file.read_text(encoding="utf-8"))
+        self.assertEqual(meta.get("source_type"), "synthetic_generated_benchmark")
+        self.assertEqual(meta.get("provenance"), "synthetic_generated_benchmark")
+        self.assertNotIn("verified", meta.get("description", "").lower())
+        self.assertIn("software-generated", meta.get("description", "").lower())
 
     def test_unknown_transmitter_handling(self):
         model = SpatialBaseline(variance_threshold=8.0)

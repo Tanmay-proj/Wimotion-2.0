@@ -2,7 +2,8 @@
 """
 Generates a standard 20-second multi-link benchmark dataset in data/raw/benchmark_session_01/
 following the exact schema of scripts/record_multilink_dataset.py.
-Reconstructs the empirical South-West (TX3) perturbation trial observed during hardware testing.
+Software-generated multi-link synthetic benchmark for deterministic pipeline and regression testing.
+Does NOT represent an actual physical hardware recording or verified hardware trial.
 """
 import csv
 import json
@@ -92,6 +93,9 @@ with open(CSV_FILE, "w", newline="", encoding="utf-8") as f:
 
 metadata = {
     "session_id": "benchmark_session_01",
+    "display_name": "Generated Benchmark: Zone 3 Dynamic (8-Link Simulation)",
+    "source_type": "synthetic_generated_benchmark",
+    "provenance": "synthetic_generated_benchmark",
     "room_id": "ROOM_MCTE_BENCHMARK",
     "operator_id": "RESEARCH_BENCHMARK",
     "ground_truth_count": 1,
@@ -99,7 +103,7 @@ metadata = {
     "motion_state": "DYNAMIC_SW_STATIONARY",
     "duration_seconds": duration,
     "total_records": total_records,
-    "description": "Standard benchmark session reconstructing verified South-West (TX3) human proximity trial.",
+    "description": "Software-generated 8-link benchmark session created by scripts/create_benchmark_session.py for deterministic pipeline and regression testing.",
     "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_ts))
 }
 

@@ -180,6 +180,27 @@ def extract_v1_features(
     return np.nan_to_num(feature_vector, nan=0.0, posinf=0.0, neginf=0.0)
 
 
+class CompatUnpickler(pickle.Unpickler):
+    """
+    Robust unpickler supporting cross-NumPy version unpickling (NumPy 1.x <-> 2.x).
+    Resolves numpy._core.multiarray <-> numpy.core.multiarray transparently.
+    """
+    def find_class(self, module, name):
+        if module.startswith("numpy._core"):
+            try:
+                return super().find_class(module, name)
+            except ModuleNotFoundError:
+                alt_module = module.replace("numpy._core", "numpy.core")
+                return super().find_class(alt_module, name)
+        elif module.startswith("numpy.core"):
+            try:
+                return super().find_class(module, name)
+            except ModuleNotFoundError:
+                alt_module = module.replace("numpy.core", "numpy._core")
+                return super().find_class(alt_module, name)
+        return super().find_class(module, name)
+
+
 # ------------------------------------------------------------------------------
 # V1 Model Adapter Class
 # ------------------------------------------------------------------------------
@@ -207,7 +228,7 @@ class V1PresenceModelAdapter:
             if p.exists():
                 try:
                     with open(p, "rb") as f:
-                        data = pickle.load(f)
+                        data = CompatUnpickler(f).load()
                     if isinstance(data, dict):
                         self.model = data.get("model")
                         self.classes = [str(c) for c in data.get("classes", [])]
@@ -218,7 +239,7 @@ class V1PresenceModelAdapter:
                     self.loaded = True
                     break
                 except Exception as e:
-                    self.load_error = str(e)
+                    self.load_error = f"{type(e).__name__}: {str(e)}"
 
         if not self.loaded and not self.load_error:
             self.load_error = f"Model file '{model_filename}' not found in candidate paths."
