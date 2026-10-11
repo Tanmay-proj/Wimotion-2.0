@@ -29,7 +29,9 @@ class SpatialBaseline:
             return {
                 "signal_ok": False,
                 "count": 0,
+                "active_zone_count": 0,
                 "zone": "UNKNOWN",
+                "inference_status": "SIGNAL_UNSTABLE",
                 "people": [],
                 "active_links": active_links,
                 "confidence": None,
@@ -40,7 +42,9 @@ class SpatialBaseline:
             return {
                 "signal_ok": False,
                 "count": 0,
+                "active_zone_count": 0,
                 "zone": "UNKNOWN",
+                "inference_status": "NO_VALID_LINKS",
                 "people": [],
                 "active_links": 0,
                 "confidence": None,
@@ -62,18 +66,20 @@ class SpatialBaseline:
             score = max(var_score, alt_score)
             tx_scores[tx] = tx_scores.get(tx, 0.0) + score
 
-        # Rank transmitters by perturbation score (highest to lowest)
-        ranked_tx = sorted(tx_scores.items(), key=lambda x: x[1], reverse=True)
+        # Separate mapped transmitters from unmapped/rogue transmitters
+        mapped_tx = [(tx, score) for tx, score in tx_scores.items() if tx in self.tx_zone_map]
+        unmapped_tx = [(tx, score) for tx, score in tx_scores.items() if tx not in self.tx_zone_map]
 
-        # Select only transmitters exceeding the calibrated noise floor cutoff
+        # Sort mapped transmitters by perturbation score (highest to lowest)
+        ranked_mapped = sorted(mapped_tx, key=lambda x: x[1], reverse=True)
+        ranked_unmapped = sorted(unmapped_tx, key=lambda x: x[1], reverse=True)
+
+        # Select only mapped transmitters exceeding the calibrated noise floor cutoff
         active_zones = []
         people = []
-        for rank, (tx, score) in enumerate(ranked_tx, 1):
+        for rank, (tx, score) in enumerate(ranked_mapped, 1):
             if score >= self.variance_threshold:
-                zone_name = self.tx_zone_map.get(tx)
-                if not zone_name:
-                    # Explicit handling for unmapped / rogue transmitter nodes
-                    continue
+                zone_name = self.tx_zone_map[tx]
                 if zone_name not in active_zones:
                     active_zones.append(zone_name)
                     people.append({
@@ -83,9 +89,14 @@ class SpatialBaseline:
                         "score": round(score, 2)
                     })
 
-        # Strongest Perturbation Selection: primary zone is the argmax score
-        if ranked_tx and ranked_tx[0][1] >= self.variance_threshold:
-            primary_zone = self.tx_zone_map.get(ranked_tx[0][0], "UNKNOWN")
+        # Strongest Perturbation Selection:
+        # A valid mapped transmitter exceeding threshold takes precedence.
+        # An unmapped rogue transmitter CANNOT suppress a valid mapped transmitter.
+        if ranked_mapped and ranked_mapped[0][1] >= self.variance_threshold:
+            primary_zone = self.tx_zone_map[ranked_mapped[0][0]]
+        elif ranked_unmapped and ranked_unmapped[0][1] >= self.variance_threshold:
+            # Only unmapped transmitter(s) exceeded the threshold -> isolated to UNKNOWN
+            primary_zone = "UNKNOWN"
         else:
             primary_zone = "CLEAR"
 

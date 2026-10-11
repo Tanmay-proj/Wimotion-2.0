@@ -1,8 +1,8 @@
 {
   "session_id": "held_out_empty_01",
-  "display_name": "Held-Out Benchmark: Empty Room (Genuine Hardware)",
-  "source_type": "hardware_recorded",
-  "provenance": "hardware_recorded",
+  "display_name": "Held-Out Hardware Capture: Empty Room (WiMotion v1 Single-Link)",
+  "source_type": "hardware_recorded_single_link",
+  "provenance": "hardware_recorded_single_link",
   "is_held_out": true,
   "original_source_file": "empty_room_session_06.csv",
   "ground_truth_count": 0,
@@ -10,6 +10,6 @@
   "motion_state": "EMPTY_ROOM",
   "duration_seconds": 21.71,
   "total_records": 400,
-  "description": "Held-out test session (empty room) from original WiMotion hardware trials, untouched during training.",
+  "description": "Genuine single-link (RX1-TX1) hardware recording from WiMotion v1 physical room trials (empty_room_session_06.csv). Evaluates single-link baseline presence.",
   "created_at": "2026-10-04 02:30:00"
 }

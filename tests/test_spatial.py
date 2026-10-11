@@ -623,7 +623,10 @@ class TestSpatial(unittest.TestCase):
 
         source_types = {r["session_id"]: r.get("source_type") for r in recordings}
         self.assertEqual(source_types.get("demo_session"), "scripted_presentation")
-        self.assertEqual(source_types.get("benchmark_session_01"), "hardware_recorded")
+        self.assertEqual(source_types.get("benchmark_session_01"), "synthetic_generated_benchmark")
+        self.assertEqual(source_types.get("synthetic_session_01"), "synthetic_augmented")
+        self.assertEqual(source_types.get("public_esp_fi_01"), "unverified_import")
+        self.assertEqual(source_types.get("held_out_empty_01"), "hardware_recorded_single_link")
 
         # Verify display names are present and natural
         for r in recordings:
@@ -638,12 +641,17 @@ class TestSpatial(unittest.TestCase):
         missing = load_recording_frames("non_existent_fake_session_12345")
         self.assertIsNone(missing)
 
-        # 2. Genuine session must return real records and honest provenance
-        genuine = load_recording_frames("benchmark_session_01")
-        self.assertIsNotNone(genuine)
-        self.assertEqual(genuine["source_type"], "hardware_recorded")
-        self.assertFalse(genuine["is_demo"])
-        self.assertIn("malformed_rows", genuine)
+        # 2. Benchmark session must return real records and honest synthetic benchmark provenance
+        benchmark_data = load_recording_frames("benchmark_session_01")
+        self.assertIsNotNone(benchmark_data)
+        self.assertEqual(benchmark_data["source_type"], "synthetic_generated_benchmark")
+        self.assertFalse(benchmark_data["is_demo"])
+        self.assertIn("malformed_rows", benchmark_data)
+
+        # 3. Genuine held-out session must return genuine hardware provenance
+        genuine_ho = load_recording_frames("held_out_empty_01")
+        self.assertIsNotNone(genuine_ho)
+        self.assertEqual(genuine_ho["source_type"], "hardware_recorded_single_link")
 
         # 3. Scripted demo session must return scripted provenance
         scripted = load_recording_frames("demo_session")
@@ -699,18 +707,124 @@ class TestSpatial(unittest.TestCase):
 
     def test_unknown_transmitter_handling(self):
         model = SpatialBaseline(variance_threshold=8.0)
-        # Rogue transmitter with high perturbation
-        features = [{
+
+        # Scenario 1: Unknown TX only -> UNKNOWN, never false Z1/Z2/Z3/Z4
+        feats_unknown_only = [{
             "receiver": "RX1",
             "tx": "TX_ROGUE_UNKNOWN",
             "csi_variance": 45.0,
             "sample_count": 20,
             "rssi": -55.0
         }]
-        state = model.predict(features, active_links=1, signal_ok=True)
-        # Rogue transmitter must NOT be assigned to Z1
-        self.assertNotEqual(state["zone"], "Z1")
-        self.assertEqual(state["zone"], "UNKNOWN")
+        st1 = model.predict(feats_unknown_only, active_links=1, signal_ok=True)
+        self.assertNotEqual(st1["zone"], "Z1")
+        self.assertEqual(st1["zone"], "UNKNOWN")
+        self.assertEqual(st1["active_zone_count"], 0)
+        self.assertEqual(st1["people"], [])
+
+        # Scenario 2: Rogue TX with high score (50.0) + Known TX1 above threshold (20.0)
+        # Rogue TX must NEVER suppress the valid mapped TX1
+        feats_rogue_and_valid = [
+            {"receiver": "RX1", "tx": "TX_ROGUE_UNKNOWN", "csi_variance": 50.0, "sample_count": 20},
+            {"receiver": "RX1", "tx": "TX1", "csi_variance": 20.0, "sample_count": 20}
+        ]
+        st2 = model.predict(feats_rogue_and_valid, active_links=2, signal_ok=True)
+        self.assertEqual(st2["zone"], "Z1")
+        self.assertEqual(st2["active_zone_count"], 1)
+        self.assertEqual(len(st2["people"]), 1)
+        self.assertEqual(st2["people"][0]["tx"], "TX1")
+        self.assertEqual(st2["people"][0]["zone"], "Z1")
+
+        # Scenario 3: Known TX below calibrated threshold (5.0 < 8.0) -> CLEAR
+        feats_subthreshold = [
+            {"receiver": "RX1", "tx": "TX1", "csi_variance": 5.0, "sample_count": 20}
+        ]
+        st3 = model.predict(feats_subthreshold, active_links=1, signal_ok=True)
+        self.assertEqual(st3["zone"], "CLEAR")
+        self.assertEqual(st3["active_zone_count"], 0)
+        self.assertEqual(st3["people"], [])
+
+        # Scenario 4: Multiple known active TXs (TX1=25.0, TX3=18.0)
+        feats_multiple = [
+            {"receiver": "RX1", "tx": "TX1", "csi_variance": 25.0, "sample_count": 20},
+            {"receiver": "RX1", "tx": "TX3", "csi_variance": 18.0, "sample_count": 20}
+        ]
+        st4 = model.predict(feats_multiple, active_links=2, signal_ok=True)
+        self.assertEqual(st4["zone"], "Z1")  # strongest perturbation
+        self.assertEqual(st4["active_zone_count"], 2)
+        self.assertEqual(len(st4["people"]), 2)
+        self.assertEqual([p["zone"] for p in st4["people"]], ["Z1", "Z3"])
+
+        # Scenario 5: No valid links (active_links=0)
+        st5 = model.predict([], active_links=0, signal_ok=True)
+        self.assertFalse(st5["signal_ok"])
+        self.assertEqual(st5["zone"], "UNKNOWN")
+        self.assertEqual(st5["reason"], "NO_VALID_LINKS")
+        self.assertEqual(st5["active_zone_count"], 0)
+
+        # Scenario 6: Unstable signal (signal_ok=False)
+        st6 = model.predict(feats_multiple, active_links=2, signal_ok=False)
+        self.assertFalse(st6["signal_ok"])
+        self.assertEqual(st6["zone"], "UNKNOWN")
+        self.assertEqual(st6["reason"], "SIGNAL_UNSTABLE")
+        self.assertEqual(st6["active_zone_count"], 0)
+
+        # Scenario 7: Single-receiver operation (only RX1 active with TX2)
+        feats_single_rx = [
+            {"receiver": "RX1", "tx": "TX2", "csi_variance": 22.0, "sample_count": 20}
+        ]
+        st7 = model.predict(feats_single_rx, active_links=1, signal_ok=True)
+        self.assertTrue(st7["signal_ok"])
+        self.assertEqual(st7["zone"], "Z2")
+        self.assertEqual(st7["active_zone_count"], 1)
+
+    def test_provenance_enforcement_and_isolation(self):
+        from spatial.replay_loader import list_recordings, load_recording_frames
+        from scripts.evaluate_models import evaluate_session
+
+        # 1. Missing provenance in metadata must default to unknown_unverified, NEVER hardware_recorded
+        # Test loading a mocked session directory without source_type
+        import tempfile
+        import shutil
+        import json
+        from pathlib import Path
+        import spatial.replay_loader as loader
+
+        temp_dir = tempfile.mkdtemp(prefix="wimotion_prov_test_")
+        try:
+            p = Path(temp_dir)
+            meta_path = p / "metadata.json"
+            meta_path.write_text(json.dumps({"description": "Test session with missing provenance"}), encoding="utf-8")
+            csv_path = p / "data.csv"
+            # Write minimal valid header
+            header = ["timestamp", "rx", "tx", "mac", "rssi", "rate", "gt_count", "gt_zone", "motion_state", "channel"] + [f"sub_{i}" for i in range(64)]
+            csv_path.write_text(",".join(header) + "\n", encoding="utf-8")
+
+            # Patch DATA_RAW temporarily
+            orig_data_raw = loader.DATA_RAW
+            loader.DATA_RAW = p.parent
+            try:
+                recs = loader.list_recordings()
+                target = next((r for r in recs if r["session_id"] == p.name), None)
+                self.assertIsNotNone(target)
+                self.assertEqual(target["source_type"], "unknown_unverified")
+                self.assertNotEqual(target["source_type"], "hardware_recorded")
+            finally:
+                loader.DATA_RAW = orig_data_raw
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+
+        # 2. Verify synthetic sessions cannot claim genuine hardware
+        bench = load_recording_frames("benchmark_session_01")
+        self.assertIsNotNone(bench)
+        self.assertEqual(bench["source_type"], "synthetic_generated_benchmark")
+        self.assertFalse(bench["source_type"].startswith("hardware_recorded"))
+
+        # 3. Verify public dataset without independent upstream verification is unverified_import
+        pub = load_recording_frames("public_esp_fi_01")
+        self.assertIsNotNone(pub)
+        self.assertEqual(pub["source_type"], "unverified_import")
+        self.assertFalse(pub["source_type"].startswith("hardware_recorded"))
 
     def test_synthetic_augmentation_reproducibility(self):
         from spatial.augmentation import augment_csi_frame, GUARD_SUBCARRIERS, DC_SUBCARRIER
@@ -799,7 +913,8 @@ class TestSpatial(unittest.TestCase):
         ml_m = res["v1_ml_model"]
         self.assertEqual(ml_m["invalid_windows"], 191)
         self.assertEqual(ml_m["valid_windows"], 0)
-        self.assertIsNone(ml_m["accuracy_pct"])
+        self.assertIsNone(ml_m["valid_accuracy_pct"])
+        self.assertEqual(ml_m["all_window_accuracy_pct"], 0.0)
         self.assertIsNone(ml_m["recall_pct"])
 
 

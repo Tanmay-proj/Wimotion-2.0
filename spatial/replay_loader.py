@@ -87,16 +87,21 @@ def list_recordings() -> List[Dict[str, Any]]:
 
         source_type = meta.get("source_type")
         if not source_type:
-            source_type = "scripted_presentation" if (meta.get("is_demo") or session_id == "demo_session") else "hardware_recorded"
+            source_type = "scripted_presentation" if (meta.get("is_demo") or session_id == "demo_session") else "unknown_unverified"
 
         display_name = meta.get("display_name")
         if not display_name:
             if session_id == "demo_session":
                 display_name = "Presentation Scenario (95s Multi-Zone)"
             elif session_id == "benchmark_session_01":
-                display_name = "Hardware Benchmark: Zone 3 Dynamic (1-Person)"
+                display_name = "Generated Benchmark: Zone 3 Dynamic (8-Link Simulation)"
             else:
                 display_name = session_id
+
+        try:
+            rel_path = str(csv_path.relative_to(ROOT)).replace("\\", "/")
+        except ValueError:
+            rel_path = str(csv_path).replace("\\", "/")
 
         sessions.append({
             "session_id": session_id,
@@ -106,7 +111,7 @@ def list_recordings() -> List[Dict[str, Any]]:
             "parent_session_id": meta.get("parent_session_id"),
             "description": meta.get("description", ""),
             "filename": csv_path.name,
-            "path": str(csv_path.relative_to(ROOT)).replace("\\", "/"),
+            "path": rel_path,
             "created_at": created_at,
             "duration_seconds": duration,
             "total_records": total_records,
@@ -414,7 +419,7 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         frames.append(frame)
         current_offset += step_seconds
 
-    source_type = target_meta.get("source_type", "hardware_recorded")
+    source_type = target_meta.get("source_type", "unknown_unverified")
     display_name = target_meta.get("display_name", session_id)
 
     return {

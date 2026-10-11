@@ -275,12 +275,24 @@ def get_recordings():
     }
 
 
+# In-memory session frames cache
+RECORDING_CACHE = {}
+
+
 @app.get("/api/recordings/{session_id}/data")
 def get_recording_data(session_id: str):
-    """Loads and computes playback frames for the selected recorded session."""
+    """Loads and computes playback frames for the selected recorded session with safe in-memory caching."""
+    if session_id in RECORDING_CACHE:
+        return RECORDING_CACHE[session_id]
+
     data = load_recording_frames(session_id)
     if data is None:
         raise HTTPException(status_code=404, detail=f"Recording session '{session_id}' not found or empty.")
+    
+    # Cache up to 10 sessions to prevent unbounded memory growth
+    if len(RECORDING_CACHE) >= 10:
+        RECORDING_CACHE.clear()
+    RECORDING_CACHE[session_id] = data
     return data
 
 
@@ -304,6 +316,8 @@ def post_event(event: dict):
         "source": event.get("source", "FRONTEND")
     }
     SYSTEM_EVENTS.append(new_evt)
+    if len(SYSTEM_EVENTS) > 200:
+        del SYSTEM_EVENTS[:-100]
     return {"status": "logged", "event": new_evt}
 
 

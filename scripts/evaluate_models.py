@@ -7,23 +7,31 @@ Evaluates both:
   2. Original WiMotion V1PresenceModelAdapter (HistGradientBoosting / 217 features)
 
 Methodology:
-  - Session-level separation: Untouched held-out genuine sessions evaluated separately
-    from in-session benchmarks, public datasets, and synthetic augmentation.
+  - Track Separation:
+      * Track A: Genuine Single-Link Hardware Evaluation (WiMotion v1 physical capture).
+      * Track B: Generated Benchmark / Software Pipeline Regression (scripts/create_benchmark_session.py).
+      * Track C: Unverified Public Benchmark Import (ESP-Fi HAR schema format).
+      * Track D: Synthetic Augmentation Experiment (Parent: benchmark_session_01).
+      * Track E: Scripted Presentation Scenario (Deterministic 95-second demo).
   - Mathematically sound metrics:
       * Confusion Matrix (TP, FP, TN, FN).
-      * Precision, Recall, Specificity, F1, and Accuracy.
+      * Valid Accuracy = (TP + TN) / valid_windows * 100.
+      * Coverage = valid_windows / total_windows * 100.
+      * Conservative All-Window Accuracy = (TP + TN) / total_windows * 100.
+      * Precision, Recall, Specificity, and F1.
       * Explicit handling of zero-denominator cases (returns None/Undefined rather than fake 100%).
       * Rejection of missing/invalid predictions (never silently converts invalid to empty_room).
   - Transparent disclosures:
       * Held-out sample distribution is 44 Empty / 65 Walking (Imbalanced 40.4% / 59.6%).
-      * 2.0s sliding windows with 0.5s step contain temporal overlap across same-session frames.
+      * 2.0s sliding windows with 0.5s step contain ~75% temporal overlap across same-session frames.
       * Performance represents measured results on these specific benchmark recordings.
+      * Physical kit inventory is 4 ESP32 boards; full 6-node grid is theoretical architecture.
 """
 import sys
 import json
 import time
 from pathlib import Path
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Optional
 import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -41,14 +49,20 @@ def compute_metrics(
     invalid_windows: int = 0
 ) -> Dict[str, Any]:
     """
-    Computes classification metrics with rigorous zero-denominator handling.
+    Computes classification metrics with rigorous zero-denominator handling and coverage metrics.
     Does NOT fabricate 100% when denominator is zero (e.g. recall in pure empty room).
     """
     total_valid = tp + fp + tn + fn
     total_windows = total_valid + invalid_windows
 
-    # Overall Accuracy
-    accuracy = (tp + tn) / total_valid if total_valid > 0 else None
+    # Valid Accuracy: computed strictly over windows with valid model classifications
+    valid_accuracy = (tp + tn) / total_valid if total_valid > 0 else None
+
+    # Coverage: percentage of windows that produced valid classifications
+    coverage = (total_valid / total_windows) * 100.0 if total_windows > 0 else 0.0
+
+    # Conservative All-Window Accuracy: treating all invalid/unclassified windows as failures
+    conservative_accuracy = (tp + tn) / total_windows if total_windows > 0 else 0.0
 
     # Precision = TP / (TP + FP)
     # Undefined if no positive predictions were made (TP + FP == 0)
@@ -71,7 +85,9 @@ def compute_metrics(
         f1 = None
 
     return {
-        "accuracy_pct": round(accuracy * 100.0, 2) if accuracy is not None else None,
+        "valid_accuracy_pct": round(valid_accuracy * 100.0, 2) if valid_accuracy is not None else None,
+        "all_window_accuracy_pct": round(conservative_accuracy * 100.0, 2),
+        "coverage_pct": round(coverage, 2),
         "precision_pct": round(precision, 2) if precision is not None else None,
         "recall_pct": round(recall, 2) if recall is not None else None,
         "specificity_pct": round(specificity, 2) if specificity is not None else None,
@@ -172,7 +188,8 @@ def evaluate_session(session_id: str, adapter: V1PresenceModelAdapter) -> Option
     return {
         "session_id": session_id,
         "display_name": data.get("display_name", session_id),
-        "source_type": data.get("source_type", "hardware_recorded"),
+        "source_type": data.get("source_type", "unknown_unverified"),
+        "provenance": data.get("provenance", data.get("source_type", "unknown_unverified")),
         "is_held_out": data.get("metadata", {}).get("is_held_out", False),
         "total_windows": total_frames,
         "duration_seconds": data.get("total_duration", 0.0),
@@ -193,22 +210,23 @@ def main():
     if adapter.is_available():
         print(f"    - Classifier: {adapter.metadata.get('classifier_name', 'HistGradientBoosting')}")
         print(f"    - Input Features: {adapter.feature_count} temporal-spectral features")
-        print(f"    - Baseline Training Accuracy: {adapter.metadata.get('cv_accuracy', 'N/A')}")
+        print(f"    - Historical CV Accuracy (v1): {adapter.metadata.get('cv_accuracy', 'N/A')}")
+        print(f"    - Training Window Duration: {adapter.metadata.get('window_duration_sec', 1.0)}s")
     else:
         print(f"    - Error: {adapter.load_error}")
 
-    # Track A: Untouched Held-Out Genuine Hardware Sessions
+    # Track A: Genuine Single-Link Hardware Evaluation (WiMotion v1 Physical Capture)
     held_out_sessions = [
         "held_out_empty_01",
         "held_out_walking_01"
     ]
 
-    # Track B: In-Session Hardware Benchmark
+    # Track B: Generated Benchmark / Software Regression Experiment
     in_session_hardware = [
         "benchmark_session_01"
     ]
 
-    # Track C: Public Benchmark Experiment
+    # Track C: Unverified Public Benchmark Import Experiment
     public_sessions = [
         "public_esp_fi_01"
     ]
@@ -218,15 +236,15 @@ def main():
         "synthetic_session_01"
     ]
 
-    # Track E: Scripted Presentation Scenario
+    # Track E: Scripted Presentation Scenario (Disclaimed)
     presentation_sessions = [
         "demo_session"
     ]
 
     all_groups = [
-        ("TRACK A: UNTOUCHED HELD-OUT HARDWARE EVALUATION", held_out_sessions),
-        ("TRACK B: IN-SESSION HARDWARE BENCHMARK", in_session_hardware),
-        ("TRACK C: PUBLIC BENCHMARK EXPERIMENT", public_sessions),
+        ("TRACK A: GENUINE SINGLE-LINK HARDWARE EVALUATION (WiMotion v1 Physical Capture)", held_out_sessions),
+        ("TRACK B: GENERATED BENCHMARK / SOFTWARE REGRESSION EXPERIMENT", in_session_hardware),
+        ("TRACK C: UNVERIFIED PUBLIC BENCHMARK IMPORT EXPERIMENT", public_sessions),
         ("TRACK D: SYNTHETIC AUGMENTATION EXPERIMENT", synthetic_sessions),
         ("TRACK E: SCRIPTED PRESENTATION SCENARIO (DISCLAIMED)", presentation_sessions)
     ]
@@ -238,22 +256,28 @@ def main():
         for s_id in sess_list:
             res = evaluate_session(s_id, adapter)
             if res:
+                # Track A provenance assertion: ONLY genuine hardware sessions can enter Track A
+                if track_title.startswith("TRACK A") and not res["source_type"].startswith("hardware_recorded"):
+                    print(f"    [!] REJECTED: Session {s_id} with provenance '{res['source_type']}' cannot enter Track A (genuine hardware only)!")
+                    continue
                 evaluated_records[s_id] = res
                 m = res["v1_ml_model"]
                 sp = res["v2_spatial"]
                 print(f"Session: {res['display_name']} ({s_id})")
-                print(f"  Duration: {res['duration_seconds']}s | Total Windows: {res['total_windows']} | Mean Rate: {res['avg_rate_hz']} Hz")
+                print(f"  Provenance: {res['source_type']} | Duration: {res['duration_seconds']}s | Total Windows: {res['total_windows']} | Mean Rate: {res['avg_rate_hz']} Hz")
                 print(f"  [ML Model (HistGradientBoosting / 217 feats)]")
-                print(f"    Accuracy:    {format_metric(m['accuracy_pct'])}")
-                print(f"    Precision:   {format_metric(m['precision_pct'])}")
-                print(f"    Recall:      {format_metric(m['recall_pct'])}")
-                print(f"    Specificity: {format_metric(m['specificity_pct'])}")
-                print(f"    F1-Score:    {format_metric(m['f1_pct'])}")
-                print(f"    Matrix:      TP={m['tp']}, FP={m['fp']}, TN={m['tn']}, FN={m['fn']} (Valid={m['valid_windows']}, Invalid={m['invalid_windows']})")
+                print(f"    Valid Accuracy:    {format_metric(m['valid_accuracy_pct'])}")
+                print(f"    Coverage:          {format_metric(m['coverage_pct'])} ({m['valid_windows']}/{m['total_windows']} windows classified)")
+                print(f"    All-Window Score:  {format_metric(m['all_window_accuracy_pct'])} (treating invalid windows as failures)")
+                print(f"    Precision:         {format_metric(m['precision_pct'])}")
+                print(f"    Recall:            {format_metric(m['recall_pct'])}")
+                print(f"    Specificity:       {format_metric(m['specificity_pct'])}")
+                print(f"    F1-Score:          {format_metric(m['f1_pct'])}")
+                print(f"    Matrix:            TP={m['tp']}, FP={m['fp']}, TN={m['tn']}, FN={m['fn']} (Valid={m['valid_windows']}, Invalid={m['invalid_windows']})")
                 print(f"  [Spatial Baseline (Wi-CaL Heuristic)]")
-                print(f"    Accuracy:    {format_metric(sp['accuracy_pct'])} | Zone Hits: {res['zone_hit_rate_pct']}%")
+                print(f"    Accuracy:          {format_metric(sp['valid_accuracy_pct'])} | Zone Hits: {res['zone_hit_rate_pct']}%")
 
-    # Aggregate Track A (Combined Held-Out Hardware Evaluation)
+    # Aggregate Track A (Combined Single-Link Hardware Evaluation)
     ho_empty = evaluated_records.get("held_out_empty_01")
     ho_walk = evaluated_records.get("held_out_walking_01")
     combined_held_out_ml = None
@@ -265,15 +289,17 @@ def main():
         c_invalid = ho_empty["v1_ml_model"]["invalid_windows"] + ho_walk["v1_ml_model"]["invalid_windows"]
         combined_held_out_ml = compute_metrics(c_tp, c_fp, c_tn, c_fn, invalid_windows=c_invalid)
         print("\n" + "=" * 78)
-        print(" COMBINED UNTOUCHED HELD-OUT HARDWARE GENERALIZATION RESULTS")
+        print(" COMBINED GENUINE SINGLE-LINK HARDWARE EVALUATION RESULTS")
         print("=" * 78)
-        print(f"  Total Windows:   {combined_held_out_ml['total_windows']} across 2 independent sessions (44 Empty / 65 Walking)")
-        print(f"  Accuracy:        {format_metric(combined_held_out_ml['accuracy_pct'])}")
-        print(f"  Precision:       {format_metric(combined_held_out_ml['precision_pct'])}")
-        print(f"  Recall:          {format_metric(combined_held_out_ml['recall_pct'])}")
-        print(f"  Specificity:     {format_metric(combined_held_out_ml['specificity_pct'])}")
-        print(f"  F1-Score:        {format_metric(combined_held_out_ml['f1_pct'])}")
-        print(f"  Confusion Matrix: TP={c_tp}, FP={c_fp}, TN={c_tn}, FN={c_fn} (Valid={combined_held_out_ml['valid_windows']}, Invalid={combined_held_out_ml['invalid_windows']})")
+        print(f"  Total Windows:      {combined_held_out_ml['total_windows']} across 2 sessions (44 Empty / 65 Walking, Imbalanced)")
+        print(f"  Coverage:           {format_metric(combined_held_out_ml['coverage_pct'])} ({combined_held_out_ml['valid_windows']}/{combined_held_out_ml['total_windows']} windows classified)")
+        print(f"  Valid Accuracy:     {format_metric(combined_held_out_ml['valid_accuracy_pct'])} (excluding {combined_held_out_ml['invalid_windows']} buffer warm-up windows)")
+        print(f"  All-Window Score:   {format_metric(combined_held_out_ml['all_window_accuracy_pct'])} (conservative, invalid counted as failures)")
+        print(f"  Precision:          {format_metric(combined_held_out_ml['precision_pct'])}")
+        print(f"  Recall:             {format_metric(combined_held_out_ml['recall_pct'])}")
+        print(f"  Specificity:        {format_metric(combined_held_out_ml['specificity_pct'])}")
+        print(f"  F1-Score:           {format_metric(combined_held_out_ml['f1_pct'])}")
+        print(f"  Confusion Matrix:   TP={c_tp}, FP={c_fp}, TN={c_tn}, FN={c_fn} (Valid={combined_held_out_ml['valid_windows']}, Invalid={combined_held_out_ml['invalid_windows']})")
 
     # Generate Docs Report
     report_path = ROOT / "docs" / "EVALUATION_REPORT.md"
@@ -283,7 +309,7 @@ def main():
         "# WiMotion 2.0 — Scientific Evaluation & Validation Report",
         "",
         f"**Generated:** {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}  ",
-        "**Methodology:** Rigorous multi-track evaluation separating untouched held-out sessions from in-session benchmarks, public datasets, and synthetic augmentation.",
+        "**Methodology:** Rigorous multi-track evaluation separating genuine physical hardware sessions from software-generated benchmarks, unverified public imports, synthetic variants, and scripted presentations.",
         "",
         "## 1. Dual-Engine Architecture Summary",
         "",
@@ -292,70 +318,73 @@ def main():
         "| **Presence Gating** | Original WiMotion HistGradientBoosting (v2.4) | 217 temporal-spectral features extracted per link stream | Binary Presence Detection (`empty_room` vs `human_present`) | **Active ML Model via Adapter** |",
         "| **Spatial Sector Localization** | WiMotion 2.0 SpatialBaseline | Distributed 8-link CSI variance ratio ($argmax$) | Four-Quadrant Sector Mapping (Z1 NE, Z2 NW, Z3 SW, Z4 SE) | **Active Spatial Heuristic** |",
         "",
-        "## 2. Track A: Untouched Held-Out Hardware Evaluation",
+        "## 2. Track A: Genuine Single-Link Hardware Evaluation",
         "",
         "> [!IMPORTANT]",
-        "> Held-out sessions were recorded on genuine ESP32 hardware and remained completely untouched during model training. This provides an unbiased measure of generalization across distinct physical capture sessions.",
-        "> Note on Zero-Denominator Metrics: For sessions with 0 actual positives (e.g. pure Empty Room), Recall is mathematically Undefined (`N/A`), not 100%. Similarly, for sessions with 0 actual negatives, Specificity is Undefined (`N/A`).",
+        "> Track A sessions were recorded on genuine ESP32 hardware (RX1-TX1 single-link) during original WiMotion v1 physical trials and remained untouched during WiMotion 2.0 multi-link development.",
+        "> Note on Zero-Denominator Metrics: For sessions with 0 actual ground truth positives (pure Empty Room), Recall is mathematically Undefined (`N/A`). For sessions with 0 actual negatives, Specificity is Undefined (`N/A`).",
+        "> Valid Accuracy is computed strictly over classified windows (`valid_windows`); Coverage reports the classified window percentage.",
         "",
-        "| Session ID | Class | Total Windows | Valid / Invalid | ML Accuracy | ML Precision | ML Recall | ML Specificity | ML F1 | TP / FP / TN / FN |",
-        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
+        "| Session ID | Provenance | Total Windows | Valid / Invalid | Coverage | Valid ML Accuracy | Conservative All-Window | ML Precision | ML Recall | ML Specificity | ML F1 | TP / FP / TN / FN |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
     ]
 
     for s_id in held_out_sessions:
         r = evaluated_records.get(s_id)
         if r:
             m = r["v1_ml_model"]
-            cls_name = "Empty Room" if "empty" in s_id else "Walking Presence"
             lines.append(
-                f"| `{s_id}` | {cls_name} | {r['total_windows']} | {m['valid_windows']} / {m['invalid_windows']} | {format_metric(m['accuracy_pct'])} | {format_metric(m['precision_pct'])} | {format_metric(m['recall_pct'])} | {format_metric(m['specificity_pct'])} | {format_metric(m['f1_pct'])} | {m['tp']} / {m['fp']} / {m['tn']} / {m['fn']} |"
+                f"| `{s_id}` | `{r['source_type']}` | {r['total_windows']} | {m['valid_windows']} / {m['invalid_windows']} | {format_metric(m['coverage_pct'])} | {format_metric(m['valid_accuracy_pct'])} | {format_metric(m['all_window_accuracy_pct'])} | {format_metric(m['precision_pct'])} | {format_metric(m['recall_pct'])} | {format_metric(m['specificity_pct'])} | {format_metric(m['f1_pct'])} | {m['tp']} / {m['fp']} / {m['tn']} / {m['fn']} |"
             )
 
     if combined_held_out_ml:
         lines.append(
-            f"| **COMBINED HELD-OUT** | **Imbalanced (44E / 65W)** | **{combined_held_out_ml['total_windows']}** | **{combined_held_out_ml['valid_windows']} / {combined_held_out_ml['invalid_windows']}** | **{format_metric(combined_held_out_ml['accuracy_pct'])}** | **{format_metric(combined_held_out_ml['precision_pct'])}** | **{format_metric(combined_held_out_ml['recall_pct'])}** | **{format_metric(combined_held_out_ml['specificity_pct'])}** | **{format_metric(combined_held_out_ml['f1_pct'])}** | **{combined_held_out_ml['tp']} / {combined_held_out_ml['fp']} / {combined_held_out_ml['tn']} / {combined_held_out_ml['fn']}** |"
+            f"| **COMBINED TRACK A** | **hardware_single_link** | **{combined_held_out_ml['total_windows']}** | **{combined_held_out_ml['valid_windows']} / {combined_held_out_ml['invalid_windows']}** | **{format_metric(combined_held_out_ml['coverage_pct'])}** | **{format_metric(combined_held_out_ml['valid_accuracy_pct'])}** | **{format_metric(combined_held_out_ml['all_window_accuracy_pct'])}** | **{format_metric(combined_held_out_ml['precision_pct'])}** | **{format_metric(combined_held_out_ml['recall_pct'])}** | **{format_metric(combined_held_out_ml['specificity_pct'])}** | **{format_metric(combined_held_out_ml['f1_pct'])}** | **{combined_held_out_ml['tp']} / {combined_held_out_ml['fp']} / {combined_held_out_ml['tn']} / {combined_held_out_ml['fn']}** |"
         )
 
     lines.extend([
         "",
-        "## 3. Track B, C, D & E: Benchmark, Public, Synthetic, and Scripted Results",
+        "## 3. Track B, C, D & E: Software Benchmarks, Imports, Synthetic, and Scripted Results",
         "",
-        "| Track | Session ID | Provenance | Windows | Mean Rate | ML Accuracy | Spatial Heuristic Accuracy | Zone Hit (%) | Notes |",
-        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
+        "| Track | Session ID | Provenance | Total Windows | Valid / Invalid | Mean Rate | ML Valid Accuracy | Spatial Heuristic Accuracy | Zone Hit (%) | Notes |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
     ])
 
     for track_name, sess_list in [
-        ("Track B: In-Session Hardware", in_session_hardware),
-        ("Track C: Public Benchmark", public_sessions),
+        ("Track B: Generated Benchmark", in_session_hardware),
+        ("Track C: Unverified Public Import", public_sessions),
         ("Track D: Synthetic Augmentation", synthetic_sessions),
         ("Track E: Scripted Presentation", presentation_sessions)
     ]:
         for s_id in sess_list:
             r = evaluated_records.get(s_id)
             if r:
-                note = "Physical RF capture" if "Hardware" in track_name else (
-                    "AutoSmartGroup ESP-Fi HAR" if "Public" in track_name else (
-                        "Perturbed RF gain + noise" if "Synthetic" in track_name else (
-                            "Scripted video sync scenario (Synthetic RF tone lacks physical Doppler)"
+                note = "Software-generated 8-link benchmark (scripts/create_benchmark_session.py)" if "Track B" in track_name else (
+                    "Locally formatted test sample; origin unverified against raw upstream capture" if "Track C" in track_name else (
+                        "Perturbed RF gain + noise derived from benchmark_session_01" if "Track D" in track_name else (
+                            "Scripted presentation scenario (Synthetic flat RF tones lack Doppler micro-dynamics -> ML invalid)"
                         )
                     )
                 )
+                m = r["v1_ml_model"]
+                sp = r["v2_spatial"]
                 lines.append(
-                    f"| {track_name} | `{s_id}` | **{r['source_type'].upper()}** | {r['total_windows']} | {r['avg_rate_hz']} Hz | {format_metric(r['v1_ml_model']['accuracy_pct'])} | {format_metric(r['v2_spatial']['accuracy_pct'])} | {r['zone_hit_rate_pct']}% | {note} |"
+                    f"| {track_name} | `{s_id}` | `{r['source_type']}` | {r['total_windows']} | {m['valid_windows']} / {m['invalid_windows']} | {r['avg_rate_hz']} Hz | {format_metric(m['valid_accuracy_pct'])} | {format_metric(sp['valid_accuracy_pct'])} | {r['zone_hit_rate_pct']}% | {note} |"
                 )
 
     lines.extend([
         "",
         "## 4. Scientific Disclosures & Limitations",
         "",
-        "1. **Actual ML Model vs. Spatial Heuristic**: The reported ML Presence metrics are calculated using the real `HistGradientBoostingClassifier` executing over the 217-feature extraction pipeline. Spatial sector localization is driven by the multi-link variance ratio heuristic (`SpatialBaseline`), not by a multi-class learned spatial model.",
+        "1. **Actual ML Model vs. Spatial Heuristic**: The reported ML Presence metrics are calculated using the real `HistGradientBoostingClassifier` executing over the 217-feature extraction pipeline. Spatial sector localization is driven by the multi-link variance ratio heuristic (`SpatialBaseline`), not by an end-to-end multi-class learned spatial neural network.",
         "2. **Zero-Denominator & Undefined Metric Transparency**: For single-class evaluation sessions (e.g. Empty Room with 0 positive ground truth samples), Recall is mathematically Undefined (`N/A`) rather than an inflated 100%. Similarly, Specificity is Undefined for sessions with 0 negative samples.",
-        "3. **Invalid Prediction Handling**: Any window where model availability is False or predictions are missing/invalid is explicitly tracked as `invalid_windows`. The evaluation suite never silently converts unclassified/missing predictions into `empty_room`.",
-        "4. **Window Overlap & Scope Disclosure**: Sliding windows (2.0s duration, 0.5s step) contain temporal overlap between consecutive time slices. The reported 81.25% held-out accuracy represents measured performance on these two genuine benchmark recordings (`held_out_empty_01` and `held_out_walking_01`) across 96 valid evaluated windows (with 13 warm-up windows tracked as invalid), not an unbounded claim of universal real-world accuracy across arbitrary rooms.",
+        "3. **Coverage & Invalid Window Policy**: Windows where model predictions are unavailable or buffer is warming up (< 5 frames per link) are tracked explicitly as `invalid_windows`. Valid Accuracy is defined as `(TP + TN) / valid_windows * 100`. The conservative All-Window score counts invalid windows as failures.",
+        "4. **Window Overlap & Scope Disclosure**: Sliding windows (2.0s duration, 0.5s step) contain ~75% temporal overlap between consecutive time slices. The reported 81.25% valid held-out accuracy represents measured performance on these two genuine WiMotion v1 benchmark recordings across 96 valid evaluated windows, not an unbounded claim of universal real-world accuracy across arbitrary environments.",
         "5. **Sample Imbalance Disclosure**: The held-out benchmark contains 44 Empty Room windows and 65 Walking Presence windows (40.4% / 59.6% ratio). It is not perfectly balanced 50/50.",
-        "6. **Physical Hardware Kit**: Physical hardware available in the lab consists of **4 COTS ESP32 boards** (typically deployed as 1 Master RX + 3 TX beacons or 2 RX + 2 TX). The 2 RX + 4 TX (6 nodes, 8 links) architecture represents the complete theoretical Wi-CaL grid supported by the firmware and dashboard software.",
-        "7. **Safe Standby Status**: Live serial ingestion on host is maintained in Safe Standby (Disconnected) by default to prevent Windows USB UART driver DPC watchdog timeouts until dedicated hardware ports are plugged in.",
-        "8. **Scripted Demo Role**: The 95-second dual-person scenario (`demo_session`) is strictly a presentation-mode tool for synchronizing with physical room videos; it is **never** presented as empirical hardware verification."
+        "6. **Training vs. Replay Window Duration**: The original model was trained on 1.0-second sliding windows (`window_duration_sec: 1.0`), while WiMotion 2.0 multi-link live/replay sliding window buffer uses 2.0-second windows with 0.5s step. Resampling interpolates onto uniform grids, but the duration difference is an explicit engineering limitation.",
+        "7. **Physical Hardware Kit Reality**: Physical hardware available in the lab consists of **4 COTS ESP32 boards** (typically deployed as 1 Master RX + 3 TX beacons or 2 RX + 2 TX). The 2 RX + 4 TX (6 nodes, 8 links) architecture represents the complete theoretical Wi-CaL grid supported by the firmware and dashboard software, not the hardware physically tested in real time.",
+        "8. **Safe Standby Status**: Live serial ingestion on host is maintained in Safe Standby (Disconnected) by default to prevent Windows USB UART driver DPC watchdog timeouts until dedicated hardware ports are plugged in.",
+        "9. **Scripted Demo Role**: The 95-second dual-person scenario (`demo_session`) is strictly a presentation-mode tool for synchronizing with physical room videos; it is **never** presented as empirical hardware verification."
     ])
 
     report_path.write_text("\n".join(lines), encoding="utf-8")
