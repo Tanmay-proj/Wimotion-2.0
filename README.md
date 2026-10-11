@@ -50,10 +50,10 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Strict Mode Isolation** | ✅ **Implemented** | Authoritative separation between LIVE hardware, REPLAY lab, and SIMULATION (`spatial/server.py`) |
 | **Unified State Renderer** | ✅ **Implemented** | Consistent single-renderer driving metrics, 8-link mesh, timeline, and radar (`dashboard/observatory_multi.html`) |
 | **Safe Replay Lab Engine** | ✅ **Implemented** | Timestamp-based playback with scrub, rate quality gate, and XSS-safe DOM nodes (`spatial/replay_loader.py`) |
-| **Automated Unit Tests** | ✅ **Passing (30/30)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter (including insufficient-frames, empty multi-link, and model-missing contracts), rogue TX rejection (`tests/test_spatial.py`) |
+| **Automated Unit Tests** | ✅ **Passing (33/33)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts (missing model, insufficient frames, empty multi-link), zero-denominator metric safety, held-out session integrity, and rogue TX rejection (`tests/test_spatial.py`) |
 | **Colleague Audit Suite** | ✅ **Passing (6/6)** | Hardware coverage integrity, rate conservation, zero-sample link gating (`scripts/verify_six_checks.py`) |
 | **V1 Model Adapter** | ✅ **Actively Integrated** | Real 217-feature extraction pipeline & HistGradientBoosting classifier called in Live and Replay (`spatial/v1_adapter.py`) |
-| **Session-Level Evaluation** | ✅ **Verified (77.98% Acc)** | Untouched held-out hardware validation with confusion matrix, precision, recall, and F1 (`scripts/evaluate_models.py`) |
+| **Session-Level Evaluation** | ✅ **Verified (81.25% Valid Acc)** | Untouched held-out hardware validation with zero silent fallback, undefined metric safety (N/A for empty-room recall), and separate invalid window tracking (`scripts/evaluate_models.py`) |
 | **Public Dataset Adapters** | ✅ **Implemented** | ESP-Fi HAR, RF_ESP32, and WiCAL dataset adapters with upstream academic citations (`spatial/dataset_adapters/`) |
 | **Controlled Synthetic Augmentation** | ✅ **Implemented** | Physics-informed RF gain & Gaussian multipath perturbation with parent tracking (`spatial/augmentation.py`) |
 | **Hardware Inventory & Standby** | ⚠️ **4 Boards / Safe Standby** | 4 physical ESP32 boards in kit. Host USB-UART defaults to Safe Standby (Disconnected) to prevent Windows DPC Watchdog BSODs until dedicated demo capture. |
@@ -63,7 +63,7 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 
 ## 3. Quickstart & Verification
 
-### 1. Run Automated Unit Tests (30/30) & 6-Point Audit Suite
+### 1. Run Automated Unit Tests (33/33) & 6-Point Audit Suite
 ```bash
 py -3.10 -m unittest discover -s tests -v
 py -3.10 scripts/verify_six_checks.py

@@ -742,6 +742,66 @@ class TestSpatial(unittest.TestCase):
         self.assertEqual(parsed["activity_label"], "walking")
         self.assertEqual(parsed["presence_label"], "human_present")
 
+    def test_evaluation_zero_denominator_and_invalid_handling(self):
+        from scripts.evaluate_models import compute_metrics
+
+        # 1. Pure empty room (0 actual positives): Recall must be None (Undefined), NOT 1.0 or 100%
+        empty_res = compute_metrics(tp=0, fp=18, tn=19, fn=0, invalid_windows=7)
+        self.assertIsNone(empty_res["recall_pct"])
+        self.assertEqual(empty_res["precision_pct"], 0.0)
+        self.assertEqual(empty_res["specificity_pct"], 51.35)
+        self.assertEqual(empty_res["valid_windows"], 37)
+        self.assertEqual(empty_res["invalid_windows"], 7)
+        self.assertEqual(empty_res["total_windows"], 44)
+
+        # 2. Pure walking session (0 actual negatives): Specificity must be None (Undefined)
+        walk_res = compute_metrics(tp=59, fp=0, tn=0, fn=0, invalid_windows=6)
+        self.assertIsNone(walk_res["specificity_pct"])
+        self.assertEqual(walk_res["recall_pct"], 100.0)
+        self.assertEqual(walk_res["precision_pct"], 100.0)
+        self.assertEqual(walk_res["valid_windows"], 59)
+        self.assertEqual(walk_res["invalid_windows"], 6)
+
+        # 3. No positive predictions made: Precision must be None (Undefined)
+        no_pos_res = compute_metrics(tp=0, fp=0, tn=20, fn=10)
+        self.assertIsNone(no_pos_res["precision_pct"])
+
+    def test_held_out_session_counts_and_separation(self):
+        from spatial.replay_loader import load_recording_frames
+
+        # Session 1: Held-out empty room
+        empty_data = load_recording_frames("held_out_empty_01")
+        self.assertIsNotNone(empty_data)
+        self.assertEqual(empty_data["total_frames"], 44)
+        self.assertTrue(empty_data["metadata"].get("is_held_out"))
+        self.assertTrue(all(f["gt_count"] == 0 for f in empty_data["frames"]))
+
+        # Session 2: Held-out walking presence
+        walk_data = load_recording_frames("held_out_walking_01")
+        self.assertIsNotNone(walk_data)
+        self.assertEqual(walk_data["total_frames"], 65)
+        self.assertTrue(walk_data["metadata"].get("is_held_out"))
+        self.assertTrue(all(f["gt_count"] > 0 for f in walk_data["frames"]))
+
+        # Combined count must be exactly 109
+        self.assertEqual(empty_data["total_frames"] + walk_data["total_frames"], 109)
+
+    def test_scripted_demo_ml_evaluation_rejected_gracefully(self):
+        from scripts.evaluate_models import evaluate_session
+        from spatial.v1_adapter import V1PresenceModelAdapter
+
+        adapter = V1PresenceModelAdapter()
+        res = evaluate_session("demo_session", adapter)
+        self.assertIsNotNone(res)
+
+        # Scripted demo frames lack physical multi-link packet stream for ML features
+        # Evaluation suite must track all 191 windows as invalid rather than silently converting to empty_room
+        ml_m = res["v1_ml_model"]
+        self.assertEqual(ml_m["invalid_windows"], 191)
+        self.assertEqual(ml_m["valid_windows"], 0)
+        self.assertIsNone(ml_m["accuracy_pct"])
+        self.assertIsNone(ml_m["recall_pct"])
+
 
 if __name__ == "__main__":
     unittest.main()
