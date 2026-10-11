@@ -669,6 +669,34 @@ class TestSpatial(unittest.TestCase):
         self.assertEqual(res["prediction"], "empty_room")
         self.assertLess(res["presence_probability"], 0.20)
 
+    def test_v1_model_adapter_edge_cases_and_missing_model(self):
+        from spatial.v1_adapter import V1PresenceModelAdapter
+
+        adapter = V1PresenceModelAdapter()
+
+        # 1. Insufficient frames (< 5 frames)
+        tiny_window = np.ones((3, 64), dtype=float) * 55.0
+        tiny_res = adapter.predict_link_stream(tiny_window)
+        self.assertTrue(tiny_res["available"])
+        self.assertEqual(tiny_res["prediction"], "INSUFFICIENT_FRAMES")
+        self.assertEqual(tiny_res["presence_probability"], 0.0)
+
+        # 2. Empty multi-link window
+        empty_multi = adapter.evaluate_multilink_window([])
+        self.assertEqual(empty_multi["global_presence"], "insufficient_data")
+        self.assertIsNone(empty_multi["confidence"])
+
+        # 3. Model load failure / missing model file
+        missing_adapter = V1PresenceModelAdapter(model_filename="non_existent_model_file_xyz.pkl")
+        self.assertFalse(missing_adapter.is_available())
+        missing_res = missing_adapter.predict_link_stream(np.ones((20, 64), dtype=float))
+        self.assertFalse(missing_res["available"])
+        self.assertEqual(missing_res["prediction"], "UNKNOWN")
+
+        missing_multi = missing_adapter.evaluate_multilink_window([])
+        self.assertFalse(missing_multi["model_available"])
+        self.assertEqual(missing_multi["global_presence"], "UNKNOWN")
+
     def test_unknown_transmitter_handling(self):
         model = SpatialBaseline(variance_threshold=8.0)
         # Rogue transmitter with high perturbation
