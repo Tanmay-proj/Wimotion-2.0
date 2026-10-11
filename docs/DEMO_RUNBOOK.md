@@ -55,7 +55,7 @@ This runbook provides the exact sequence of actions for presenting WiMotion 2.0 
   py -3.10 scripts/verify_six_checks.py
   py -3.10 scripts/evaluate_models.py
   ```
-- Show that all **34/34 unit tests pass** and all **6/6 colleague audit checks pass**.
+- Show that all **36/36 unit tests pass** and all **6/6 colleague audit checks pass**.
 
 ---
 

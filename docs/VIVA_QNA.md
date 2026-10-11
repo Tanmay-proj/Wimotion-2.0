@@ -70,7 +70,7 @@ This guide contains the most probable questions examiners will ask during projec
 **Answer:**
 > **SAFE CLAIMS TO DEFEND CONFIDENTLY:**
 > - Dual-engine pipeline: ML presence gating (217 features) + multi-link spatial zoning heuristic.
-> - 36 automated unit tests and 6/6 pre-demo verification checks (under continuous CI validation).
+> - 36/36 automated unit tests and 6/6 pre-demo verification checks passing in CI.
 > - 81.25% valid accuracy on untouched held-out single-link physical hardware captures.
 > - Deterministic replay lab with timeline scrubbing, rate quality gating, and XSS-safe rendering.
 > - Rogue transmitter isolation and suppression resilience.
