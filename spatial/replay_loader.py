@@ -85,8 +85,26 @@ def list_recordings() -> List[Dict[str, Any]]:
         gt_count = meta.get("ground_truth_count", 0)
         motion_state = meta.get("motion_state", "UNKNOWN")
 
+        source_type = meta.get("source_type")
+        if not source_type:
+            source_type = "scripted_presentation" if (meta.get("is_demo") or session_id == "demo_session") else "hardware_recorded"
+
+        display_name = meta.get("display_name")
+        if not display_name:
+            if session_id == "demo_session":
+                display_name = "Presentation Scenario (95s Multi-Zone)"
+            elif session_id == "benchmark_session_01":
+                display_name = "Hardware Benchmark: Zone 3 Dynamic (1-Person)"
+            else:
+                display_name = session_id
+
         sessions.append({
             "session_id": session_id,
+            "display_name": display_name,
+            "source_type": source_type,
+            "provenance": source_type,
+            "parent_session_id": meta.get("parent_session_id"),
+            "description": meta.get("description", ""),
             "filename": csv_path.name,
             "path": str(csv_path.relative_to(ROOT)).replace("\\", "/"),
             "created_at": created_at,
@@ -229,8 +247,13 @@ def generate_demo_session_frames(step_seconds: float = 0.5, total_duration: floa
 
     return {
         "session_id": "demo_session",
+        "display_name": "Presentation Scenario (95s Multi-Zone)",
+        "source_type": "scripted_presentation",
+        "provenance": "scripted_presentation",
         "metadata": {
             "session_id": "demo_session",
+            "display_name": "Presentation Scenario (95s Multi-Zone)",
+            "source_type": "scripted_presentation",
             "scenario_name": "4-Zone People Movement Demo",
             "duration_seconds": total_duration,
             "total_records": 9500,
@@ -256,7 +279,6 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
 
     if not DATA_RAW.exists():
         return None
-
 
     # Strict exact matching for session_id
     target_csv = None
@@ -303,6 +325,7 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
 
     # Read CSV records
     records_by_time = []
+    malformed_rows = 0
     with open(target_csv, "r", encoding="utf-8", errors="ignore") as f:
         reader = csv.reader(f)
         header = next(reader, None)
@@ -311,6 +334,7 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
 
         for row in reader:
             if len(row) < 74:
+                malformed_rows += 1
                 continue
             try:
                 ts = float(row[0])
@@ -336,6 +360,7 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
                 )
                 records_by_time.append((ts, rec, gt_count, gt_zone, motion_state))
             except Exception:
+                malformed_rows += 1
                 continue
 
     if not records_by_time:
@@ -382,13 +407,21 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         frames.append(frame)
         current_offset += step_seconds
 
+    source_type = target_meta.get("source_type", "hardware_recorded")
+    display_name = target_meta.get("display_name", session_id)
+
     return {
         "session_id": session_id,
+        "display_name": display_name,
+        "source_type": source_type,
+        "provenance": source_type,
+        "malformed_rows": malformed_rows,
         "metadata": target_meta,
         "total_duration": round(total_duration, 2),
         "frame_interval": step_seconds,
         "total_frames": len(frames),
-        "frames": frames
+        "frames": frames,
+        "is_demo": False
     }
 
 

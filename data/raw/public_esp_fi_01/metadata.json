@@ -1,0 +1,15 @@
+{
+  "session_id": "public_esp_fi_01",
+  "display_name": "Public Dataset: ESP-Fi HAR (Walking Sample)",
+  "source_type": "public_dataset",
+  "provenance": "public_dataset",
+  "dataset_reference": "AutoSmartGroup/ESP-Fi-HAR (IEEE IoT Journal)",
+  "license": "Academic / MIT License",
+  "ground_truth_count": 1,
+  "ground_truth_zone": "Z3",
+  "motion_state": "WALKING",
+  "duration_seconds": 10.0,
+  "total_records": 1600,
+  "description": "Public ESP-Fi HAR benchmark session sample mapped to WiMotion multi-link schema for cross-dataset evaluation.",
+  "created_at": "2026-10-11 07:15:00"
+}

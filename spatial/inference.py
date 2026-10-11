@@ -70,7 +70,10 @@ class SpatialBaseline:
         people = []
         for rank, (tx, score) in enumerate(ranked_tx, 1):
             if score >= self.variance_threshold:
-                zone_name = self.tx_zone_map.get(tx, "Z1")
+                zone_name = self.tx_zone_map.get(tx)
+                if not zone_name:
+                    # Explicit handling for unmapped / rogue transmitter nodes
+                    continue
                 if zone_name not in active_zones:
                     active_zones.append(zone_name)
                     people.append({
@@ -82,7 +85,7 @@ class SpatialBaseline:
 
         # Strongest Perturbation Selection: primary zone is the argmax score
         if ranked_tx and ranked_tx[0][1] >= self.variance_threshold:
-            primary_zone = self.tx_zone_map.get(ranked_tx[0][0], "Z1")
+            primary_zone = self.tx_zone_map.get(ranked_tx[0][0], "UNKNOWN")
         else:
             primary_zone = "CLEAR"
 

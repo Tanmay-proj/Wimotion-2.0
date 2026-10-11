@@ -987,10 +987,10 @@
         <div class="transport-bar">
           <div>
             <div style="font-family:'Plus Jakarta Sans'; font-size:14px; font-weight:700; color:#fff;" id="replay-active-title">
-              REPLAY SESSION: demo_session <span class="badge-tag green" style="margin-left:8px;">DEMO SCRIPT</span>
+              REPLAY SESSION: Presentation Scenario (95s Multi-Zone) <span class="badge-tag cyan" style="margin-left:8px;">PRESENTATION SCENARIO</span>
             </div>
             <div style="font-size:11px; color:var(--text-muted);" id="replay-active-desc">
-              Duration: 01:35 (95.0s) | Format: Demo Scenario (Scripted)
+              Duration: 01:35 (95.0s) | Provenance: SCRIPTED_PRESENTATION | Format: Multi-Zone Scenario
             </div>
           </div>
 
@@ -2186,16 +2186,27 @@
         
         const titleSpan = document.createElement('span');
         const nameNode = document.createElement('strong');
-        nameNode.textContent = rec.session_id;
+        nameNode.textContent = rec.display_name || rec.session_id;
+        nameNode.style.fontSize = '12px';
         titleSpan.appendChild(nameNode);
         
-        if (isDemo) {
-          const demoBadge = document.createElement('span');
-          demoBadge.className = 'badge-tag green';
-          demoBadge.style.cssText = 'font-size:9px; padding:1px 6px; margin-left:6px;';
-          demoBadge.textContent = 'DEMO';
-          titleSpan.appendChild(demoBadge);
+        // Clean and honest provenance badge
+        const provBadge = document.createElement('span');
+        provBadge.style.cssText = 'font-size:9px; padding:1px 6px; margin-left:6px; border-radius:3px; font-weight:700;';
+        if (rec.source_type === 'hardware_recorded') {
+          provBadge.className = 'badge-tag green';
+          provBadge.textContent = 'HARDWARE RECORDED';
+        } else if (rec.source_type === 'public_dataset') {
+          provBadge.className = 'badge-tag cyan';
+          provBadge.textContent = 'PUBLIC DATASET';
+        } else if (rec.source_type === 'synthetic_augmented') {
+          provBadge.className = 'badge-tag amber';
+          provBadge.textContent = 'SYNTHETIC AUGMENTED';
+        } else {
+          provBadge.className = 'badge-tag cyan';
+          provBadge.textContent = 'PRESENTATION SCENARIO';
         }
+        titleSpan.appendChild(provBadge);
 
         const durSpan = document.createElement('span');
         durSpan.style.cssText = 'color:var(--accent-cyan); font-weight:700; font-family:"JetBrains Mono"; font-size:11px;';
@@ -2210,13 +2221,13 @@
           const scSpan = document.createElement('div');
           scSpan.textContent = `Scenario: ${rec.scenario_name || '4-Zone People Movement Demo'}`;
           const dateSpan = document.createElement('div');
-          dateSpan.textContent = `Frames: 9500 | Date: 2026-10-10 19:30:00`;
+          dateSpan.textContent = `Frames: 9500 | Type: Scripted Multi-Zone Sync`;
           metaDiv.append(scSpan, dateSpan);
         } else {
           const gtSpan = document.createElement('div');
           gtSpan.textContent = `GT Zone: ${rec.ground_truth_zone} (${rec.motion_state || 'UNKNOWN'})`;
           const frSpan = document.createElement('div');
-          frSpan.textContent = `Frames: ${rec.total_records} | Date: ${rec.created_at || '--'}`;
+          frSpan.textContent = `Records: ${rec.total_records} | Date: ${rec.created_at || '--'}`;
           metaDiv.append(gtSpan, frSpan);
         }
 
@@ -2252,15 +2263,39 @@
         const titleEl = document.getElementById('replay-active-title');
         if (titleEl) {
           titleEl.textContent = '';
-          const txt = document.createTextNode(`REPLAY SESSION: ${data.session_id} `);
+          const txt = document.createTextNode(`REPLAY SESSION: ${data.display_name || data.session_id} `);
           titleEl.appendChild(txt);
-          if (isDemo) {
-            const b = document.createElement('span');
-            b.className = 'badge-tag green';
-            b.style.marginLeft = '8px';
-            b.textContent = 'DEMO SCRIPT';
-            titleEl.appendChild(b);
+          
+          const provBadge = document.createElement('span');
+          provBadge.style.marginLeft = '8px';
+          const srcType = data.source_type || (isDemo ? 'scripted_presentation' : 'hardware_recorded');
+          if (srcType === 'hardware_recorded') {
+            provBadge.className = 'badge-tag green';
+            provBadge.textContent = 'HARDWARE RECORDED';
+          } else if (srcType === 'public_dataset') {
+            provBadge.className = 'badge-tag cyan';
+            provBadge.textContent = 'PUBLIC DATASET';
+          } else if (srcType === 'synthetic_augmented') {
+            provBadge.className = 'badge-tag amber';
+            provBadge.textContent = 'SYNTHETIC AUGMENTED';
+          } else {
+            provBadge.className = 'badge-tag cyan';
+            provBadge.textContent = 'PRESENTATION SCENARIO';
           }
+          titleEl.appendChild(provBadge);
+        }
+
+        const descEl = document.getElementById('replay-active-desc');
+        if (descEl) {
+          const totalDur = data.total_duration || (isDemo ? 95.0 : 20.0);
+          const srcType = data.source_type || 'hardware_recorded';
+          descEl.textContent = `Duration: ${formatMMSS(totalDur)} (${totalDur}s) | Provenance: ${srcType.toUpperCase()} | Frames: ${data.total_frames || data.frames?.length || 0}`;
+        }
+
+        const scenEl = document.getElementById('replay-scenario-name');
+        if (scenEl) {
+          const scName = (data.metadata && data.metadata.scenario_name) || (data.display_name || 'Multi-Link Replay Analysis');
+          scenEl.textContent = `SCENARIO: ${scName.toUpperCase()}`;
         }
 
         const descEl = document.getElementById('replay-active-desc');

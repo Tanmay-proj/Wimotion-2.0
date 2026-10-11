@@ -615,8 +615,109 @@ class TestSpatial(unittest.TestCase):
                 self.assertEqual((f["people"][1]["x"], f["people"][1]["y"]), (295.0, 135.0))
 
 
+    def test_provenance_and_session_discovery(self):
+        from spatial.replay_loader import list_recordings
+
+        recordings = list_recordings()
+        self.assertGreaterEqual(len(recordings), 2)
+
+        source_types = {r["session_id"]: r.get("source_type") for r in recordings}
+        self.assertEqual(source_types.get("demo_session"), "scripted_presentation")
+        self.assertEqual(source_types.get("benchmark_session_01"), "hardware_recorded")
+
+        # Verify display names are present and natural
+        for r in recordings:
+            self.assertIn("display_name", r)
+            self.assertIn("source_type", r)
+            self.assertTrue(len(r["display_name"]) > 0)
+
+    def test_genuine_vs_scripted_replay_isolation(self):
+        from spatial.replay_loader import load_recording_frames
+
+        # 1. Non-existent session must return None and NEVER fall back to demo_session
+        missing = load_recording_frames("non_existent_fake_session_12345")
+        self.assertIsNone(missing)
+
+        # 2. Genuine session must return real records and honest provenance
+        genuine = load_recording_frames("benchmark_session_01")
+        self.assertIsNotNone(genuine)
+        self.assertEqual(genuine["source_type"], "hardware_recorded")
+        self.assertFalse(genuine["is_demo"])
+        self.assertIn("malformed_rows", genuine)
+
+        # 3. Scripted demo session must return scripted provenance
+        scripted = load_recording_frames("demo_session")
+        self.assertIsNotNone(scripted)
+        self.assertEqual(scripted["source_type"], "scripted_presentation")
+        self.assertTrue(scripted["is_demo"])
+
+    def test_v1_model_adapter_217_features_and_inference(self):
+        from spatial.v1_adapter import V1PresenceModelAdapter, extract_v1_features
+
+        adapter = V1PresenceModelAdapter()
+        self.assertTrue(adapter.is_available())
+
+        # Exact 217-feature dimension contract
+        dummy_window = np.ones((20, 64), dtype=float) * 60.0
+        feats = extract_v1_features(dummy_window)
+        self.assertEqual(feats.shape, (217,))
+        self.assertFalse(np.isnan(feats).any())
+
+        # Predict quiet link stream -> empty_room
+        res = adapter.predict_link_stream(dummy_window)
+        self.assertTrue(res["available"])
+        self.assertEqual(res["prediction"], "empty_room")
+        self.assertLess(res["presence_probability"], 0.20)
+
+    def test_unknown_transmitter_handling(self):
+        model = SpatialBaseline(variance_threshold=8.0)
+        # Rogue transmitter with high perturbation
+        features = [{
+            "receiver": "RX1",
+            "tx": "TX_ROGUE_UNKNOWN",
+            "csi_variance": 45.0,
+            "sample_count": 20,
+            "rssi": -55.0
+        }]
+        state = model.predict(features, active_links=1, signal_ok=True)
+        # Rogue transmitter must NOT be assigned to Z1
+        self.assertNotEqual(state["zone"], "Z1")
+        self.assertEqual(state["zone"], "UNKNOWN")
+
+    def test_synthetic_augmentation_reproducibility(self):
+        from spatial.augmentation import augment_csi_frame, GUARD_SUBCARRIERS, DC_SUBCARRIER
+
+        raw_amps = [60.0] * 64
+        rng1 = np.random.RandomState(42)
+        aug1 = augment_csi_frame(raw_amps, gain_scale=1.04, noise_std=0.03, rng=rng1)
+
+        rng2 = np.random.RandomState(42)
+        aug2 = augment_csi_frame(raw_amps, gain_scale=1.04, noise_std=0.03, rng=rng2)
+
+        # Exact reproducibility with same seed
+        self.assertEqual(aug1, aug2)
+
+        # Guard and DC subcarriers must be strictly 0.0
+        for idx in GUARD_SUBCARRIERS + DC_SUBCARRIER:
+            self.assertEqual(aug1[idx], 0.0)
+
+    def test_public_dataset_adapter(self):
+        from spatial.dataset_adapters.esp_fi_adapter import ESPFiHARAdapter
+
+        adapter = ESPFiHARAdapter()
+        # Mock 52 comma-separated numbers (label '1' for walking + 52 values)
+        line = "1," + ",".join(["62.5"] * 52)
+        parsed = adapter.parse_csi_line(line)
+
+        self.assertIsNotNone(parsed)
+        self.assertEqual(len(parsed["amplitudes_64"]), 64)
+        self.assertEqual(parsed["activity_label"], "walking")
+        self.assertEqual(parsed["presence_label"], "human_present")
+
+
 if __name__ == "__main__":
     unittest.main()
+
 
 
 

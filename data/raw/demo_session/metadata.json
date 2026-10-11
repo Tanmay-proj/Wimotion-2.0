@@ -1,5 +1,7 @@
 {
   "session_id": "demo_session",
+  "display_name": "Presentation Scenario (95s Multi-Zone)",
+  "source_type": "scripted_presentation",
   "room_id": "ROOM_MCTE_DEMO_SCRIPT",
   "operator_id": "PRESENTATION_DEMO",
   "scenario_name": "4-Zone People Movement Demo",

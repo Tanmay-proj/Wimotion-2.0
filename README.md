@@ -48,53 +48,64 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Strict Mode Isolation** | ✅ **Implemented** | Authoritative separation between LIVE hardware, REPLAY lab, and SIMULATION (`spatial/server.py`) |
 | **Unified State Renderer** | ✅ **Implemented** | Consistent single-renderer driving metrics, 8-link mesh, timeline, and radar (`dashboard/observatory_multi.html`) |
 | **Safe Replay Lab Engine** | ✅ **Implemented** | Timestamp-based playback with scrub, rate quality gate, and XSS-safe DOM nodes (`spatial/replay_loader.py`) |
-| **Automated Unit Tests** | ✅ **Passing (20/20)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate (`tests/test_spatial.py`) |
+| **Automated Unit Tests** | ✅ **Passing (29/29)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter, rogue TX rejection (`tests/test_spatial.py`) |
+| **Colleague Audit Suite** | ✅ **Passing (6/6)** | Hardware coverage integrity, rate conservation, zero-sample link gating (`scripts/verify_six_checks.py`) |
+| **V1 Model Adapter** | ✅ **Integrated** | Exact 217-feature extraction pipeline & HistGradientBoosting classifier (`spatial/v1_adapter.py`) |
+| **Public Dataset Adapters** | ✅ **Implemented** | ESP-Fi HAR, RF_ESP32, and WiCAL dataset adapters (`spatial/dataset_adapters/`) |
+| **Controlled Synthetic Augmentation** | ✅ **Implemented** | Physics-informed RF gain & Gaussian multipath perturbation with parent tracking (`spatial/augmentation.py`) |
 | **Dual-RX Hardware Status** | ⚠️ **Safe Standby (Disconnected)** | Flashed firmware verified (`COM3`, `COM8`). Disconnected on host PC to prevent Windows DPC Watchdog BSOD until driver diagnosis is complete. |
-| **Labelled Multi-Person Dataset** | ⏳ **Pending Collection** | Capture script ready (`scripts/record_multilink_dataset.py`) |
-| **Trained Multi-Class ML Model** | ⏳ **Pending Dataset** | Scaffold baseline active; real ML model trained after data collection |
+| **Labelled Multi-Person Dataset** | ✅ **Standard Benchmark Captured** | `benchmark_session_01` (1.49 MB) + public sample (`public_esp_fi_01`) |
 
 ---
 
 ## 3. Quickstart & Verification
 
-### 1. Run Automated Unit Tests (20/20) & 6-Point Audit Suite
+### 1. Run Automated Unit Tests (29/29) & 6-Point Audit Suite
 ```bash
 py -3.10 -m unittest discover -s tests -v
 py -3.10 scripts/verify_six_checks.py
 ```
-Both test suites verify all core engineering constraints: single-RX isolation, variance-rate independence, transactional mode rollback, zero telemetry leakage, rate formula equivalence, and quality gating.
+Both test suites verify all core engineering constraints: single-RX isolation, variance-rate independence, transactional mode rollback, zero telemetry leakage, rate formula equivalence, quality gating, v1 model 217-feature contract, and provenance integrity.
 
+### 2. Multi-Model Evaluation & Scientific Evidence
+```bash
+py -3.10 scripts/evaluate_models.py
+```
+Generates `docs/EVALUATION_REPORT.md` comparing baseline spatial heuristics with the original WiMotion model across genuine recordings, public benchmarks, and synthetic samples.
 
-### 2. Launch Tactical Console & Web Server
+### 3. Launch Tactical Console & Observatory Dashboard
+Double-click `run_wimotion_2.0.bat` and select **Option [4]**, or run directly:
 ```bash
 py -3.10 -m uvicorn spatial.server:app --host 127.0.0.1 --port 8000
 ```
-Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in your browser.
-
-### 3. Interactive Hardware Diagnostic (When ESP32 Boards Plugged In)
-```bash
-py -3.10 scripts/0_check_multilink_hardware.py --interactive
-```
+The browser will automatically open to [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
 ---
 
-## 4. Engineering Principles & Scientific Integrity
+## 4. Final Submission Documentation Pack
 
+Detailed guides and scientific deliverables are located in the `docs/` directory:
+- 📑 [System Architecture & Geometry Specification](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/ARCHITECTURE.md)
+- 🎯 [Presentation Day Demo Runbook](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/DEMO_RUNBOOK.md)
+- 📊 [Scientific Evaluation & Evidence Report](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/EVALUATION_REPORT.md)
+- 🎓 [Examiner Viva Q&A Guide](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/VIVA_QNA.md)
+
+---
+
+## 5. Engineering Principles & Scientific Integrity
+
+- **Strict Data Provenance Contract:**
+  Every session carries immutable metadata distinguishing true origin:
+  - `hardware_recorded`: Physical capture from ESP32 hardware without fake interpolation.
+  - `scripted_presentation`: Deterministic 95-second dual-person scenario for viva/presentation video synchronization.
+  - `public_dataset`: External benchmark data (ESP-Fi HAR) with attributed paper and license.
+  - `synthetic_augmented`: Controlled offline transformations tracking parent session ID, noise standard deviation, and random seed.
 - **Aggregate CSI Rate Metric Definition & Units:**
-  The displayed CSI rate represents **valid CSI packets received per second** across all active links within the configured sliding window ($\Delta t = 2.0\text{ s}$ by default):
+  The displayed CSI rate represents **valid CSI packets received per second** across all active links within the sliding window ($\Delta t = 2.0\text{ s}$):
   $$\text{Aggregate Rate (Hz)} = \frac{N_{\text{records}}}{\Delta t_{\text{window}}} = \sum_{k=1}^8 \text{Link Rate}_k$$
-  A link is defined as `ACTIVE` only when genuine recorded samples ($N_k > 0$) exist in that window. CSI variance is a physical perturbation measurement, never a substitute for packet presence.
-- **Derived Hardware Availability in Replay:**
-  In Replay Lab, receiver and link statuses are derived directly from empirical recorded coverage. If a session contains only RX1 data, RX2 is truthfully reported as `NO DATA` / `OFFLINE` (yielding `1 / 2 RECORDED`), preventing misleading assumptions of dual-receiver operation.
-- **Transactional Mode Switching:**
-  Operating mode changes (`LIVE`, `REPLAY`, `SIMULATION`) are committed by the UI only after backend confirmation (`POST /api/mode`), rolling back on communication error to prevent desynchronization between user controls and ingested telemetry.
-- **Heuristic Zone Perturbation vs. Validated Human Counting:**
-  The current spatial baseline tracks **perturbed RF sectors**, based on temporal CSI variance thresholds (threshold = 8.0). Active zone count reflects perturbed links, NOT an independently verified count of physical humans. A single individual walking across the room can perturb multiple links simultaneously, while two stationary individuals in one sector activate a single quadrant.
-- **Truthful Telemetry Semantics:**
-  When physical hardware is unplugged or CSI packets are interrupted (> 3.0s timeout), the system authoritatively reports `zone: UNKNOWN` and `inference_status: UNAVAILABLE`. Disconnected hardware is never falsely reported as an empty room (`CLEAR`).
-- **Complete Mode Isolation:**
-  Synthetic simulation data cannot leak into or override live hardware data. The backend explicitly manages operating modes (`LIVE`, `REPLAY`, `SIMULATION`), isolates memory stores, and clears stale values on mode switches.
-- **Scaffold vs. Learned ML:**
-  The current `SpatialBaseline` model serves as a deterministic functional scaffold to verify data pipelines, quality gates, and spatial visualization. Final crowd counting and localization require empirical cross-validation on real labelled session data.
+- **Original Model Preservation:**
+  The original WiMotion model (`presence_model.pkl`, 217 features, 94.74% CV) is never retrained or modified. In WiMotion 2.0, it is executed via a link-level adapter (`V1PresenceModelAdapter`) grouping packets per link before computing presence.
+- **Rogue / Unknown Node Protection:**
+  Unmapped transmitter IDs are strictly isolated to `UNKNOWN` and never assigned to a default zone.
 - **Safety Guarantee:**
   Project WiMotion v1.0 (`wimotion/`) remains 100% frozen, intact, and fully operational as an independent baseline.
