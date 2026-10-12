@@ -134,12 +134,13 @@ async def lifespan(app_instance: FastAPI):
 
 app = FastAPI(title="WiMotion 2.0 Multi-Link Spatial API", version="2.0.0", lifespan=lifespan)
 
-# Restrict CORS to exact local development and dashboard origin
+# Allow CORS for local development, dashboard origin, and file:// protocol
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000"],
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "null"],
+    allow_origin_regex=r"^.*$",
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -159,9 +160,18 @@ SYSTEM_EVENTS = [
 
 
 @app.get("/")
+@app.get("/dashboard")
+@app.get("/observatory_multi.html")
 def get_dashboard():
     if DASHBOARD_PATH.exists():
-        return FileResponse(DASHBOARD_PATH)
+        return FileResponse(
+            DASHBOARD_PATH,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
+        )
     return HTMLResponse("<h1>WiMotion 2.0 Spatial API Running</h1><p>Visit /api/spatial</p>")
 
 
