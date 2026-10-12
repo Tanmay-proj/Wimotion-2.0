@@ -1839,33 +1839,60 @@
         const isBlinkDropout = (currentT >= 22.4 && currentT <= 22.8) || (currentT >= 66.1 && currentT <= 66.5);
 
         data.people.forEach((p, idx) => {
-          const qEl = document.getElementById(`quad-${p.zone}`);
+          let targetZone = p.zone;
+          let isFalseZoneGlitch = false;
+
+          // Transient False Zone Glitches (for a split-second ~300-400ms):
+          // Glitch 1: Solo target in Z1 momentarily flickers to Z2 (NW)
+          if (p.id === 'P1' && currentT >= 21.4 && currentT <= 21.8) {
+            targetZone = 'Z2';
+            isFalseZoneGlitch = true;
+          }
+          // Glitch 2: Solo target in Z3 momentarily flickers to Z4 (SE)
+          else if (p.id === 'P1' && currentT >= 37.0 && currentT <= 37.4) {
+            targetZone = 'Z4';
+            isFalseZoneGlitch = true;
+          }
+          // Glitch 3: Dual targets, P2 in Z4 momentarily flickers to Z1 (NE)
+          else if ((p.id === 'P2' || idx === 1) && currentT >= 63.6 && currentT <= 64.0) {
+            targetZone = 'Z1';
+            isFalseZoneGlitch = true;
+          }
+          // Glitch 4: Dual targets in Z1, P2 momentarily flickers to Z2 (NW)
+          else if ((p.id === 'P2' || idx === 1) && currentT >= 77.4 && currentT <= 77.8) {
+            targetZone = 'Z2';
+            isFalseZoneGlitch = true;
+          }
+
+          const qEl = document.getElementById(`quad-${targetZone}`);
           if (qEl) qEl.classList.add('active-quadrant');
 
           if (markersGroup) {
-            const baseCoords = (p.x !== undefined && p.y !== undefined) ? { x: p.x, y: p.y } : getZoneCenterCoords(p.zone);
+            // Anchor coordinates firmly in target zone without unnatural drifting deviation
+            const baseCoords = isFalseZoneGlitch
+              ? getZoneCenterCoords(targetZone)
+              : ((p.x !== undefined && p.y !== undefined) ? { x: p.x, y: p.y } : getZoneCenterCoords(targetZone));
             
-            // Subtle realistic human postural sway / micro-jitter variance (4-6px)
-            const seed = (p.id === 'P2' || idx === 1) ? 2.5 : 1.0;
-            const jitterX = Math.sin(currentT * 3.8 + seed * 2.3) * 5.2 + Math.cos(currentT * 7.7) * 2.1;
-            const jitterY = Math.cos(currentT * 3.4 + seed * 1.9) * 5.2 + Math.sin(currentT * 6.9) * 2.1;
-            const coords = { x: baseCoords.x + jitterX, y: baseCoords.y + jitterY };
-
-            const markerColor = p.color || (p.id === 'P1' ? '#45C486' : '#35C5D5');
+            const coords = { x: baseCoords.x, y: baseCoords.y };
+            const markerColor = isFalseZoneGlitch
+              ? 'var(--accent-amber)'
+              : (p.color || (p.id === 'P1' ? '#45C486' : '#35C5D5'));
 
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             g.setAttribute('class', 'radar-marker');
             if (isBlinkDropout) {
               g.setAttribute('opacity', '0.22');
+            } else if (isFalseZoneGlitch) {
+              g.setAttribute('opacity', '0.88');
             }
 
             // Outer glowing aura ring
             const aura = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
             aura.setAttribute('cx', coords.x);
             aura.setAttribute('cy', coords.y);
-            aura.setAttribute('r', isBlinkDropout ? '16' : '24');
+            aura.setAttribute('r', isBlinkDropout ? '16' : (isFalseZoneGlitch ? '22' : '24'));
             aura.setAttribute('fill', markerColor);
-            aura.setAttribute('fill-opacity', isBlinkDropout ? '0.12' : '0.28');
+            aura.setAttribute('fill-opacity', isBlinkDropout ? '0.12' : (isFalseZoneGlitch ? '0.35' : '0.28'));
             g.appendChild(aura);
 
             // Inner solid disc
@@ -1876,6 +1903,9 @@
             disc.setAttribute('fill', '#0E1724');
             disc.setAttribute('stroke', markerColor);
             disc.setAttribute('stroke-width', '3');
+            if (isFalseZoneGlitch) {
+              disc.setAttribute('stroke-dasharray', '3 2');
+            }
             g.appendChild(disc);
 
             // Bold ID label
@@ -1887,7 +1917,7 @@
             label.setAttribute('font-size', '14');
             label.setAttribute('font-weight', '900');
             label.setAttribute('fill', '#FFFFFF');
-            label.textContent = p.id || 'P';
+            label.textContent = isFalseZoneGlitch ? `${p.id || 'P'}?` : (p.id || 'P');
             g.appendChild(label);
 
             markersGroup.appendChild(g);
@@ -2615,9 +2645,17 @@
       }
 
       if (evalGtSub) {
-        const activeZonesStr = (frame.people && frame.people.length > 0)
-          ? `${[...new Set(frame.people.map(p => p.zone))].join(', ')}`
-          : (frame.gt_zone || 'CLEAR');
+        const currentT = frame.time_offset || 0;
+        let detectedZones = (frame.people && frame.people.length > 0)
+          ? frame.people.map(p => {
+              if (p.id === 'P1' && currentT >= 21.4 && currentT <= 21.8) return 'Z2 (MULTIPATH BLIP)';
+              if (p.id === 'P1' && currentT >= 37.0 && currentT <= 37.4) return 'Z4 (MULTIPATH BLIP)';
+              if (p.id === 'P2' && currentT >= 63.6 && currentT <= 64.0) return 'Z1 (CROSS-LEAKAGE)';
+              if (p.id === 'P2' && currentT >= 77.4 && currentT <= 77.8) return 'Z2 (SHADOW BLIP)';
+              return p.zone;
+            })
+          : [frame.gt_zone || 'CLEAR'];
+        const activeZonesStr = [...new Set(detectedZones)].join(', ');
         evalGtSub.textContent = `Active Zones: ${activeZonesStr} | State: ${frame.gt_motion || 'NORMAL'}`;
       }
 
