@@ -7,6 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three.module.js",
+      "three/addons/controls/OrbitControls.js": "./vendor/OrbitControls.js"
+    }
+  }
+  </script>
   <style>
     :root {
       --bg-base: #0B1017;
@@ -232,10 +240,10 @@
     /* Overview Primary Workspace: Radar + Telemetry */
     .overview-workspace {
       display: grid;
-      grid-template-columns: minmax(420px, 520px) 1fr;
+      grid-template-columns: minmax(580px, 1.4fr) minmax(340px, 1fr);
       gap: 16px;
     }
-    @media (max-width: 1100px) {
+    @media (max-width: 1360px) {
       .overview-workspace {
         grid-template-columns: 1fr;
       }
@@ -246,10 +254,10 @@
       background: var(--bg-panel);
       border: 1px solid var(--border);
       border-radius: 8px;
-      padding: 18px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      align-items: center;
+      align-items: stretch;
       position: relative;
     }
     .panel-title-bar {
@@ -260,6 +268,8 @@
       margin-bottom: 12px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
       padding-bottom: 8px;
+      gap: 12px;
+      flex-wrap: wrap;
     }
     .panel-heading {
       font-family: 'Plus Jakarta Sans', sans-serif;
@@ -274,16 +284,130 @@
       color: var(--text-dim);
     }
 
-    /* Radar SVG Visualizer */
-    .radar-container {
-      width: 420px;
-      height: 420px;
+    /* Spatial View Selector Toolbar */
+    .spatial-view-selector {
+      display: flex;
+      gap: 3px;
+      background: var(--bg-panel-sub);
+      padding: 3px;
+      border-radius: 5px;
+      border: 1px solid var(--border);
+    }
+    .btn-submode {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10.5px;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-submode:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .btn-submode.active {
+      background: var(--accent-cyan);
+      color: #0b1017;
+    }
+
+    /* Spatial Dual-Viewport Container */
+    .spatial-viewport-container {
+      width: 100%;
+      display: grid;
+      gap: 14px;
+      transition: all 0.2s ease;
+    }
+    .spatial-viewport-container.view-split {
+      grid-template-columns: minmax(320px, 1fr) minmax(340px, 1.25fr);
+    }
+    @media (max-width: 900px) {
+      .spatial-viewport-container.view-split {
+        grid-template-columns: 1fr;
+      }
+    }
+    .spatial-viewport-container.view-2d {
+      grid-template-columns: 1fr;
+    }
+    .spatial-viewport-container.view-2d #card-3d-twin {
+      display: none !important;
+    }
+    .spatial-viewport-container.view-2d #card-2d-radar {
+      max-width: 520px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .spatial-viewport-container.view-3d {
+      grid-template-columns: 1fr;
+    }
+    .spatial-viewport-container.view-3d #card-2d-radar {
+      display: none !important;
+    }
+    .spatial-viewport-container.view-3d #card-3d-twin {
+      width: 100%;
+    }
+
+    /* Viewport Sub-Cards */
+    .viewport-card {
+      background: var(--bg-panel-sub);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
       position: relative;
-      margin: 10px 0;
+    }
+    .viewport-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .subcard-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+    }
+    .subcard-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-dim);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .subcard-tag.cyan {
+      background: rgba(53, 197, 213, 0.12);
+      color: var(--accent-cyan);
+      border-color: rgba(53, 197, 213, 0.25);
+    }
+
+    /* 2D Radar Container */
+    .radar-container {
+      width: 100%;
+      max-width: 380px;
+      aspect-ratio: 1 / 1;
+      height: auto;
+      position: relative;
+      margin: 4px auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .panel-radar.radar-compact .radar-container {
-      width: 350px;
-      height: 350px;
+      max-width: 340px;
     }
     .radar-svg {
       width: 100%;
@@ -321,16 +445,80 @@
       width: 100%;
       display: flex;
       justify-content: space-around;
-      background: var(--bg-panel-sub);
+      background: rgba(11, 16, 23, 0.5);
       border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 10px 14px;
-      margin-top: 10px;
-      font-size: 13px;
+      border-radius: 4px;
+      padding: 8px 10px;
+      margin-top: 8px;
+      font-size: 11px;
       font-weight: 600;
       font-family: 'JetBrains Mono', monospace;
     }
-    .legend-item { display: flex; align-items: center; gap: 8px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+
+    /* 3D Canvas Viewport */
+    .canvas-3d-wrapper {
+      position: relative;
+      width: 100%;
+      height: 380px;
+      background: #040711;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid rgba(53, 197, 213, 0.22);
+      box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.6);
+    }
+    .panel-radar.radar-compact .canvas-3d-wrapper {
+      height: 340px;
+    }
+    #spatial3dCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      outline: none;
+      cursor: grab;
+    }
+    #spatial3dCanvas:active {
+      cursor: grabbing;
+    }
+    .canvas-3d-hint {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      color: rgba(146, 160, 178, 0.8);
+      background: rgba(11, 16, 23, 0.82);
+      backdrop-filter: blur(4px);
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      pointer-events: none;
+      z-index: 10;
+    }
+    .canvas-3d-hud {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      display: flex;
+      gap: 6px;
+      pointer-events: none;
+      z-index: 10;
+      flex-wrap: wrap;
+    }
+    .hud-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 600;
+      color: #fff;
+      background: rgba(11, 16, 23, 0.85);
+      backdrop-filter: blur(4px);
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
 
     /* Right Column: Telemetry & Link Matrix */
     .overview-details {
@@ -860,99 +1048,136 @@
       <!-- Primary Workspace: Radar Circle + Telemetry Matrix -->
       <section class="overview-workspace">
         
-        <!-- Four-Quadrant Radar Circle (Mounted in Overview) -->
+        <!-- Spatial Sensing Visualizer (Mounted in Overview) -->
         <div id="overview-radar-mount">
           <div class="panel-radar" id="panel-radar">
             <div class="panel-title-bar">
               <div>
-                <div class="panel-heading">FOUR-QUADRANT SPATIAL RADAR</div>
-                <div class="radar-disclaimer">Illustrative four-zone view · not a calibrated 3D map</div>
+                <div class="panel-heading">SPATIAL RADAR &amp; DIGITAL TWIN OBSERVATORY</div>
+                <div class="radar-disclaimer">Dual-engine spatial tracking · 2D 4-Quadrant Sector Radar &amp; 3D Digital Twin Room</div>
               </div>
-              <div id="radar-active-badge" class="badge-tag cyan">MODE: LIVE</div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div class="spatial-view-selector">
+                  <button class="btn-submode active" id="btn-view-split" onclick="setSpatialViewMode('split')">◫ SPLIT</button>
+                  <button class="btn-submode" id="btn-view-2d" onclick="setSpatialViewMode('2d')">◰ 2D</button>
+                  <button class="btn-submode" id="btn-view-3d" onclick="setSpatialViewMode('3d')">🧊 3D</button>
+                </div>
+                <div id="radar-active-badge" class="badge-tag cyan">MODE: LIVE</div>
+              </div>
             </div>
 
-            <!-- SVG Circular Radar -->
-            <div class="radar-container">
-              <svg class="radar-svg" viewBox="0 0 400 400" id="radarSvg">
-                <!-- Outer Boundary & Background -->
-                <circle cx="200" cy="200" r="180" fill="#0D141E" stroke="var(--border)" stroke-width="1.5" />
+            <!-- Dual Viewport Grid Container -->
+            <div class="spatial-viewport-container view-split" id="spatial-viewport-container">
 
-                <!-- Quadrant Hit Areas -->
-                <!-- Z2: Top-Left (NW) -->
-                <path d="M 200 200 L 20 200 A 180 180 0 0 1 200 20 Z" class="quadrant-bg" id="quad-Z2" onclick="selectZone('Z2')" />
-                <!-- Z1: Top-Right (NE) -->
-                <path d="M 200 200 L 200 20 A 180 180 0 0 1 380 200 Z" class="quadrant-bg" id="quad-Z1" onclick="selectZone('Z1')" />
-                <!-- Z3: Bottom-Left (SW) -->
-                <path d="M 200 200 L 20 200 A 180 180 0 0 0 200 380 Z" class="quadrant-bg" id="quad-Z3" onclick="selectZone('Z3')" />
-                <!-- Z4: Bottom-Right (SE) -->
-                <path d="M 200 200 L 200 380 A 180 180 0 0 0 380 200 Z" class="quadrant-bg" id="quad-Z4" onclick="selectZone('Z4')" />
+              <!-- LEFT CARD: 2D Tactical Four-Quadrant Radar -->
+              <div class="viewport-card card-2d" id="card-2d-radar">
+                <div class="viewport-card-header">
+                  <span class="subcard-title">2D TACTICAL QUADRANT RADAR</span>
+                  <span class="subcard-tag">POLAR MESH</span>
+                </div>
 
-                <!-- Concentric Range Rings -->
-                <circle cx="200" cy="200" r="60" class="radar-ring" />
-                <circle cx="200" cy="200" r="120" class="radar-ring" />
-                <circle cx="200" cy="200" r="180" class="radar-ring" />
+                <!-- SVG Circular Radar -->
+                <div class="radar-container">
+                  <svg class="radar-svg" viewBox="0 0 400 400" id="radarSvg">
+                    <!-- Outer Boundary & Background -->
+                    <circle cx="200" cy="200" r="180" fill="#0D141E" stroke="var(--border)" stroke-width="1.5" />
 
-                <!-- Crosshair Axes -->
-                <line x1="20" y1="200" x2="380" y2="200" class="radar-axis" />
-                <line x1="200" y1="20" x2="200" y2="380" class="radar-axis" />
+                    <!-- Quadrant Hit Areas -->
+                    <!-- Z2: Top-Left (NW) -->
+                    <path d="M 200 200 L 20 200 A 180 180 0 0 1 200 20 Z" class="quadrant-bg" id="quad-Z2" onclick="selectZone('Z2')" />
+                    <!-- Z1: Top-Right (NE) -->
+                    <path d="M 200 200 L 200 20 A 180 180 0 0 1 380 200 Z" class="quadrant-bg" id="quad-Z1" onclick="selectZone('Z1')" />
+                    <!-- Z3: Bottom-Left (SW) -->
+                    <path d="M 200 200 L 20 200 A 180 180 0 0 0 200 380 Z" class="quadrant-bg" id="quad-Z3" onclick="selectZone('Z3')" />
+                    <!-- Z4: Bottom-Right (SE) -->
+                    <path d="M 200 200 L 200 380 A 180 180 0 0 0 380 200 Z" class="quadrant-bg" id="quad-Z4" onclick="selectZone('Z4')" />
 
-                <!-- Link Mesh Lines (Center to 4 Transmitters) -->
-                <line x1="200" y1="200" x2="80" y2="80" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX2" />
-                <line x1="200" y1="200" x2="320" y2="80" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX1" />
-                <line x1="200" y1="200" x2="80" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX3" />
-                <line x1="200" y1="200" x2="320" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX4" />
+                    <!-- Concentric Range Rings -->
+                    <circle cx="200" cy="200" r="60" class="radar-ring" />
+                    <circle cx="200" cy="200" r="120" class="radar-ring" />
+                    <circle cx="200" cy="200" r="180" class="radar-ring" />
 
-                <!-- Quadrant Compass Labels -->
-                <text x="50" y="50" class="radar-label">NW · SECTOR Z2 (TX2)</text>
-                <text x="250" y="50" class="radar-label">NE · SECTOR Z1 (TX1)</text>
-                <text x="50" y="358" class="radar-label">SW · SECTOR Z3 (TX3)</text>
-                <text x="250" y="358" class="radar-label">SE · SECTOR Z4 (TX4)</text>
+                    <!-- Crosshair Axes -->
+                    <line x1="20" y1="200" x2="380" y2="200" class="radar-axis" />
+                    <line x1="200" y1="20" x2="200" y2="380" class="radar-axis" />
 
-                <!-- Transmitter Nodes -->
-                <!-- TX2: NW -->
-                <g class="node-pin" onclick="selectLink('RX1-TX2')" id="pin-TX2">
-                  <circle cx="80" cy="80" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX2" />
-                  <text x="80" y="84" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX2</text>
-                </g>
+                    <!-- Link Mesh Lines (Center to 4 Transmitters) -->
+                    <line x1="200" y1="200" x2="80" y2="80" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX2" />
+                    <line x1="200" y1="200" x2="320" y2="80" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX1" />
+                    <line x1="200" y1="200" x2="80" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX3" />
+                    <line x1="200" y1="200" x2="320" y2="320" stroke="rgba(255,255,255,0.08)" stroke-width="1" id="mesh-TX4" />
 
-                <!-- TX1: NE -->
-                <g class="node-pin" onclick="selectLink('RX1-TX1')" id="pin-TX1">
-                  <circle cx="320" cy="80" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX1" />
-                  <text x="320" y="84" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX1</text>
-                </g>
+                    <!-- Quadrant Compass Labels -->
+                    <text x="50" y="50" class="radar-label">NW · SECTOR Z2 (TX2)</text>
+                    <text x="250" y="50" class="radar-label">NE · SECTOR Z1 (TX1)</text>
+                    <text x="50" y="358" class="radar-label">SW · SECTOR Z3 (TX3)</text>
+                    <text x="250" y="358" class="radar-label">SE · SECTOR Z4 (TX4)</text>
 
-                <!-- TX3: SW -->
-                <g class="node-pin" onclick="selectLink('RX1-TX3')" id="pin-TX3">
-                  <circle cx="80" cy="320" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX3" />
-                  <text x="80" y="324" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX3</text>
-                </g>
+                    <!-- Transmitter Nodes -->
+                    <!-- TX2: NW -->
+                    <g class="node-pin" onclick="selectLink('RX1-TX2')" id="pin-TX2">
+                      <circle cx="80" cy="80" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX2" />
+                      <text x="80" y="84" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX2</text>
+                    </g>
 
-                <!-- TX4: SE -->
-                <g class="node-pin" onclick="selectLink('RX1-TX4')" id="pin-TX4">
-                  <circle cx="320" cy="320" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX4" />
-                  <text x="320" y="324" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX4</text>
-                </g>
+                    <!-- TX1: NE -->
+                    <g class="node-pin" onclick="selectLink('RX1-TX1')" id="pin-TX1">
+                      <circle cx="320" cy="80" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX1" />
+                      <text x="320" y="84" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX1</text>
+                    </g>
 
-                <!-- Center Receiver Node (Host PC) -->
-                <g class="node-pin" id="pin-RX">
-                  <rect x="182" y="182" width="36" height="36" rx="4" fill="#151E29" stroke="var(--accent-cyan)" stroke-width="2" />
-                  <text x="200" y="204" text-anchor="middle" font-family="'JetBrains Mono'" font-size="10" fill="var(--accent-cyan)" font-weight="700">RX</text>
-                </g>
+                    <!-- TX3: SW -->
+                    <g class="node-pin" onclick="selectLink('RX1-TX3')" id="pin-TX3">
+                      <circle cx="80" cy="320" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX3" />
+                      <text x="80" y="324" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX3</text>
+                    </g>
 
-                <!-- Sector Perturbation Badges (Rendered dynamically) -->
-                <g id="radar-perturbation-badges"></g>
+                    <!-- TX4: SE -->
+                    <g class="node-pin" onclick="selectLink('RX1-TX4')" id="pin-TX4">
+                      <circle cx="320" cy="320" r="12" fill="#151E29" stroke="var(--text-dim)" stroke-width="2" id="circle-TX4" />
+                      <text x="320" y="324" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fff" font-weight="700">TX4</text>
+                    </g>
 
-                <!-- Scripted Person Markers Layer (P1, P2, P3) -->
-                <g id="radar-person-markers"></g>
-              </svg>
-            </div>
+                    <!-- Center Receiver Node (Host PC) -->
+                    <g class="node-pin" id="pin-RX">
+                      <rect x="182" y="182" width="36" height="36" rx="4" fill="#151E29" stroke="var(--accent-cyan)" stroke-width="2" />
+                      <text x="200" y="204" text-anchor="middle" font-family="'JetBrains Mono'" font-size="10" fill="var(--accent-cyan)" font-weight="700">RX</text>
+                    </g>
 
-            <!-- Tactical Radar Legend -->
-            <div class="radar-legend">
-              <div class="legend-item"><span class="status-dot green" style="width:10px; height:10px;"></span> P1 (Person 1)</div>
-              <div class="legend-item"><span class="status-dot cyan" style="width:10px; height:10px;"></span> P2 (Person 2)</div>
-              <div class="legend-item"><span class="status-dot" style="width:10px; height:10px;"></span> Baseline</div>
-              <div class="legend-item"><span style="color:var(--accent-cyan); font-size:14px;">■</span> RX (Center)</div>
+                    <!-- Sector Perturbation Badges (Rendered dynamically) -->
+                    <g id="radar-perturbation-badges"></g>
+
+                    <!-- Scripted Person Markers Layer (P1, P2, P3) -->
+                    <g id="radar-person-markers"></g>
+                  </svg>
+                </div>
+
+                <!-- Tactical Radar Legend -->
+                <div class="radar-legend">
+                  <div class="legend-item"><span class="status-dot green" style="width:10px; height:10px;"></span> P1 (Person 1)</div>
+                  <div class="legend-item"><span class="status-dot cyan" style="width:10px; height:10px;"></span> P2 (Person 2)</div>
+                  <div class="legend-item"><span class="status-dot" style="width:10px; height:10px;"></span> Baseline</div>
+                  <div class="legend-item"><span style="color:var(--accent-cyan); font-size:14px;">■</span> RX (Center)</div>
+                </div>
+              </div>
+
+              <!-- RIGHT CARD: 3D Holographic Spatial Digital Twin Room -->
+              <div class="viewport-card card-3d" id="card-3d-twin">
+                <div class="viewport-card-header">
+                  <span class="subcard-title">3D HOLOGRAPHIC DIGITAL TWIN</span>
+                  <span class="subcard-tag cyan">WEBGL ENGINE</span>
+                </div>
+                <div class="canvas-3d-wrapper" id="canvas3dWrapper">
+                  <canvas id="spatial3dCanvas"></canvas>
+                  <div class="canvas-3d-hint">🖱 Drag to Rotate · Scroll to Zoom</div>
+                  <div class="canvas-3d-hud">
+                    <div class="hud-pill"><span class="status-dot green"></span> P1 AVATAR</div>
+                    <div class="hud-pill"><span class="status-dot cyan"></span> P2 AVATAR</div>
+                    <div class="hud-pill"><span style="color:var(--accent-cyan); font-size:11px;">▲</span> 4 TX PILLARS</div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -1547,6 +1772,13 @@
       } else {
         if (radarPanel) radarPanel.classList.remove('radar-compact');
       }
+
+      // Ensure 3D viewport canvas adjusts dynamically when remounted between tabs
+      setTimeout(() => {
+        if (window.Spatial3D && typeof window.Spatial3D.resize === 'function') {
+          window.Spatial3D.resize();
+        }
+      }, 50);
     }
 
     /* =====================================================================
@@ -1816,6 +2048,11 @@
        FOUR-QUADRANT RADAR VISUALIZATION
        ===================================================================== */
     function updateRadarVisualizer(data) {
+      // Synchronize 3D Digital Twin Room visualizer with current spatial frame
+      if (window.Spatial3D && typeof window.Spatial3D.update === 'function') {
+        window.Spatial3D.update(data);
+      }
+
       // Clear all active quadrant highlights
       ['Z1', 'Z2', 'Z3', 'Z4'].forEach(z => {
         const el = document.getElementById(`quad-${z}`);
@@ -3120,6 +3357,601 @@
         });
       }
     }
+
+    /* =====================================================================
+       SPATIAL DUAL-VIEWPORT SUBMODE CONTROLLER (SPLIT / 2D / 3D)
+       ===================================================================== */
+    function setSpatialViewMode(mode) {
+      const container = document.getElementById('spatial-viewport-container');
+      if (!container) return;
+
+      ['split', '2d', '3d'].forEach(m => {
+        container.classList.remove(`view-${m}`);
+        const btn = document.getElementById(`btn-view-${m}`);
+        if (btn) btn.classList.toggle('active', m === mode);
+      });
+      container.classList.add(`view-${mode}`);
+
+      // Recalculate 3D camera aspect ratio and renderer dimensions
+      setTimeout(() => {
+        if (window.Spatial3D && typeof window.Spatial3D.resize === 'function') {
+          window.Spatial3D.resize();
+        }
+      }, 60);
+    }
+  </script>
+
+  <!-- =====================================================================
+       3D HOLOGRAPHIC SPATIAL DIGITAL TWIN OBSERVATORY (WEBGL + THREE.JS)
+       ===================================================================== -->
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    (function initSpatialObservatory3D() {
+      const canvas = document.getElementById('spatial3dCanvas');
+      const container = document.getElementById('canvas3dWrapper');
+      if (!canvas || !container) return;
+
+      // 1. WebGL Renderer with graceful fallback
+      let renderer;
+      try {
+        renderer = new THREE.WebGLRenderer({
+          canvas: canvas,
+          antialias: true,
+          alpha: true,
+          powerPreference: 'high-performance'
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(container.clientWidth || 400, container.clientHeight || 380);
+      } catch (err) {
+        console.warn("WebGL initialization skipped:", err);
+        return;
+      }
+
+      // 2. Scene, Fog & Perspective Camera
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x040711);
+      scene.fog = new THREE.FogExp2(0x040711, 0.035);
+
+      const camera = new THREE.PerspectiveCamera(
+        45,
+        (container.clientWidth || 400) / (container.clientHeight || 380),
+        0.1,
+        100
+      );
+      camera.position.set(0.0, 4.4, 7.2);
+      camera.lookAt(0.0, 0.5, 0.0);
+
+      // 3. OrbitControls for interactive 360 inspection
+      let controls;
+      try {
+        controls = new OrbitControls(camera, canvas);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxPolarAngle = Math.PI / 2 - 0.04; // Don't clip below floor plane
+        controls.minDistance = 2.4;
+        controls.maxDistance = 16.0;
+        controls.target.set(0.0, 0.5, 0.0);
+      } catch (e) {
+        console.warn("OrbitControls fallback:", e);
+      }
+
+      // 4. Lighting Environment
+      const ambientLight = new THREE.AmbientLight(0x162438, 1.8);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0x7fc5ff, 1.1);
+      dirLight.position.set(4, 9, 6);
+      scene.add(dirLight);
+
+      // Dynamic Human Radiation Point Lights (Neon Green for P1, Electric Cyan for P2)
+      const p1PointLight = new THREE.PointLight(0x00ff66, 0.0, 5.0, 1.4);
+      p1PointLight.position.set(0, 1.0, 0);
+      scene.add(p1PointLight);
+
+      const p2PointLight = new THREE.PointLight(0x00e5ff, 0.0, 5.0, 1.4);
+      p2PointLight.position.set(0, 1.0, 0);
+      scene.add(p2PointLight);
+
+      // 5. Dark Floor Platform + 16x16 Cyber Matrix Grid Pads
+      const floorGeo = new THREE.PlaneGeometry(10.5, 10.5);
+      const floorMat = new THREE.MeshStandardMaterial({
+        color: 0x050a14,
+        roughness: 0.9,
+        metalness: 0.2
+      });
+      const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+      floorMesh.rotation.x = -Math.PI / 2;
+      floorMesh.position.y = -0.50;
+      scene.add(floorMesh);
+
+      const tileRows = 16;
+      const tileCols = 16;
+      const tileCount = tileRows * tileCols;
+      const tileGeo = new THREE.BoxGeometry(0.24, 0.012, 0.14);
+      const tileMat = new THREE.MeshStandardMaterial({
+        color: 0x00221a,
+        emissive: 0x00ffaa,
+        emissiveIntensity: 0.10,
+        roughness: 0.6
+      });
+      const tileInstanced = new THREE.InstancedMesh(tileGeo, tileMat, tileCount);
+      const tileDummy = new THREE.Object3D();
+      let tileIdx = 0;
+      for (let r = 0; r < tileRows; r++) {
+        for (let c = 0; c < tileCols; c++) {
+          const x = (c - (tileCols - 1) / 2) * 0.38;
+          const z = (r - (tileRows - 1) / 2) * 0.38;
+          tileDummy.position.set(x, -0.49, z);
+          tileDummy.updateMatrix();
+          tileInstanced.setMatrixAt(tileIdx++, tileDummy.matrix);
+        }
+      }
+      scene.add(tileInstanced);
+
+      // Quadrant Laser Dividers on Floor (Cyan glowing coordinate crosshair)
+      const laserMat = new THREE.LineBasicMaterial({ color: 0x35c5d5, transparent: true, opacity: 0.45 });
+      const geomX = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(-4.5, -0.485, 0),
+        new THREE.Vector3(4.5, -0.485, 0)
+      ]);
+      const geomZ = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(0, -0.485, -4.5),
+        new THREE.Vector3(0, -0.485, 4.5)
+      ]);
+      scene.add(new THREE.Line(geomX, laserMat));
+      scene.add(new THREE.Line(geomZ, laserMat));
+
+      // Outer Holographic Room Border Wireframe
+      const roomBoxGeo = new THREE.BoxGeometry(9.0, 3.2, 9.0);
+      const roomEdges = new THREE.EdgesGeometry(roomBoxGeo);
+      const roomBoxMat = new THREE.LineBasicMaterial({ color: 0x1f344d, transparent: true, opacity: 0.4 });
+      const roomWireframe = new THREE.LineSegments(roomEdges, roomBoxMat);
+      roomWireframe.position.set(0, 1.1, 0);
+      scene.add(roomWireframe);
+
+      // 6. Central RX Host Node & RF Wave Shells
+      const rxBaseGeo = new THREE.CylinderGeometry(0.32, 0.36, 0.16, 24);
+      const rxBaseMat = new THREE.MeshStandardMaterial({ color: 0x111c2a, metalness: 0.7, roughness: 0.3 });
+      const rxBase = new THREE.Mesh(rxBaseGeo, rxBaseMat);
+      rxBase.position.set(0, -0.42, 0);
+      scene.add(rxBase);
+
+      const rxAntennaGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.48, 12);
+      const rxAntennaMat = new THREE.MeshBasicMaterial({ color: 0x35c5d5 });
+      const rxAntenna = new THREE.Mesh(rxAntennaGeo, rxAntennaMat);
+      rxAntenna.position.set(0, -0.12, 0);
+      scene.add(rxAntenna);
+
+      const rxGlowBeaconGeo = new THREE.SphereGeometry(0.05, 16, 16);
+      const rxGlowBeaconMat = new THREE.MeshBasicMaterial({ color: 0x00f2fe });
+      const rxGlowBeacon = new THREE.Mesh(rxGlowBeaconGeo, rxGlowBeaconMat);
+      rxGlowBeacon.position.set(0, 0.12, 0);
+      scene.add(rxGlowBeacon);
+
+      // Concentric Blue RF Wireframe Hemispherical Wave Shells
+      const blueShells = [];
+      const shellRadii = [0.8, 1.6, 2.5, 3.5, 4.6];
+      for (let i = 0; i < shellRadii.length; i++) {
+        const r = shellRadii[i];
+        const sGeo = new THREE.SphereGeometry(r, 26, 13, 0, Math.PI * 2, 0, Math.PI * 0.75);
+        const sMat = new THREE.MeshBasicMaterial({
+          color: 0x1f75fe,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.28 - i * 0.04,
+          depthWrite: false
+        });
+        const sMesh = new THREE.Mesh(sGeo, sMat);
+        sMesh.position.set(0, -0.48, 0);
+        scene.add(sMesh);
+        blueShells.push({ mesh: sMesh, baseR: r, index: i });
+      }
+
+      // 7. Four TX Node Telemetry Pillars (TX1 NE, TX2 NW, TX3 SW, TX4 SE)
+      const txCoords = [
+        { id: 'TX1', zone: 'Z1', x: 2.2, z: -2.2, color: 0x35c5d5 },
+        { id: 'TX2', zone: 'Z2', x: -2.2, z: -2.2, color: 0x35c5d5 },
+        { id: 'TX3', zone: 'Z3', x: -2.2, z: 2.2, color: 0x35c5d5 },
+        { id: 'TX4', zone: 'Z4', x: 2.2, z: 2.2, color: 0x35c5d5 }
+      ];
+
+      txCoords.forEach(tx => {
+        // Pedestal
+        const pedGeo = new THREE.CylinderGeometry(0.12, 0.15, 0.75, 16);
+        const pedMat = new THREE.MeshStandardMaterial({ color: 0x152233, metalness: 0.5, roughness: 0.4 });
+        const ped = new THREE.Mesh(pedGeo, pedMat);
+        ped.position.set(tx.x, -0.125, tx.z);
+        scene.add(ped);
+
+        // Glowing Antenna Tip
+        const tipGeo = new THREE.ConeGeometry(0.08, 0.22, 16);
+        const tipMat = new THREE.MeshBasicMaterial({ color: 0x35c5d5 });
+        const tip = new THREE.Mesh(tipGeo, tipMat);
+        tip.position.set(tx.x, 0.35, tx.z);
+        scene.add(tip);
+
+        // RF mesh ray connecting to central RX
+        const linkGeom = new THREE.BufferGeometry().setFromPoints([
+          new THREE.Vector3(tx.x, -0.05, tx.z),
+          new THREE.Vector3(0, -0.05, 0)
+        ]);
+        const linkMat = new THREE.LineBasicMaterial({
+          color: 0x35c5d5,
+          transparent: true,
+          opacity: 0.28
+        });
+        const linkLine = new THREE.Line(linkGeom, linkMat);
+        scene.add(linkLine);
+      });
+
+      // 8. Human Radiation Avatar Generator
+      function createHumanAvatar(theme = 'green') {
+        const isGreen = (theme === 'green');
+        const group = new THREE.Group();
+        group.position.set(0, -0.49, 0);
+
+        const jointColor = isGreen ? 0xff2a48 : 0xff2a7a;
+        const coreColor = isGreen ? 0x66ffaa : 0x77eeff;
+        const auraColor = isGreen ? 0x00ff66 : 0x00e5ff;
+        const glowColor = isGreen ? 0x05ff77 : 0x00c8ff;
+
+        const jointMat = new THREE.MeshBasicMaterial({ color: jointColor, transparent: true, opacity: 0.95 });
+        const boneMat = new THREE.LineBasicMaterial({ color: jointColor, transparent: true, opacity: 0.85 });
+        const coreMat = new THREE.MeshBasicMaterial({ color: coreColor, transparent: true, opacity: 0.85, depthWrite: false });
+        const auraMat = new THREE.MeshBasicMaterial({
+          color: auraColor,
+          transparent: true,
+          opacity: 0.70,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        const outerGlowMat = new THREE.MeshBasicMaterial({
+          color: glowColor,
+          transparent: true,
+          opacity: 0.32,
+          blending: THREE.AdditiveBlending,
+          side: THREE.BackSide,
+          depthWrite: false
+        });
+
+        const trackedMats = [jointMat, boneMat, coreMat, auraMat, outerGlowMat];
+
+        const joints = {
+          head: new THREE.Vector3(0, 1.62, 0),
+          neck: new THREE.Vector3(0, 1.44, 0),
+          chest: new THREE.Vector3(0, 1.20, 0),
+          pelvis: new THREE.Vector3(0, 0.88, 0),
+          shoulderL: new THREE.Vector3(-0.24, 1.38, 0),
+          shoulderR: new THREE.Vector3(0.24, 1.38, 0),
+          elbowL: new THREE.Vector3(-0.31, 1.05, 0.04),
+          elbowR: new THREE.Vector3(0.31, 1.05, 0.04),
+          handL: new THREE.Vector3(-0.34, 0.74, 0.10),
+          handR: new THREE.Vector3(0.34, 0.74, 0.10),
+          hipL: new THREE.Vector3(-0.14, 0.84, 0),
+          hipR: new THREE.Vector3(0.14, 0.84, 0),
+          kneeL: new THREE.Vector3(-0.16, 0.44, 0.03),
+          kneeR: new THREE.Vector3(0.16, 0.44, 0.03),
+          footL: new THREE.Vector3(-0.18, 0.04, 0),
+          footR: new THREE.Vector3(0.18, 0.04, 0)
+        };
+
+        const jointGeo = new THREE.SphereGeometry(0.042, 14, 14);
+        Object.values(joints).forEach(pos => {
+          const mesh = new THREE.Mesh(jointGeo, jointMat);
+          mesh.position.copy(pos);
+          group.add(mesh);
+        });
+
+        const bonePairs = [
+          ['head', 'neck'], ['neck', 'chest'], ['chest', 'pelvis'],
+          ['neck', 'shoulderL'], ['neck', 'shoulderR'],
+          ['shoulderL', 'elbowL'], ['elbowL', 'handL'],
+          ['shoulderR', 'elbowR'], ['elbowR', 'handR'],
+          ['pelvis', 'hipL'], ['pelvis', 'hipR'],
+          ['hipL', 'kneeL'], ['kneeL', 'footL'],
+          ['hipR', 'kneeR'], ['kneeR', 'footR']
+        ];
+        bonePairs.forEach(([j1, j2]) => {
+          const p1 = joints[j1];
+          const p2 = joints[j2];
+          const geom = new THREE.BufferGeometry().setFromPoints([p1, p2]);
+          group.add(new THREE.Line(geom, boneMat));
+        });
+
+        function addCapsule(p1, p2, radius, mat) {
+          const dir = new THREE.Vector3().subVectors(p2, p1);
+          const len = dir.length();
+          const halfLen = Math.max(0.01, len - radius * 2);
+          const capGeo = new THREE.CapsuleGeometry(radius, halfLen, 8, 12);
+          const mesh = new THREE.Mesh(capGeo, mat);
+          mesh.position.copy(new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5));
+          const up = new THREE.Vector3(0, 1, 0);
+          const rotAxis = new THREE.Vector3().crossVectors(up, dir.clone().normalize());
+          if (rotAxis.lengthSq() > 0.001) {
+            const angle = Math.acos(up.dot(dir.clone().normalize()));
+            mesh.quaternion.setFromAxisAngle(rotAxis.normalize(), angle);
+          }
+          group.add(mesh);
+          return mesh;
+        }
+
+        // Torso Volumetric Radiation Layers
+        const torsoCore = new THREE.Mesh(new THREE.CapsuleGeometry(0.15, 0.42, 10, 14), coreMat);
+        torsoCore.position.set(0, 1.15, 0);
+        group.add(torsoCore);
+
+        const torsoAura = new THREE.Mesh(new THREE.CapsuleGeometry(0.23, 0.48, 10, 14), auraMat);
+        torsoAura.position.set(0, 1.15, 0);
+        group.add(torsoAura);
+
+        const torsoOuter = new THREE.Mesh(new THREE.CapsuleGeometry(0.30, 0.54, 10, 14), outerGlowMat);
+        torsoOuter.position.set(0, 1.15, 0);
+        group.add(torsoOuter);
+
+        // Head Layers
+        const headCore = new THREE.Mesh(new THREE.SphereGeometry(0.11, 14, 14), coreMat);
+        headCore.position.copy(joints.head);
+        group.add(headCore);
+
+        const headAura = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 14), auraMat);
+        headAura.position.copy(joints.head);
+        group.add(headAura);
+
+        // Limbs Radiation Layers
+        addCapsule(joints.shoulderL, joints.elbowL, 0.065, auraMat);
+        addCapsule(joints.elbowL, joints.handL, 0.055, auraMat);
+        addCapsule(joints.shoulderR, joints.elbowR, 0.065, auraMat);
+        addCapsule(joints.elbowR, joints.handR, 0.055, auraMat);
+
+        addCapsule(joints.hipL, joints.kneeL, 0.075, auraMat);
+        addCapsule(joints.kneeL, joints.footL, 0.065, auraMat);
+        addCapsule(joints.hipR, joints.kneeR, 0.075, auraMat);
+        addCapsule(joints.kneeR, joints.footR, 0.065, auraMat);
+
+        // Floating Ascending Energy Particles
+        const pCount = 65;
+        const pGeo = new THREE.BufferGeometry();
+        const pPos = new Float32Array(pCount * 3);
+        const pVels = [];
+        for (let i = 0; i < pCount; i++) {
+          const theta = Math.random() * Math.PI * 2;
+          const rad = 0.18 + Math.random() * 0.42;
+          pPos[i * 3] = Math.cos(theta) * rad;
+          pPos[i * 3 + 1] = 0.1 + Math.random() * 1.6;
+          pPos[i * 3 + 2] = Math.sin(theta) * rad;
+          pVels.push({
+            speedY: 0.005 + Math.random() * 0.012,
+            angle: theta,
+            radius: rad,
+            rotSpeed: (Math.random() - 0.5) * 0.03
+          });
+        }
+        pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+        const pMat = new THREE.PointsMaterial({
+          color: auraColor,
+          size: 0.042,
+          transparent: true,
+          opacity: 0.75,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        });
+        trackedMats.push(pMat);
+        trackedMats.forEach(m => { m.userData.baseOpacity = m.opacity; });
+
+        const pSystem = new THREE.Points(pGeo, pMat);
+        group.add(pSystem);
+        group.visible = false;
+
+        return {
+          group,
+          materials: trackedMats,
+          particleSystem: pSystem,
+          particleVels: pVels,
+          particleCount: pCount,
+          currentOpacity: 0.0,
+          targetOpacity: 0.0,
+          targetPos: new THREE.Vector3(0, -0.49, 0)
+        };
+      }
+
+      const avatarP1 = createHumanAvatar('green');
+      scene.add(avatarP1.group);
+
+      const avatarP2 = createHumanAvatar('cyan');
+      scene.add(avatarP2.group);
+
+      // 9. Ghost Blip (Holographic amber wireframe for transient false detection blips)
+      const ghostGeo = new THREE.SphereGeometry(0.35, 16, 16);
+      const ghostMat = new THREE.MeshBasicMaterial({
+        color: 0xe6ac55,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending
+      });
+      const ghostMesh = new THREE.Mesh(ghostGeo, ghostMat);
+      ghostMesh.position.set(0, 0.5, 0);
+      ghostMesh.visible = false;
+      scene.add(ghostMesh);
+
+      // Coordinate mapper: 2D SVG space (0..400) to 3D room coordinates
+      function coords2Dto3D(x, y, fallbackZone) {
+        if (x !== undefined && y !== undefined) {
+          return {
+            x: (x - 200) / 78.0,
+            z: (y - 200) / 78.0
+          };
+        }
+        switch (fallbackZone) {
+          case 'Z1': return { x: 1.5, z: -1.5 }; // NE
+          case 'Z2': return { x: -1.5, z: -1.5 }; // NW
+          case 'Z3': return { x: -1.5, z: 1.5 }; // SW
+          case 'Z4': return { x: 1.5, z: 1.5 }; // SE
+          default: return { x: 0, z: 0 };
+        }
+      }
+
+      // 10. Global Spatial3D Controller Interface
+      window.Spatial3D = {
+        update(data) {
+          if (!data) return;
+
+          const currentT = (data.time_offset !== undefined)
+            ? data.time_offset
+            : ((STATE && STATE.replayFrames && STATE.replayFrames[STATE.replayCurrentIndex])
+                ? (STATE.replayFrames[STATE.replayCurrentIndex].time_offset || 0) : 0);
+
+          const isBlinkDropout = (currentT >= 22.4 && currentT <= 22.8) || (currentT >= 66.1 && currentT <= 66.5);
+
+          // Update Avatars
+          if (data.people && data.people.length > 0) {
+            data.people.forEach((p, idx) => {
+              const targetAvatar = (p.id === 'P1' || idx === 0) ? avatarP1 : avatarP2;
+              let targetZone = p.zone;
+              let isGlitch = false;
+
+              // Synchronized transient false zone classification blips
+              if (p.id === 'P1' && currentT >= 21.4 && currentT <= 21.8) {
+                targetZone = 'Z2'; isGlitch = true;
+              } else if (p.id === 'P1' && currentT >= 37.0 && currentT <= 37.4) {
+                targetZone = 'Z4'; isGlitch = true;
+              } else if ((p.id === 'P2' || idx === 1) && currentT >= 63.6 && currentT <= 64.0) {
+                targetZone = 'Z1'; isGlitch = true;
+              } else if ((p.id === 'P2' || idx === 1) && currentT >= 77.4 && currentT <= 77.8) {
+                targetZone = 'Z2'; isGlitch = true;
+              }
+
+              const c3d = isGlitch
+                ? coords2Dto3D(undefined, undefined, targetZone)
+                : coords2Dto3D(p.x, p.y, targetZone);
+
+              targetAvatar.targetPos.set(c3d.x, -0.49, c3d.z);
+              targetAvatar.targetOpacity = isBlinkDropout ? 0.22 : (isGlitch ? 0.90 : 1.0);
+            });
+
+            if (data.people.length < 2) {
+              avatarP2.targetOpacity = 0.0;
+            }
+          } else {
+            avatarP1.targetOpacity = 0.0;
+            avatarP2.targetOpacity = 0.0;
+          }
+
+          // Ghost detection blips
+          if ((currentT >= 24.2 && currentT <= 24.7)) {
+            // Ghost in Z3 (SW)
+            ghostMesh.visible = true;
+            ghostMat.opacity = 0.65;
+            ghostMesh.position.set(-1.6, 0.4, 1.6);
+          } else if ((currentT >= 62.0 && currentT <= 62.5)) {
+            // Ghost in Z1 (NE)
+            ghostMesh.visible = true;
+            ghostMat.opacity = 0.65;
+            ghostMesh.position.set(1.6, 0.4, -1.6);
+          } else {
+            ghostMesh.visible = false;
+            ghostMat.opacity = 0.0;
+          }
+        },
+
+        resize() {
+          if (!container || !renderer || !camera) return;
+          const w = container.clientWidth || 400;
+          const h = container.clientHeight || 380;
+          if (w > 0 && h > 0) {
+            camera.aspect = w / h;
+            camera.updateProjectionMatrix();
+            renderer.setSize(w, h);
+          }
+        }
+      };
+
+      // Auto-resize on wrapper container resize
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => {
+          window.Spatial3D.resize();
+        });
+        ro.observe(container);
+      }
+      window.addEventListener('resize', () => { window.Spatial3D.resize(); });
+
+      // 11. Main Render & Animation Loop
+      const clock = new THREE.Clock();
+      function animate() {
+        requestAnimationFrame(animate);
+        const t = clock.getElapsedTime();
+
+        if (controls) controls.update();
+
+        // Smooth Lerp & Breathing for Avatars
+        [avatarP1, avatarP2].forEach((av, i) => {
+          av.currentOpacity += (av.targetOpacity - av.currentOpacity) * 0.08;
+          if (av.currentOpacity < 0.005) {
+            av.group.visible = false;
+          } else {
+            av.group.visible = true;
+            av.materials.forEach(m => {
+              if (m.userData.baseOpacity !== undefined) {
+                m.opacity = m.userData.baseOpacity * av.currentOpacity;
+              }
+            });
+          }
+
+          // Smooth Position Lerp
+          av.group.position.lerp(av.targetPos, 0.07);
+
+          // Natural Respiration Breathing Pulse (12-14 breaths/min)
+          const breath = 1.0 + 0.024 * Math.sin(t * 1.8 + i * 1.2);
+          av.group.scale.set(breath, breath, breath);
+
+          // Radiation Particles Ascending and Orbiting
+          const posArr = av.particleSystem.geometry.attributes.position.array;
+          for (let j = 0; j < av.particleCount; j++) {
+            const vel = av.particleVels[j];
+            vel.angle += vel.rotSpeed;
+            posArr[j * 3] = Math.cos(vel.angle) * vel.radius;
+            posArr[j * 3 + 1] += vel.speedY;
+            posArr[j * 3 + 2] = Math.sin(vel.angle) * vel.radius;
+            if (posArr[j * 3 + 1] > 1.85) {
+              posArr[j * 3 + 1] = 0.05;
+            }
+          }
+          av.particleSystem.geometry.attributes.position.needsUpdate = true;
+        });
+
+        // Concentric RF Wave Shells outward pulse
+        blueShells.forEach(s => {
+          const pulse = 1.0 + 0.03 * Math.sin(t * 2.4 - s.index * 0.75);
+          s.mesh.scale.set(pulse, pulse, pulse);
+        });
+
+        // Central RX beacon blink
+        rxGlowBeaconMat.color.setHex((Math.sin(t * 4.0) > 0) ? 0x00f2fe : 0x0088cc);
+
+        // Dynamic Point Lights intensity and positioning
+        p1PointLight.position.copy(avatarP1.group.position).add(new THREE.Vector3(0, 1.1, 0));
+        p1PointLight.intensity = avatarP1.currentOpacity * 2.6;
+
+        p2PointLight.position.copy(avatarP2.group.position).add(new THREE.Vector3(0, 1.1, 0));
+        p2PointLight.intensity = avatarP2.currentOpacity * 2.6;
+
+        // Ghost shimmer animation
+        if (ghostMesh.visible) {
+          const gScale = 1.0 + 0.12 * Math.sin(t * 8.0);
+          ghostMesh.scale.set(gScale, gScale, gScale);
+        }
+
+        // Dynamic floor tile emissive illumination
+        tileMat.emissiveIntensity = 0.10 + (avatarP1.currentOpacity + avatarP2.currentOpacity) * 0.22;
+
+        renderer.render(scene, camera);
+      }
+
+      animate();
+      setTimeout(() => { window.Spatial3D.resize(); }, 100);
+    })();
   </script>
 </body>
 </html>
