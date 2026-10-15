@@ -1,21 +1,21 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title WiMotion 2.0 — Multi-Link RF Spatial Sensing & Occupancy Engine
+title WiMotion 2.0 -- Multi-Link RF Spatial Sensing ^& Occupancy Engine
 
 :MENU
 cls
 echo ==============================================================================
 echo              WiMotion 2.0 (Wi-CaL Multi-Link Sensing Edition)
-echo       Tactical RF Multi-Person Occupancy & Spatial Sector Observatory
+echo       Tactical RF Multi-Person Occupancy ^& Spatial Sector Observatory
 echo ==============================================================================
 echo.
 echo   [1] Run Multi-Link Unit Tests (test_spatial.py)
-echo   [2] Run Synthetic 3-Stage Replay (0 -> 1 -> 2 Persons Simulation)
-echo   [3] Hardware Diagnostics & Auto-Discovery (Scans COM ports & TX MACs)
+echo   [2] Run Synthetic 3-Stage Replay (0 -^> 1 -^> 2 Persons Simulation)
+echo   [3] Hardware Diagnostics ^& Auto-Discovery (Scans COM ports ^& TX MACs)
 echo   [4] Start Live Multi-Person HUD Server (FastAPI @ http://127.0.0.1:8000)
 echo   [5] Record Multi-Link Training Dataset Session
-echo   [6] ESP32 Firmware Management (Clone & Flash Boards)
+echo   [6] ESP32 Firmware Management (Clone ^& Flash Boards)
 echo   [7] Exit
 echo.
 echo ==============================================================================
@@ -59,12 +59,8 @@ echo.
 echo [*] Enabling Live Hardware Serial Engine...
 set WIMOTION_ENABLE_SERIAL=1
 set WIMOTION_AUTO_OPEN_BROWSER=1
-echo [*] Checking if port 8000 is already in use...
-for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING') do (
-    echo [!] Found existing process on port 8000 (PID: %%a). Releasing port...
-    taskkill /F /PID %%a >nul 2>&1
-)
-timeout /t 1 /nobreak >nul
+echo [*] Ensuring port 8000 is available...
+py -3.10 scripts/free_port_8000.py
 echo [*] Starting WiMotion 2.0 HUD Server...
 echo [*] Observatory dashboard will open automatically in browser once server is ready: http://127.0.0.1:8000
 py -3.10 -m uvicorn spatial.server:app --host 127.0.0.1 --port 8000
