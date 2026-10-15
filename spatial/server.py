@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from .types import SpatialState
 from .live import LiveSpatialEngine
@@ -133,6 +134,12 @@ async def lifespan(app_instance: FastAPI):
 
 
 app = FastAPI(title="WiMotion 2.0 Multi-Link Spatial API", version="2.0.0", lifespan=lifespan)
+
+# Mount local vendor assets (Three.js and OrbitControls)
+VENDOR_PATH = DASHBOARD_PATH.parent / "vendor"
+if VENDOR_PATH.exists():
+    app.mount("/vendor", StaticFiles(directory=str(VENDOR_PATH)), name="vendor")
+    app.mount("/dashboard/vendor", StaticFiles(directory=str(VENDOR_PATH)), name="dashboard_vendor")
 
 # Allow CORS for local development, dashboard origin, and file:// protocol
 app.add_middleware(
