@@ -76,6 +76,10 @@ def compute_metrics(
     # Undefined if no actual negative examples exist in ground truth (TN + FP == 0)
     specificity = (tn / (tn + fp)) * 100.0 if (tn + fp) > 0 else None
 
+    # False Positive Rate (FPR) = FP / (FP + TN) = 100% - Specificity
+    # Undefined if no actual negative examples exist in ground truth (TN + FP == 0)
+    fpr = (fp / (tn + fp)) * 100.0 if (tn + fp) > 0 else None
+
     # F1 Score
     if precision is not None and recall is not None and (precision + recall) > 0:
         f1 = (2 * precision * recall) / (precision + recall)
@@ -91,6 +95,8 @@ def compute_metrics(
         "precision_pct": round(precision, 2) if precision is not None else None,
         "recall_pct": round(recall, 2) if recall is not None else None,
         "specificity_pct": round(specificity, 2) if specificity is not None else None,
+        "fpr_pct": round(fpr, 2) if fpr is not None else None,
+        "false_positive_rate_pct": round(fpr, 2) if fpr is not None else None,
         "f1_pct": round(f1, 2) if f1 is not None else None,
         "tp": tp,
         "fp": fp,
@@ -123,9 +129,11 @@ def evaluate_session(session_id: str, adapter: V1PresenceModelAdapter) -> Option
     if total_frames == 0:
         return None
 
+    from collections import defaultdict
     v2_tp = v2_fp = v2_tn = v2_fn = 0
     v1_tp = v1_fp = v1_tn = v1_fn = 0
     v1_invalid_windows = 0
+    per_link_counts = defaultdict(lambda: {"tp": 0, "fp": 0, "tn": 0, "fn": 0, "invalid": 0})
     zone_hits = 0
     rates = []
 
@@ -168,21 +176,50 @@ def evaluate_session(session_id: str, adapter: V1PresenceModelAdapter) -> Option
             # DO NOT silently convert to empty_room!
             # Track as invalid / unclassified window.
             v1_invalid_windows += 1
-            continue
-
-        if expected_presence == "human_present":
-            if v1_pred == "human_present":
-                v1_tp += 1
-            else:
-                v1_fn += 1
         else:
-            if v1_pred == "human_present":
-                v1_fp += 1
+            if expected_presence == "human_present":
+                if v1_pred == "human_present":
+                    v1_tp += 1
+                else:
+                    v1_fn += 1
             else:
-                v1_tn += 1
+                if v1_pred == "human_present":
+                    v1_fp += 1
+                else:
+                    v1_tn += 1
+
+        # ----------------------------------------------------------------------
+        # 3. Independent Per-Link V1 Presence Evaluation (Phase 5 Verification)
+        # ----------------------------------------------------------------------
+        link_dict = v1_info.get("per_link_results", {})
+        for link_id, l_res in link_dict.items():
+            if not isinstance(l_res, dict):
+                continue
+            l_avail = l_res.get("available", False)
+            l_pred = l_res.get("prediction")
+            if not l_avail or l_pred not in ["human_present", "empty_room"]:
+                per_link_counts[link_id]["invalid"] += 1
+                continue
+            if expected_presence == "human_present":
+                if l_pred == "human_present":
+                    per_link_counts[link_id]["tp"] += 1
+                else:
+                    per_link_counts[link_id]["fn"] += 1
+            else:
+                if l_pred == "human_present":
+                    per_link_counts[link_id]["fp"] += 1
+                else:
+                    per_link_counts[link_id]["tn"] += 1
 
     v2_metrics = compute_metrics(v2_tp, v2_fp, v2_tn, v2_fn)
     v1_metrics = compute_metrics(v1_tp, v1_fp, v1_tn, v1_fn, invalid_windows=v1_invalid_windows)
+    
+    per_link_metrics = {}
+    for link_id, cnt in sorted(per_link_counts.items()):
+        per_link_metrics[link_id] = compute_metrics(
+            cnt["tp"], cnt["fp"], cnt["tn"], cnt["fn"], invalid_windows=cnt["invalid"]
+        )
+
     avg_rate = round(float(np.mean(rates)), 1) if rates else 0.0
 
     return {
@@ -196,6 +233,7 @@ def evaluate_session(session_id: str, adapter: V1PresenceModelAdapter) -> Option
         "avg_rate_hz": avg_rate,
         "v2_spatial": v2_metrics,
         "v1_ml_model": v1_metrics,
+        "per_link_metrics": per_link_metrics,
         "zone_hit_rate_pct": round(zone_hits / max(1, total_frames) * 100.0, 2)
     }
 
@@ -276,6 +314,10 @@ def main():
                 print(f"    Matrix:            TP={m['tp']}, FP={m['fp']}, TN={m['tn']}, FN={m['fn']} (Valid={m['valid_windows']}, Invalid={m['invalid_windows']})")
                 print(f"  [Spatial Baseline (Wi-CaL Heuristic)]")
                 print(f"    Accuracy:          {format_metric(sp['valid_accuracy_pct'])} | Zone Hits: {res['zone_hit_rate_pct']}%")
+                if res.get("per_link_metrics"):
+                    print(f"  [Per-Link V1 Presence Breakdown]")
+                    for lk, lm in res["per_link_metrics"].items():
+                        print(f"    - {lk:8s} | Acc: {format_metric(lm['valid_accuracy_pct']):8s} | Cov: {format_metric(lm['coverage_pct']):7s} | Rec: {format_metric(lm['recall_pct']):7s} | Spec: {format_metric(lm['specificity_pct']):7s} | FPR: {format_metric(lm['fpr_pct']):7s} | F1: {format_metric(lm['f1_pct']):7s} | TP={lm['tp']}, FP={lm['fp']}, TN={lm['tn']}, FN={lm['fn']}")
 
     # Aggregate Track A (Combined Single-Link Hardware Evaluation)
     ho_empty = evaluated_records.get("held_out_empty_01")
@@ -325,8 +367,8 @@ def main():
         "> Note on Zero-Denominator Metrics: For sessions with 0 actual ground truth positives (pure Empty Room), Recall is mathematically Undefined (`N/A`). For sessions with 0 actual negatives, Specificity is Undefined (`N/A`).",
         "> Valid Accuracy is computed strictly over classified windows (`valid_windows`); Coverage reports the classified window percentage.",
         "",
-        "| Session ID | Provenance | Total Windows | Valid / Invalid | Coverage | Valid ML Accuracy | Conservative All-Window | ML Precision | ML Recall | ML Specificity | ML F1 | TP / FP / TN / FN |",
-        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
+        "| Session ID | Provenance | Total Windows | Valid / Invalid | Coverage | Valid ML Accuracy | Conservative All-Window | ML Precision | ML Recall | ML Specificity | ML FPR | ML F1 | TP / FP / TN / FN |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
     ]
 
     for s_id in held_out_sessions:
@@ -334,17 +376,36 @@ def main():
         if r:
             m = r["v1_ml_model"]
             lines.append(
-                f"| `{s_id}` | `{r['source_type']}` | {r['total_windows']} | {m['valid_windows']} / {m['invalid_windows']} | {format_metric(m['coverage_pct'])} | {format_metric(m['valid_accuracy_pct'])} | {format_metric(m['all_window_accuracy_pct'])} | {format_metric(m['precision_pct'])} | {format_metric(m['recall_pct'])} | {format_metric(m['specificity_pct'])} | {format_metric(m['f1_pct'])} | {m['tp']} / {m['fp']} / {m['tn']} / {m['fn']} |"
+                f"| `{s_id}` | `{r['source_type']}` | {r['total_windows']} | {m['valid_windows']} / {m['invalid_windows']} | {format_metric(m['coverage_pct'])} | {format_metric(m['valid_accuracy_pct'])} | {format_metric(m['all_window_accuracy_pct'])} | {format_metric(m['precision_pct'])} | {format_metric(m['recall_pct'])} | {format_metric(m['specificity_pct'])} | {format_metric(m['fpr_pct'])} | {format_metric(m['f1_pct'])} | {m['tp']} / {m['fp']} / {m['tn']} / {m['fn']} |"
             )
 
     if combined_held_out_ml:
         lines.append(
-            f"| **COMBINED TRACK A** | **hardware_single_link** | **{combined_held_out_ml['total_windows']}** | **{combined_held_out_ml['valid_windows']} / {combined_held_out_ml['invalid_windows']}** | **{format_metric(combined_held_out_ml['coverage_pct'])}** | **{format_metric(combined_held_out_ml['valid_accuracy_pct'])}** | **{format_metric(combined_held_out_ml['all_window_accuracy_pct'])}** | **{format_metric(combined_held_out_ml['precision_pct'])}** | **{format_metric(combined_held_out_ml['recall_pct'])}** | **{format_metric(combined_held_out_ml['specificity_pct'])}** | **{format_metric(combined_held_out_ml['f1_pct'])}** | **{combined_held_out_ml['tp']} / {combined_held_out_ml['fp']} / {combined_held_out_ml['tn']} / {combined_held_out_ml['fn']}** |"
+            f"| **COMBINED TRACK A** | **hardware_single_link** | **{combined_held_out_ml['total_windows']}** | **{combined_held_out_ml['valid_windows']} / {combined_held_out_ml['invalid_windows']}** | **{format_metric(combined_held_out_ml['coverage_pct'])}** | **{format_metric(combined_held_out_ml['valid_accuracy_pct'])}** | **{format_metric(combined_held_out_ml['all_window_accuracy_pct'])}** | **{format_metric(combined_held_out_ml['precision_pct'])}** | **{format_metric(combined_held_out_ml['recall_pct'])}** | **{format_metric(combined_held_out_ml['specificity_pct'])}** | **{format_metric(combined_held_out_ml['fpr_pct'])}** | **{format_metric(combined_held_out_ml['f1_pct'])}** | **{combined_held_out_ml['tp']} / {combined_held_out_ml['fp']} / {combined_held_out_ml['tn']} / {combined_held_out_ml['fn']}** |"
         )
+
+    # Section 3: Per-Link Evaluation Breakdown (Phase 5 Verification)
+    lines.extend([
+        "",
+        "## 3. Phase 5: Per-Link Presence Model Evaluation Breakdown",
+        "",
+        "> [!IMPORTANT]",
+        "> As established by the scientific audit, each physical RX-TX wireless link experiences unique multipath, antenna orientations, and propagation characteristics. Evaluating the V1 presence model independently per physical link ensures we do not assume uniform link performance across the multi-link mesh.",
+        "",
+        "| Session ID | Link ID | Total Windows | Valid / Invalid | Coverage | Valid Accuracy | Recall | Specificity | False Positive Rate | F1 Score | Confusion Matrix |",
+        "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
+    ])
+
+    for s_id, r in evaluated_records.items():
+        per_links = r.get("per_link_metrics", {})
+        for lk, lm in per_links.items():
+            lines.append(
+                f"| `{s_id}` | `{lk}` | {lm['total_windows']} | {lm['valid_windows']} / {lm['invalid_windows']} | {format_metric(lm['coverage_pct'])} | {format_metric(lm['valid_accuracy_pct'])} | {format_metric(lm['recall_pct'])} | {format_metric(lm['specificity_pct'])} | {format_metric(lm['fpr_pct'])} | {format_metric(lm['f1_pct'])} | TP={lm['tp']}, FP={lm['fp']}, TN={lm['tn']}, FN={lm['fn']} |"
+            )
 
     lines.extend([
         "",
-        "## 3. Track B, C, D & E: Software Benchmarks, Imports, Synthetic, and Scripted Results",
+        "## 4. Track B, C, D & E: Software Benchmarks, Imports, Synthetic, and Scripted Results",
         "",
         "| Track | Session ID | Provenance | Total Windows | Valid / Invalid | Mean Rate | ML Valid Accuracy | Spatial Heuristic Accuracy | Zone Hit (%) | Notes |",
         "| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |"
@@ -374,7 +435,7 @@ def main():
 
     lines.extend([
         "",
-        "## 4. Scientific Disclosures & Limitations",
+        "## 5. Scientific Disclosures & Limitations",
         "",
         "1. **Actual ML Model vs. Spatial Heuristic**: The reported ML Presence metrics are calculated using the real `HistGradientBoostingClassifier` executing over the 217-feature extraction pipeline. Spatial sector localization is driven by the multi-link variance ratio heuristic (`SpatialBaseline`), not by an end-to-end multi-class learned spatial neural network.",
         "2. **Zero-Denominator & Undefined Metric Transparency**: For single-class evaluation sessions (e.g. Empty Room with 0 positive ground truth samples), Recall is mathematically Undefined (`N/A`) rather than an inflated 100%. Similarly, Specificity is Undefined for sessions with 0 negative samples.",

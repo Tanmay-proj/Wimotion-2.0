@@ -12,8 +12,10 @@ ENV/
 # Data & Models cache
 *.pkl
 !models/presence_model.pkl
+!models/spatial_model.pkl
 data/raw/*.csv
 data/models/*.pkl
+data/cache/
 
 # OS / Editor artifacts
 .DS_Store

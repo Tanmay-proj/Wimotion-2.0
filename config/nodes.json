@@ -1,11 +1,11 @@
 {
   "receivers": {
     "RX1": {
-      "port": "COM3",
+      "port": "COM8",
       "baud": 921600
     },
     "RX2": {
-      "port": "COM8",
+      "port": "COM9",
       "baud": 921600
     }
   },

@@ -55,8 +55,21 @@ def resample_to_uniform_grid(
 
 
 def smooth_window(arr: np.ndarray) -> np.ndarray:
-    """Causal temporal moving-average smoothing across CSI frames."""
-    return pd.DataFrame(arr).rolling(window=SMOOTHING_WINDOW, min_periods=1).mean().values
+    """Causal temporal moving-average smoothing across CSI frames using pure NumPy."""
+    n = len(arr)
+    if n <= 1:
+        return arr.copy()
+    if n == 2:
+        out = np.empty_like(arr)
+        out[0] = arr[0]
+        out[1] = (arr[0] + arr[1]) / 2.0
+        return out
+    cs = np.cumsum(arr, axis=0)
+    out = np.empty_like(arr)
+    out[0] = arr[0]
+    out[1] = (arr[0] + arr[1]) / 2.0
+    out[2:] = (cs[2:] - np.vstack([np.zeros((1, arr.shape[1])), cs[:-3]])) / 3.0
+    return out
 
 
 def compute_temporal_motion_power_spectrum(normalized_arr: np.ndarray) -> np.ndarray:
@@ -275,16 +288,16 @@ class V1PresenceModelAdapter:
         feats_2d = feats.reshape(1, -1)
 
         try:
-            pred_class = self.model.predict(feats_2d)[0]
             if hasattr(self.model, "predict_proba"):
                 probs = self.model.predict_proba(feats_2d)[0]
-                # Index of 'human_present'
                 if "human_present" in self.classes:
                     idx = self.classes.index("human_present")
                     p_present = float(probs[idx])
                 else:
                     p_present = float(probs[-1])
+                pred_class = self.classes[int(np.argmax(probs))] if (hasattr(self, "classes") and self.classes) else ("human_present" if p_present >= 0.5 else "empty_room")
             else:
+                pred_class = self.model.predict(feats_2d)[0]
                 p_present = 1.0 if pred_class == "human_present" else 0.0
 
             return {
@@ -360,3 +373,14 @@ class V1PresenceModelAdapter:
             "active_links_evaluated": len(presence_probs),
             "per_link_results": per_link_results
         }
+
+
+_V1_SINGLETON: Optional[V1PresenceModelAdapter] = None
+
+
+def get_v1_adapter() -> V1PresenceModelAdapter:
+    """Returns a process-wide singleton instance of the V1PresenceModelAdapter to avoid re-pickling."""
+    global _V1_SINGLETON
+    if _V1_SINGLETON is None:
+        _V1_SINGLETON = V1PresenceModelAdapter()
+    return _V1_SINGLETON

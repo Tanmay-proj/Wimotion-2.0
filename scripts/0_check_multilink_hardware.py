@@ -50,10 +50,15 @@ def audit_port(port: str, baud: int = 921600, duration: float = 6.0):
         ser = serial.Serial()
         ser.port = port
         ser.baudrate = baud
-        ser.timeout = 1.0
+        ser.timeout = 0.2
         ser.dtr = False
         ser.rts = False
         ser.open()
+        if hasattr(ser, "set_buffer_size"):
+            try:
+                ser.set_buffer_size(rx_size=65536, tx_size=8192)
+            except Exception:
+                pass
         ser.reset_input_buffer()
     except Exception as e:
         print(f"[!] Could not open {port}: {e}")
@@ -63,22 +68,45 @@ def audit_port(port: str, baud: int = 921600, duration: float = 6.0):
     packet_count = 0
     tx_counts = Counter()
     tx_rssis = defaultdict(list)
+    raw_buffer = bytearray()
 
     while time.time() - start < duration:
-        raw_bytes = ser.readline()
-        if not raw_bytes:
-            continue
         try:
-            line = raw_bytes.decode("ascii", errors="ignore").strip()
+            waiting = ser.in_waiting
+            if waiting > 0:
+                chunk = ser.read(min(waiting, 8192))
+            else:
+                chunk = ser.read(512)
         except Exception:
+            break
+
+        if not chunk:
+            time.sleep(0.002)
             continue
 
-        rec = parse_line(line, receiver_id=port)
-        if rec and rec.amplitudes:
-            packet_count += 1
-            tx_counts[rec.source_mac] += 1
-            if rec.rssi is not None:
-                tx_rssis[rec.source_mac].append(rec.rssi)
+        raw_buffer.extend(chunk)
+
+        while b'\n' in raw_buffer:
+            line_bytes, _, remaining = raw_buffer.partition(b'\n')
+            raw_buffer = bytearray(remaining)
+
+            try:
+                line = line_bytes.decode("ascii", errors="ignore").strip()
+            except Exception:
+                continue
+
+            if not line:
+                continue
+
+            rec = parse_line(line, receiver_id=port)
+            if rec and rec.amplitudes:
+                packet_count += 1
+                tx_counts[rec.source_mac] += 1
+                if rec.rssi is not None:
+                    tx_rssis[rec.source_mac].append(rec.rssi)
+
+        if len(raw_buffer) > 65536:
+            raw_buffer = raw_buffer[-16384:]
 
     ser.close()
     elapsed = time.time() - start

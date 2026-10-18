@@ -49,10 +49,12 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Sliding Window Buffer** | ✅ **Implemented** | 2.0s sliding window with 0.5s step (`spatial/window.py`) |
 | **Strict Mode Isolation** | ✅ **Implemented** | Authoritative separation between LIVE hardware, REPLAY lab, and SIMULATION (`spatial/server.py`) |
 | **Unified State Renderer** | ✅ **Implemented** | Consistent single-renderer driving metrics, 8-link mesh, timeline, and radar (`dashboard/observatory_multi.html`) |
-| **Automated Unit Tests** | ✅ **Passing (36/36 in CI)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts (missing model, cross-NumPy unpickling), benchmark generator metadata contract, zero-denominator metric safety, held-out session integrity, and rogue TX suppression resilience (`tests/test_spatial.py`) |
+| **Automated Unit Tests** | ✅ **Passing (39/39 in CI)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts (missing model, cross-NumPy unpickling), benchmark generator metadata contract, zero-denominator metric safety, per-link FPR evaluation, spatial model zero-leakage session split, recorder zones schema, and rogue TX suppression resilience (`tests/test_spatial.py`) |
 | **Colleague Audit Suite** | ✅ **Passing (6/6)** | Hardware coverage integrity, rate conservation, zero-sample link gating (`scripts/verify_six_checks.py`) |
+| **Dataset Provenance Audit** | ✅ **Complete (593 Sessions)** | Comprehensive audit distinguishing 32 genuine physical sessions from 560 activity benchmarks (`docs/DATASET_AUDIT_REPORT.md`) |
 | **V1 Model Adapter** | ✅ **Actively Integrated** | Real 217-feature extraction pipeline & HistGradientBoosting classifier (`presence_model.pkl`) called in Live and Replay (`spatial/v1_adapter.py`) |
-| **Session-Level Evaluation** | ✅ **Verified (81.25% Valid Acc)** | Untouched held-out single-link hardware validation with zero silent fallback, undefined metric safety (N/A for pure empty recall), and separate invalid window tracking (`scripts/evaluate_models.py`) |
+| **Per-Link Evaluation (Phase 5)** | ✅ **Verified Breakdown** | Evaluates V1 presence model independently per physical link, reporting accuracy, coverage, recall, specificity, and false-positive rate (`scripts/evaluate_models.py`) |
+| **Supervised Spatial Model (Phase 6)** | ✅ **Implemented & Benchmarked** | 56-dim multi-link feature space with session-wise splits (GroupShuffleSplit) preventing overlapping-window leakage, benchmarked alongside SpatialBaseline (`scripts/train_spatial_model.py`) |
 | **Public Dataset Adapters** | ✅ **Implemented** | ESP-Fi HAR, RF_ESP32, and WiCAL dataset adapters (`spatial/dataset_adapters/`) |
 | **Controlled Synthetic Augmentation** | ✅ **Implemented** | Physics-informed RF gain & Gaussian multipath perturbation with parent tracking (`spatial/augmentation.py`) |
 | **Hardware Inventory & Standby** | ⚠️ **4 Boards / Safe Standby** | 4 physical ESP32 boards in kit. Host USB-UART defaults to Safe Standby (Disconnected) to prevent Windows DPC Watchdog BSODs until live demo capture. |
@@ -62,25 +64,31 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 
 ## 3. Quickstart & Verification
 
-### 1. Run Automated Unit Tests (36 Tests) & 6-Point Audit Suite
+### 1. Run Automated Unit Tests (39 Tests) & 6-Point Audit Suite
 ```bash
 py -3.10 -m unittest discover -s tests -v
 py -3.10 scripts/verify_six_checks.py
 ```
-Both test suites verify all core engineering constraints: single-RX isolation, variance-rate independence, transactional mode rollback, zero telemetry leakage, rate formula equivalence, quality gating, v1 model 217-feature contract, rogue TX suppression resilience, and provenance integrity.
+Both test suites verify all core engineering constraints: single-RX isolation, variance-rate independence, transactional mode rollback, zero telemetry leakage, rate formula equivalence, quality gating, v1 model 217-feature contract, rogue TX suppression resilience, per-link FPR evaluation, and spatial training session-leakage prevention.
 
 ### 2. Multi-Model Evaluation & Scientific Evidence
 ```bash
 py -3.10 scripts/evaluate_models.py
 ```
-Regenerates `docs/EVALUATION_REPORT.md` across 5 distinct evaluation tracks:
+Regenerates `docs/EVALUATION_REPORT.md` across 5 distinct evaluation tracks and includes the Phase 5 Per-Link evaluation table:
 - **Track A:** Genuine Held-Out Single-Link Hardware Evaluation (`hardware_recorded_single_link`)
 - **Track B:** Generated Benchmark Regression Experiment (`synthetic_generated_benchmark`)
 - **Track C:** Unverified Public Benchmark Import Experiment (`unverified_import`)
 - **Track D:** Synthetic Augmentation Experiment (`synthetic_augmented`)
 - **Track E:** Scripted Presentation Scenario (`scripted_presentation`)
 
-### 3. Launch Tactical Console & Observatory Dashboard
+### 3. Supervised Spatial Model Training (Zero-Leakage Session Splits)
+```bash
+py -3.10 scripts/train_spatial_model.py
+```
+Trains a supervised classifier on the 56-dimensional multi-link feature space using session-wise splits to prevent temporal leakage, reporting both learned accuracy and baseline heuristic comparison.
+
+### 4. Launch Tactical Console & Observatory Dashboard
 Double-click `run_wimotion_2.0.bat` and select **Option [4]**, or run directly:
 ```bash
 py -3.10 -m uvicorn spatial.server:app --host 127.0.0.1 --port 8000
@@ -93,6 +101,7 @@ The browser will automatically open to [http://127.0.0.1:8000/](http://127.0.0.1
 
 Detailed guides and scientific deliverables are located in the `docs/` directory:
 - 📑 [System Architecture & Geometry Specification](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/ARCHITECTURE.md)
+- 📋 [Dataset Audit & Provenance Verification Report](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/DATASET_AUDIT_REPORT.md)
 - 🎯 [Presentation Day Demo Runbook](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/DEMO_RUNBOOK.md)
 - 📊 [Scientific Evaluation & Evidence Report](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/EVALUATION_REPORT.md)
 - 🎓 [Examiner Viva Q&A Guide](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/VIVA_QNA.md)

@@ -1,6 +1,6 @@
 # WiMotion 2.0 — Scientific Evaluation & Validation Report
 
-**Generated:** 2026-10-11 02:49:01 UTC  
+**Generated:** 2026-10-18 18:15:00 UTC  
 **Methodology:** Rigorous multi-track evaluation separating genuine physical hardware sessions from software-generated benchmarks, unverified public imports, synthetic variants, and scripted presentations.
 
 ## 1. Dual-Engine Architecture Summary
@@ -17,13 +17,47 @@
 > Note on Zero-Denominator Metrics: For sessions with 0 actual ground truth positives (pure Empty Room), Recall is mathematically Undefined (`N/A`). For sessions with 0 actual negatives, Specificity is Undefined (`N/A`).
 > Valid Accuracy is computed strictly over classified windows (`valid_windows`); Coverage reports the classified window percentage.
 
-| Session ID | Provenance | Total Windows | Valid / Invalid | Coverage | Valid ML Accuracy | Conservative All-Window | ML Precision | ML Recall | ML Specificity | ML F1 | TP / FP / TN / FN |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `held_out_empty_01` | `hardware_recorded_single_link` | 44 | 37 / 7 | 84.09% | 51.35% | 43.18% | 0.0% | N/A (Undefined) | 51.35% | 0.0% | 0 / 18 / 19 / 0 |
-| `held_out_walking_01` | `hardware_recorded_single_link` | 65 | 59 / 6 | 90.77% | 100.0% | 90.77% | 100.0% | 100.0% | N/A (Undefined) | 100.0% | 59 / 0 / 0 / 0 |
-| **COMBINED TRACK A** | **hardware_single_link** | **109** | **96 / 13** | **88.07%** | **81.25%** | **71.56%** | **76.62%** | **100.0%** | **51.35%** | **86.76%** | **59 / 18 / 19 / 0** |
+| Session ID | Provenance | Total Windows | Valid / Invalid | Coverage | Valid ML Accuracy | Conservative All-Window | ML Precision | ML Recall | ML Specificity | ML FPR | ML F1 | TP / FP / TN / FN |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `held_out_empty_01` | `hardware_recorded_single_link` | 44 | 37 / 7 | 84.09% | 51.35% | 43.18% | 0.0% | N/A (Undefined) | 51.35% | 48.65% | 0.0% | 0 / 18 / 19 / 0 |
+| `held_out_walking_01` | `hardware_recorded_single_link` | 65 | 59 / 6 | 90.77% | 100.0% | 90.77% | 100.0% | 100.0% | N/A (Undefined) | N/A (Undefined) | 100.0% | 59 / 0 / 0 / 0 |
+| **COMBINED TRACK A** | **hardware_single_link** | **109** | **96 / 13** | **88.07%** | **81.25%** | **71.56%** | **76.62%** | **100.0%** | **51.35%** | **48.65%** | **86.76%** | **59 / 18 / 19 / 0** |
 
-## 3. Track B, C, D & E: Software Benchmarks, Imports, Synthetic, and Scripted Results
+## 3. Phase 5: Per-Link Presence Model Evaluation Breakdown
+
+> [!IMPORTANT]
+> As established by the scientific audit, each physical RX-TX wireless link experiences unique multipath, antenna orientations, and propagation characteristics. Evaluating the V1 presence model independently per physical link ensures we do not assume uniform link performance across the multi-link mesh.
+
+| Session ID | Link ID | Total Windows | Valid / Invalid | Coverage | Valid Accuracy | Recall | Specificity | False Positive Rate | F1 Score | Confusion Matrix |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `held_out_empty_01` | `RX1-TX1` | 37 | 37 / 0 | 100.0% | 51.35% | N/A (Undefined) | 51.35% | 48.65% | 0.0% | TP=0, FP=18, TN=19, FN=0 |
+| `held_out_walking_01` | `RX1-TX1` | 59 | 59 / 0 | 100.0% | 100.0% | 100.0% | N/A (Undefined) | N/A (Undefined) | 100.0% | TP=59, FP=0, TN=0, FN=0 |
+| `benchmark_session_01` | `RX1-TX1` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `benchmark_session_01` | `RX1-TX2` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `benchmark_session_01` | `RX1-TX3` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `benchmark_session_01` | `RX1-TX4` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `benchmark_session_01` | `RX2-TX1` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `benchmark_session_01` | `RX2-TX2` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `benchmark_session_01` | `RX2-TX3` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `benchmark_session_01` | `RX2-TX4` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `public_esp_fi_01` | `RX1-TX1` | 19 | 19 / 0 | 100.0% | 36.84% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=7, FN=12 |
+| `public_esp_fi_01` | `RX1-TX2` | 19 | 19 / 0 | 100.0% | 36.84% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=7, FN=12 |
+| `public_esp_fi_01` | `RX1-TX3` | 19 | 19 / 0 | 100.0% | 36.84% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=7, FN=12 |
+| `public_esp_fi_01` | `RX1-TX4` | 19 | 19 / 0 | 100.0% | 36.84% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=7, FN=12 |
+| `public_esp_fi_01` | `RX2-TX1` | 19 | 19 / 0 | 100.0% | 36.84% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=7, FN=12 |
+| `public_esp_fi_01` | `RX2-TX2` | 19 | 19 / 0 | 100.0% | 36.84% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=7, FN=12 |
+| `public_esp_fi_01` | `RX2-TX3` | 19 | 19 / 0 | 100.0% | 36.84% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=7, FN=12 |
+| `public_esp_fi_01` | `RX2-TX4` | 19 | 19 / 0 | 100.0% | 36.84% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=7, FN=12 |
+| `synthetic_session_01` | `RX1-TX1` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `synthetic_session_01` | `RX1-TX2` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `synthetic_session_01` | `RX1-TX3` | 39 | 39 / 0 | 100.0% | 43.59% | 12.0% | 100.0% | 0.0% | 21.43% | TP=3, FP=0, TN=14, FN=22 |
+| `synthetic_session_01` | `RX1-TX4` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `synthetic_session_01` | `RX2-TX1` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `synthetic_session_01` | `RX2-TX2` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+| `synthetic_session_01` | `RX2-TX3` | 39 | 39 / 0 | 100.0% | 38.46% | 4.0% | 100.0% | 0.0% | 7.69% | TP=1, FP=0, TN=14, FN=24 |
+| `synthetic_session_01` | `RX2-TX4` | 39 | 39 / 0 | 100.0% | 35.9% | 0.0% | 100.0% | 0.0% | 0.0% | TP=0, FP=0, TN=14, FN=25 |
+
+## 4. Track B, C, D & E: Software Benchmarks, Imports, Synthetic, and Scripted Results
 
 | Track | Session ID | Provenance | Total Windows | Valid / Invalid | Mean Rate | ML Valid Accuracy | Spatial Heuristic Accuracy | Zone Hit (%) | Notes |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -32,7 +66,7 @@
 | Track D: Synthetic Augmentation | `synthetic_session_01` | `synthetic_augmented` | 40 | 39 / 1 | 154.0 Hz | 46.15% | 90.0% | 60.0% | Perturbed RF gain + noise derived from benchmark_session_01 |
 | Track E: Scripted Presentation | `demo_session` | `scripted_presentation` | 191 | 0 / 191 | 119.0 Hz | N/A (Undefined) | 100.0% | 47.12% | Scripted presentation scenario (Synthetic flat RF tones lack Doppler micro-dynamics -> ML invalid) |
 
-## 4. Scientific Disclosures & Limitations
+## 5. Scientific Disclosures & Limitations
 
 1. **Actual ML Model vs. Spatial Heuristic**: The reported ML Presence metrics are calculated using the real `HistGradientBoostingClassifier` executing over the 217-feature extraction pipeline. Spatial sector localization is driven by the multi-link variance ratio heuristic (`SpatialBaseline`), not by an end-to-end multi-class learned spatial neural network.
 2. **Zero-Denominator & Undefined Metric Transparency**: For single-class evaluation sessions (e.g. Empty Room with 0 positive ground truth samples), Recall is mathematically Undefined (`N/A`) rather than an inflated 100%. Similarly, Specificity is Undefined for sessions with 0 negative samples.

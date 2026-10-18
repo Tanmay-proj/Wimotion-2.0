@@ -15,6 +15,17 @@ from .inference import SpatialBaseline
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_RAW = ROOT / "data" / "raw"
+DATA_V1 = ROOT.parent / "wimotion" / "data"
+
+_RECORDINGS_CACHE = None
+_RECORDINGS_CACHE_TIME = 0.0
+_LAST_DATA_RAW = None
+
+
+def invalidate_recordings_cache():
+    global _RECORDINGS_CACHE, _LAST_DATA_RAW
+    _RECORDINGS_CACHE = None
+    _LAST_DATA_RAW = None
 
 
 def _extract_csv_timestamps(csv_path: Path) -> Optional[tuple[float, float, int]]:
@@ -44,12 +55,18 @@ def _extract_csv_timestamps(csv_path: Path) -> Optional[tuple[float, float, int]
 
 
 def list_recordings() -> List[Dict[str, Any]]:
-    """Discovers all available recorded sessions in data/raw."""
+    """Discovers all available recorded sessions in data/raw and WiMotion 1.0 datasets."""
+    global _RECORDINGS_CACHE, _RECORDINGS_CACHE_TIME, _LAST_DATA_RAW
+    if _RECORDINGS_CACHE is not None and (_LAST_DATA_RAW == str(DATA_RAW)) and (time.time() - _RECORDINGS_CACHE_TIME < 60.0):
+        return _RECORDINGS_CACHE
+
     if not DATA_RAW.exists():
         return []
 
     sessions = []
-    # Search for any csv files inside data/raw
+    seen_ids = set()
+
+    # 1. Search for WiMotion 2.0 multi-link sessions in DATA_RAW
     for csv_path in sorted(DATA_RAW.glob("**/*.csv")):
         session_dir = csv_path.parent
         meta_candidates = list(session_dir.glob("metadata*.json"))
@@ -125,7 +142,63 @@ def list_recordings() -> List[Dict[str, Any]]:
             "scenario_name": meta.get("scenario_name", ""),
             "has_metadata": bool(meta)
         })
+        seen_ids.add(session_id)
+        seen_ids.add(csv_path.name)
+        seen_ids.add(csv_path.stem)
 
+    # 2. Discover WiMotion 1.0 hardware recordings from DATA_V1 and local v1 dir if scanning default workspace
+    if Path(DATA_RAW).resolve() == (ROOT / "data" / "raw").resolve():
+        v1_dirs = [DATA_V1, ROOT / "data" / "wimotion_1.0"]
+        for v1_dir in v1_dirs:
+            if v1_dir.exists() and v1_dir.is_dir():
+                for csv_path in sorted(v1_dir.glob("*.csv")):
+                    if "OLD_DATA" in csv_path.parts:
+                        continue
+                    file_stem = csv_path.stem
+                    file_name = csv_path.name
+                    if file_name in seen_ids or file_stem in seen_ids:
+                        continue
+                    seen_ids.add(file_name)
+                    seen_ids.add(file_stem)
+
+                    try:
+                        fsize = csv_path.stat().st_size
+                    except Exception:
+                        fsize = 0
+                    est_records = max(1, int(fsize / 525.0))
+                    dur = round(est_records / 20.0, 1)
+
+                    is_empty = "empty" in file_stem.lower()
+                    is_fall = "fall" in file_stem.lower()
+                    is_walk = "walking" in file_stem.lower()
+                    gt_zone = "CLEAR" if is_empty else "Z1"
+                    gt_count = 0 if is_empty else 1
+                    motion = "EMPTY_ROOM" if is_empty else ("FALL" if is_fall else ("WALKING" if is_walk else "DYNAMIC"))
+
+                    sessions.append({
+                        "session_id": file_name,
+                        "display_name": file_name,
+                        "source_type": "hardware_recorded_wimotion_1.0",
+                        "provenance": "hardware_recorded_wimotion_1.0",
+                        "parent_session_id": None,
+                        "description": f"WiMotion 1.0 hardware session on TX1 & RX1 boards ({file_stem})",
+                        "filename": file_name,
+                        "path": f"../wimotion/data/{file_name}",
+                        "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(csv_path))),
+                        "duration_seconds": dur,
+                        "total_records": est_records,
+                        "ground_truth_zone": gt_zone,
+                        "ground_truth_count": gt_count,
+                        "motion_state": motion,
+                        "format": "CSV_RAW_CSI_64",
+                        "is_demo": False,
+                        "scenario_name": "",
+                        "has_metadata": False
+                    })
+
+    _RECORDINGS_CACHE = sessions
+    _RECORDINGS_CACHE_TIME = time.time()
+    _LAST_DATA_RAW = str(DATA_RAW)
     return sessions
 
 
@@ -327,7 +400,7 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
     target_csv = None
     target_meta = {}
 
-    # 1. Direct directory match
+    # 1. Direct directory match in DATA_RAW
     direct_dir = DATA_RAW / session_id
     if direct_dir.is_dir():
         csv_files = list(direct_dir.glob("*.csv"))
@@ -340,7 +413,7 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
                 except Exception:
                     pass
 
-    # 2. Exact match in metadata or filename
+    # 2. Exact match in metadata or filename in DATA_RAW
     if not target_csv:
         for csv_path in DATA_RAW.glob("**/*.csv"):
             s_id = csv_path.parent.name if csv_path.parent != DATA_RAW else csv_path.stem
@@ -354,7 +427,7 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
                         break
                 except Exception:
                     pass
-            if s_id == session_id or csv_path.stem == session_id:
+            if s_id == session_id or csv_path.stem == session_id or csv_path.name == session_id:
                 target_csv = csv_path
                 if meta_candidates and not target_meta:
                     try:
@@ -363,8 +436,36 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
                         pass
                 break
 
+    # 3. Match in WiMotion 1.0 datasets (DATA_V1 and ROOT/data/wimotion_1.0)
+    if not target_csv:
+        clean_name = session_id if session_id.endswith(".csv") else f"{session_id}.csv"
+        clean_stem = session_id[:-4] if session_id.endswith(".csv") else session_id
+        for v1_dir in [DATA_V1, ROOT / "data" / "wimotion_1.0"]:
+            if v1_dir.exists() and v1_dir.is_dir():
+                candidate = v1_dir / clean_name
+                if candidate.exists():
+                    target_csv = candidate
+                    break
+                for cp in v1_dir.glob("*.csv"):
+                    if cp.name == clean_name or cp.stem == clean_stem:
+                        target_csv = cp
+                        break
+                if target_csv:
+                    break
+
     if not target_csv or not target_csv.exists():
         return None
+
+    # Check disk cache for pre-computed replay frames (instantaneous load)
+    CACHE_DIR = ROOT / "data" / "cache"
+    cache_file = CACHE_DIR / f"{target_csv.stem}.json"
+    if cache_file.exists():
+        try:
+            if cache_file.stat().st_mtime >= target_csv.stat().st_mtime:
+                cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
+                return cached_data
+        except Exception:
+            pass
 
     # Read CSV records
     records_by_time = []
@@ -376,20 +477,36 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
             return None
 
         for row in reader:
-            if len(row) < 74:
+            if len(row) < 66:
                 malformed_rows += 1
                 continue
             try:
                 ts = float(row[0])
-                rx = row[1]
-                tx = row[2]
-                mac = row[3]
-                rssi = float(row[4]) if row[4] else -60.0
-                rate_hz = float(row[5]) if row[5] else 20.0
-                gt_count = int(row[6]) if row[6] else 0
-                gt_zone = row[7] if row[7] else "CLEAR"
-                motion_state = row[8] if row[8] else "UNKNOWN"
-                amplitudes = [float(x) for x in row[10:74]]
+                if len(row) >= 74:
+                    # WiMotion 2.0 Multi-Link format
+                    rx = row[1]
+                    tx = row[2]
+                    mac = row[3]
+                    rssi = float(row[4]) if row[4] else -60.0
+                    rate_hz = float(row[5]) if row[5] else 20.0
+                    gt_count = int(row[6]) if row[6] else 0
+                    gt_zone = row[7] if row[7] else "CLEAR"
+                    motion_state = row[8] if row[8] else "UNKNOWN"
+                    amplitudes = [float(x) for x in row[10:74]]
+                else:
+                    # WiMotion 1.0 Hardware format (RX1 and TX1 boards)
+                    rx = "RX1"
+                    tx = "TX1"
+                    mac = "BC:DD:C2:CC:49:F4"
+                    rssi = float(row[1]) if row[1] else -60.0
+                    rate_hz = 20.0
+                    is_empty = "empty" in target_csv.stem.lower()
+                    is_fall = "fall" in target_csv.stem.lower()
+                    is_walk = "walking" in target_csv.stem.lower()
+                    gt_count = 0 if is_empty else 1
+                    gt_zone = "CLEAR" if is_empty else "Z1"
+                    motion_state = "EMPTY_ROOM" if is_empty else ("FALL" if is_fall else ("WALKING" if is_walk else "DYNAMIC"))
+                    amplitudes = [float(x) for x in row[2:66]]
 
                 rec = CSIRecord(
                     timestamp=ts,
@@ -417,8 +534,8 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
 
     model = SpatialBaseline()
     try:
-        from .v1_adapter import V1PresenceModelAdapter
-        v1_adapter = V1PresenceModelAdapter()
+        from .v1_adapter import get_v1_adapter
+        v1_adapter = get_v1_adapter()
     except Exception:
         v1_adapter = None
 
@@ -457,10 +574,15 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         frames.append(frame)
         current_offset += step_seconds
 
-    source_type = target_meta.get("source_type", "unknown_unverified")
-    display_name = target_meta.get("display_name", session_id)
+    source_type = target_meta.get("source_type")
+    if not source_type:
+        if "wimotion" in str(target_csv).lower() and ("data" in str(target_csv).lower()):
+            source_type = "hardware_recorded_wimotion_1.0"
+        else:
+            source_type = "unknown_unverified"
+    display_name = target_meta.get("display_name", target_csv.name if "wimotion" in str(target_csv).lower() else session_id)
 
-    return {
+    result_payload = {
         "session_id": session_id,
         "display_name": display_name,
         "source_type": source_type,
@@ -473,6 +595,14 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         "frames": frames,
         "is_demo": False
     }
+
+    try:
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cache_file.write_text(json.dumps(result_payload), encoding="utf-8")
+    except Exception:
+        pass
+
+    return result_payload
 
 
 def evaluate_window_frame(

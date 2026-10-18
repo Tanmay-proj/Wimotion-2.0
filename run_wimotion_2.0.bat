@@ -69,11 +69,12 @@ goto MENU
 
 :RECORD
 echo.
+echo [*] WiMotion 2.0 Autonomous Session Recording
+echo [*] The prototype will automatically detect Zone and Person Count live on the fly!
+echo.
 set /p sess="Enter Session Name (e.g. session_001): "
-set /p z="Enter Zone (Z1, Z2, Z3, Z4, CLEAR): "
-set /p cnt="Enter Person Count (0, 1, 2): "
 set /p dur="Enter Duration in seconds (e.g. 20): "
-py -3.10 scripts/record_multilink_dataset.py --session %sess% --zone %z% --count %cnt% --duration %dur%
+py -3.10 scripts/record_multilink_dataset.py --session %sess% --duration %dur%
 pause
 goto MENU
 

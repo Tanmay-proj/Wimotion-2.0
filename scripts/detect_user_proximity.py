@@ -47,25 +47,49 @@ def main():
             s = serial.Serial()
             s.port = port
             s.baudrate = 921600
-            s.timeout = 0.5
+            s.timeout = 0.2
             s.dtr = False
             s.rts = False
             s.open()
+            if hasattr(s, "set_buffer_size"):
+                try:
+                    s.set_buffer_size(rx_size=65536, tx_size=8192)
+                except Exception:
+                    pass
             print(f"[+] {rx_id} ({port}): Serial port opened successfully.")
             
+            raw_buf = bytearray()
             while running:
-                line_bytes = s.readline()
-                if not line_bytes:
+                try:
+                    waiting = s.in_waiting
+                    chunk = s.read(min(waiting, 8192)) if waiting > 0 else s.read(512)
+                except Exception:
+                    break
+
+                if not chunk:
+                    time.sleep(0.002)
                     continue
-                line = line_bytes.decode("ascii", errors="ignore").strip()
-                record = parse_line(line, rx_id)
-                if record:
-                    tx_id = mac_map.get(record.source_mac, "UNKNOWN")
-                    if tx_id != "UNKNOWN":
-                        record.tx_id = tx_id
-                        with lock:
-                            link = f"{rx_id}-{tx_id}"
-                            link_records[link].append(record)
+
+                raw_buf.extend(chunk)
+
+                while b'\n' in raw_buf:
+                    line_bytes, _, remaining = raw_buf.partition(b'\n')
+                    raw_buf = bytearray(remaining)
+
+                    line = line_bytes.decode("ascii", errors="ignore").strip()
+                    if not line:
+                        continue
+                    record = parse_line(line, rx_id)
+                    if record:
+                        tx_id = mac_map.get(record.source_mac, "UNKNOWN")
+                        if tx_id != "UNKNOWN":
+                            record.tx_id = tx_id
+                            with lock:
+                                link = f"{rx_id}-{tx_id}"
+                                link_records[link].append(record)
+
+                if len(raw_buf) > 65536:
+                    raw_buf = raw_buf[-16384:]
             s.close()
         except Exception as e:
             print(f"[!] {rx_id} ({port}) error: {e}")

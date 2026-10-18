@@ -64,49 +64,80 @@ class SerialReceiverWorker(threading.Thread):
                 self.serial_conn = serial.Serial()
                 self.serial_conn.port = self.port
                 self.serial_conn.baudrate = self.baud
-                self.serial_conn.timeout = 1.0
+                self.serial_conn.timeout = 0.2
                 self.serial_conn.dtr = False
                 self.serial_conn.rts = False
                 self.serial_conn.open()
+                # Expand Windows kernel ring buffer to 64KB to prevent CE_RXOVER and DPC BSOD
+                if hasattr(self.serial_conn, "set_buffer_size"):
+                    try:
+                        self.serial_conn.set_buffer_size(rx_size=65536, tx_size=8192)
+                    except Exception:
+                        pass
                 print(f"[+] {self.receiver_id}: Connected successfully to {self.port}")
                 self.serial_conn.reset_input_buffer()
 
+                raw_buffer = bytearray()
                 while self.running:
-                    line_bytes = self.serial_conn.readline()
-                    if not line_bytes:
-                        continue
-
+                    # Non-blocking chunk read from kernel driver (avoids 100k single-byte syscalls/sec)
                     try:
-                        line = line_bytes.decode("ascii", errors="ignore").strip()
+                        waiting = self.serial_conn.in_waiting
+                        if waiting > 0:
+                            chunk = self.serial_conn.read(min(waiting, 8192))
+                        else:
+                            chunk = self.serial_conn.read(512)
                     except Exception:
+                        break
+
+                    if not chunk:
+                        time.sleep(0.002)
                         continue
 
-                    record = parse_line(line, self.receiver_id)
-                    if record:
-                        # Map source MAC to TX ID
-                        if record.source_mac in self.mac_map:
-                            record.tx_id = self.mac_map[record.source_mac]
-                        else:
-                            record.tx_id = f"MAC_{record.source_mac[-5:].replace(':', '')}"
+                    raw_buffer.extend(chunk)
 
-                        # Update aggregate and per-TX counters
-                        self.packet_count += 1
-                        self.per_tx_counts[record.tx_id] += 1
+                    # Extract complete lines separated by \n
+                    while b'\n' in raw_buffer:
+                        line_bytes, _, remaining = raw_buffer.partition(b'\n')
+                        raw_buffer = bytearray(remaining)
 
-                        now = time.time()
-                        dt = now - self.last_rate_calc
-                        if dt >= 1.0:
-                            self.current_rate_hz = self.packet_count / dt
-                            self.current_per_tx_rates = {
-                                tx: round(cnt / dt, 1)
-                                for tx, cnt in self.per_tx_counts.items()
-                            }
-                            self.packet_count = 0
-                            self.per_tx_counts.clear()
-                            self.last_rate_calc = now
+                        try:
+                            line = line_bytes.decode("ascii", errors="ignore").strip()
+                        except Exception:
+                            continue
 
-                        record.rate_hz = self.current_per_tx_rates.get(record.tx_id, None)
-                        self.callback(record)
+                        if not line:
+                            continue
+
+                        record = parse_line(line, self.receiver_id)
+                        if record:
+                            # Map source MAC to TX ID
+                            if record.source_mac in self.mac_map:
+                                record.tx_id = self.mac_map[record.source_mac]
+                            else:
+                                record.tx_id = f"MAC_{record.source_mac[-5:].replace(':', '')}"
+
+                            # Update aggregate and per-TX counters
+                            self.packet_count += 1
+                            self.per_tx_counts[record.tx_id] += 1
+
+                            now = time.time()
+                            dt = now - self.last_rate_calc
+                            if dt >= 1.0:
+                                self.current_rate_hz = self.packet_count / dt
+                                self.current_per_tx_rates = {
+                                    tx: round(cnt / dt, 1)
+                                    for tx, cnt in self.per_tx_counts.items()
+                                }
+                                self.packet_count = 0
+                                self.per_tx_counts.clear()
+                                self.last_rate_calc = now
+
+                            record.rate_hz = self.current_per_tx_rates.get(record.tx_id, None)
+                            self.callback(record)
+
+                    # Memory guard against malformed data streams
+                    if len(raw_buffer) > 65536:
+                        raw_buffer = raw_buffer[-16384:]
 
             except Exception as e:
                 self.last_error = str(e)
@@ -124,10 +155,6 @@ class SerialReceiverWorker(threading.Thread):
     def stop(self):
         self.running = False
         if self.serial_conn and self.serial_conn.is_open:
-            try:
-                self.serial_conn.cancel_read()
-            except Exception:
-                pass
             try:
                 self.serial_conn.close()
             except Exception:

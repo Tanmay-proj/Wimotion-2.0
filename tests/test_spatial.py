@@ -1,4 +1,6 @@
+import sys
 import unittest
+from pathlib import Path
 import numpy as np
 
 from spatial.types import CSIRecord
@@ -948,6 +950,62 @@ class TestSpatial(unittest.TestCase):
         self.assertIsNone(ml_m["valid_accuracy_pct"])
         self.assertEqual(ml_m["all_window_accuracy_pct"], 0.0)
         self.assertIsNone(ml_m["recall_pct"])
+
+    def test_per_link_presence_metrics_and_false_positive_rate(self):
+        from scripts.evaluate_models import evaluate_session, compute_metrics
+        from spatial.v1_adapter import V1PresenceModelAdapter
+
+        # Check compute_metrics false positive rate calculation
+        m = compute_metrics(tp=10, fp=5, tn=15, fn=2)
+        self.assertEqual(m["fpr_pct"], 25.0)
+        self.assertEqual(m["false_positive_rate_pct"], 25.0)
+        self.assertEqual(m["specificity_pct"], 75.0)
+
+        # Check evaluate_session returns per_link_metrics
+        adapter = V1PresenceModelAdapter()
+        res = evaluate_session("held_out_empty_01", adapter)
+        self.assertIsNotNone(res)
+        self.assertIn("per_link_metrics", res)
+        self.assertIn("RX1-TX1", res["per_link_metrics"])
+        rx1_tx1 = res["per_link_metrics"]["RX1-TX1"]
+        self.assertIn("fpr_pct", rx1_tx1)
+        self.assertEqual(rx1_tx1["fpr_pct"], 48.65)
+        self.assertEqual(rx1_tx1["specificity_pct"], 51.35)
+
+    def test_supervised_spatial_model_training_and_zero_leakage(self):
+        import pickle
+        from pathlib import Path
+
+        model_path = Path(__file__).resolve().parent.parent / "models" / "spatial_model.pkl"
+        scorecard_path = Path(__file__).resolve().parent.parent / "models" / "spatial_model_scorecard.json"
+
+        self.assertTrue(model_path.exists(), "spatial_model.pkl must exist")
+        self.assertTrue(scorecard_path.exists(), "spatial_model_scorecard.json must exist")
+
+        with open(model_path, "rb") as f:
+            data = pickle.load(f)
+
+        self.assertTrue(data.get("session_wise_split"))
+        self.assertTrue(data.get("leakage_prevented"))
+        train_s = set(data.get("train_sessions", []))
+        test_s = set(data.get("test_sessions", []))
+        self.assertEqual(len(train_s.intersection(test_s)), 0, "No train/test session leakage allowed!")
+
+        # Model should be able to predict on 56-dim feature input
+        clf = data["model"]
+        dummy_x = np.zeros((1, 56), dtype=np.float32)
+        pred = clf.predict(dummy_x)
+        self.assertIn(pred[0], data["classes"])
+
+    def test_multilink_recorder_argument_zones_schema(self):
+        import sys
+        import subprocess
+        # Test recorder help and arg validation
+        cmd = [sys.executable, str(Path(__file__).resolve().parent.parent / "scripts" / "record_multilink_dataset.py"), "--help"]
+        out = subprocess.check_output(cmd, text=True)
+        self.assertIn("--zones", out)
+        self.assertIn("--zone", out)
+        self.assertIn("--count", out)
 
 
 if __name__ == "__main__":

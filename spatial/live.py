@@ -71,11 +71,18 @@ class LiveSpatialEngine:
             except Exception as e:
                 v1_eval = {"model_available": False, "error": str(e), "global_presence": "UNKNOWN", "confidence": None}
 
+        agg_rate = sum(
+            h.get("aggregate_rate_hz", h.get("rate_hz", 0.0))
+            for h in health.values()
+            if h.get("running", False)
+        )
+
         with self.lock:
             self.latest_state = {
                 "timestamp": time.time(),
                 "last_valid_data_time": self.last_record_receipt_time,
                 "signal_ok": pred["signal_ok"],
+                "rate_hz": round(agg_rate, 1),
                 "count": pred["count"],
                 "active_zone_count": pred.get("active_zone_count", pred["count"]),
                 "people": tracked,
