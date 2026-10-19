@@ -10,8 +10,8 @@ from collections import defaultdict
 import numpy as np
 
 from .types import CSIRecord
-from .features import extract_link_features
-from .inference import SpatialBaseline
+from .features import extract_link_features, fuse_features
+from .inference import SpatialBaseline, get_supervised_spatial_adapter
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA_RAW = ROOT / "data" / "raw"
@@ -539,6 +539,11 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
     except Exception:
         v1_adapter = None
 
+    try:
+        spatial_adapter = get_supervised_spatial_adapter()
+    except Exception:
+        spatial_adapter = None
+
     frames = []
 
     # Process sliding windows at uniform step_seconds intervals using O(log N) bisect
@@ -569,7 +574,8 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
             latest_gt_zone=latest_gt_zone,
             latest_motion=latest_motion,
             model=model,
-            v1_adapter=v1_adapter
+            v1_adapter=v1_adapter,
+            spatial_adapter=spatial_adapter
         )
         frames.append(frame)
         current_offset += step_seconds
@@ -615,7 +621,8 @@ def evaluate_window_frame(
     latest_gt_zone: str = "CLEAR",
     latest_motion: str = "UNKNOWN",
     model: Optional[SpatialBaseline] = None,
-    v1_adapter: Optional[Any] = None
+    v1_adapter: Optional[Any] = None,
+    spatial_adapter: Optional[Any] = None
 ) -> Dict[str, Any]:
     """Evaluates a single sliding-window of CSI records against quality gates and ground truth.
     
@@ -647,6 +654,20 @@ def evaluate_window_frame(
                 "model_available": False,
                 "error": str(e),
                 "global_presence": "UNKNOWN",
+                "confidence": None
+            }
+
+    # Supervised Multi-Link Spatial Classifier Evaluation (56 features)
+    supervised_eval = None
+    if signal_ok and spatial_adapter and getattr(spatial_adapter, "is_available", lambda: False)():
+        try:
+            vec, act = fuse_features(features)
+            supervised_eval = spatial_adapter.predict(vec, act)
+        except Exception as e:
+            supervised_eval = {
+                "available": False,
+                "error": str(e),
+                "predicted_zone": "UNKNOWN",
                 "confidence": None
             }
 
@@ -713,5 +734,14 @@ def evaluate_window_frame(
             "model_available": False,
             "global_presence": "UNAVAILABLE" if not signal_ok else "MODEL_NOT_LOADED",
             "confidence": None
-        }
+        },
+        "v1_presence": v1_eval.get("global_presence", "UNKNOWN") if v1_eval else "UNKNOWN",
+        "v1_confidence": v1_eval.get("confidence") if v1_eval else None,
+        "spatial_supervised": supervised_eval or {
+            "available": False,
+            "predicted_zone": "UNKNOWN",
+            "confidence": None
+        },
+        "spatial_supervised_zone": supervised_eval.get("predicted_zone") if supervised_eval else None,
+        "spatial_supervised_confidence": supervised_eval.get("confidence") if supervised_eval else None
     }

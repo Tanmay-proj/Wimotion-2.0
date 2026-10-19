@@ -61,7 +61,13 @@ def audit_port(port: str, baud: int = 921600, duration: float = 6.0):
                 pass
         ser.reset_input_buffer()
     except Exception as e:
-        print(f"[!] Could not open {port}: {e}")
+        err_str = str(e)
+        if isinstance(e, PermissionError) or "Access is denied" in err_str or "error 5" in err_str.lower():
+            print(f"[!] Access Denied on {port}. The serial port is currently held by another process.")
+            print(f"    -> If the WiMotion server is running in the background, stop it or run:")
+            print(f"       py -3.10 scripts/free_port_8000.py")
+        else:
+            print(f"[!] Could not open {port}: {e}")
         return None
 
     start = time.time()

@@ -1007,9 +1007,47 @@ class TestSpatial(unittest.TestCase):
         self.assertIn("--zone", out)
         self.assertIn("--count", out)
 
+    def test_supervised_spatial_adapter_inference(self):
+        from spatial.inference import get_supervised_spatial_adapter
+        adapter = get_supervised_spatial_adapter()
+        self.assertTrue(adapter.is_available(), "SupervisedSpatialAdapter should load models/spatial_model.pkl")
+
+        # 56-dim feature input
+        dummy_vec = np.zeros(56, dtype=np.float32)
+        res = adapter.predict(dummy_vec, active_links=8)
+        self.assertTrue(res.get("available"))
+        self.assertIn(res.get("predicted_zone"), adapter.classes)
+
+        # 0 active links should return UNKNOWN
+        res_zero = adapter.predict(dummy_vec, active_links=0)
+        self.assertEqual(res_zero.get("predicted_zone"), "UNKNOWN")
+
+    def test_live_engine_supervised_adapter_integration(self):
+        from spatial.live import LiveSpatialEngine
+        engine = LiveSpatialEngine()
+        self.assertTrue(hasattr(engine, "spatial_adapter"))
+        st = engine.get_state()
+        self.assertIn("spatial_supervised", st)
+
+    def test_serial_manager_rate_decay_and_cancellation(self):
+        from spatial.serial_manager import SerialReceiverWorker
+        worker = SerialReceiverWorker(
+            receiver_id="TEST_RX",
+            port="COM_OFFLINE",
+            baud=921600,
+            mac_map={},
+            on_record_callback=lambda r: None
+        )
+        self.assertEqual(worker.current_rate_hz, 0.0)
+        worker.last_packet_time = 100.0
+        # Worker stop should not raise error even if serial_conn is None
+        worker.stop()
+        self.assertFalse(worker.running)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
 
 

@@ -7,7 +7,7 @@ from .types import CSIRecord, SpatialState
 from .config import load_config, NodeConfig
 from .window import MultiLinkWindow
 from .features import extract_link_features, fuse_features
-from .inference import SpatialBaseline
+from .inference import SpatialBaseline, get_supervised_spatial_adapter
 from .v1_adapter import V1PresenceModelAdapter
 from .tracker import PersonTracker
 from .serial_manager import MultiSerialManager
@@ -22,6 +22,7 @@ class LiveSpatialEngine:
         )
         self.model = SpatialBaseline()
         self.v1_adapter = V1PresenceModelAdapter()
+        self.spatial_adapter = get_supervised_spatial_adapter()
         self.tracker = PersonTracker()
         self.serial_manager = MultiSerialManager(self.config, self._on_record)
 
@@ -34,7 +35,16 @@ class LiveSpatialEngine:
             "active_links": 0,
             "link_count": 8,
             "confidence": 0.0,
-            "reason": "INITIALIZING"
+            "reason": "INITIALIZING",
+            "v1_presence": "UNKNOWN",
+            "v1_confidence": None,
+            "spatial_supervised": {
+                "available": self.spatial_adapter.is_available(),
+                "predicted_zone": "UNKNOWN",
+                "confidence": None
+            },
+            "spatial_supervised_zone": "UNKNOWN",
+            "spatial_supervised_confidence": None
         }
         self.lock = threading.Lock()
         self.running = False
@@ -71,6 +81,14 @@ class LiveSpatialEngine:
             except Exception as e:
                 v1_eval = {"model_available": False, "error": str(e), "global_presence": "UNKNOWN", "confidence": None}
 
+        # Supervised Multi-Link Spatial Classifier Evaluation (56 features)
+        supervised_eval = None
+        if signal_ok and self.spatial_adapter.is_available():
+            try:
+                supervised_eval = self.spatial_adapter.predict(vector, active)
+            except Exception as e:
+                supervised_eval = {"available": False, "error": str(e), "predicted_zone": "UNKNOWN", "confidence": None}
+
         agg_rate = sum(
             h.get("aggregate_rate_hz", h.get("rate_hz", 0.0))
             for h in health.values()
@@ -100,7 +118,14 @@ class LiveSpatialEngine:
                     "confidence": None
                 },
                 "v1_presence": v1_eval.get("global_presence", "UNKNOWN") if v1_eval else "UNKNOWN",
-                "v1_confidence": v1_eval.get("confidence") if v1_eval else None
+                "v1_confidence": v1_eval.get("confidence") if v1_eval else None,
+                "spatial_supervised": supervised_eval or {
+                    "available": False,
+                    "predicted_zone": "UNKNOWN",
+                    "confidence": None
+                },
+                "spatial_supervised_zone": supervised_eval.get("predicted_zone") if supervised_eval else None,
+                "spatial_supervised_confidence": supervised_eval.get("confidence") if supervised_eval else None
             }
 
     def start(self):

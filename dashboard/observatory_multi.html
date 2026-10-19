@@ -1362,7 +1362,7 @@
           </div>
           <div class="metric-value" id="val-rx-health">0 / 2 ONLINE</div>
           <div class="metric-footer">
-            <span id="sub-rx-ports">RX1 (COM3) · RX2 (COM8)</span>
+            <span id="sub-rx-ports">RX1 (COM8) · RX2 (COM9)</span>
             <span id="sub-rx-sync">Unsynchronized</span>
           </div>
         </div>
@@ -1376,7 +1376,7 @@
           <div class="metric-value" id="val-presence-state" style="color:var(--accent-cyan)">CLEAR</div>
           <div class="metric-footer">
             <span id="sub-presence-score">Max Var: 0.0</span>
-            <span style="font-size:10px; color:var(--text-dim);">UNCALIBRATED HEURISTIC</span>
+            <span id="sub-v1-presence" style="font-size:10px; color:var(--text-dim);">V1 ML: STANDBY</span>
           </div>
         </div>
       </section>
@@ -1797,6 +1797,45 @@
             </thead>
             <tbody id="diagConfigTableBody"></tbody>
           </table>
+        </div>
+      </div>
+
+      <div class="panel-box">
+        <div class="panel-title-bar">
+          <div class="panel-heading">INTEGRATED MULTI-MODEL PIPELINE ARCHITECTURE AUDIT</div>
+          <span class="badge-tag green">DUAL-STACK: V1 PRESENCE + V2 SPATIAL</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin-top:10px;">
+          <div class="eval-card">
+            <div class="eval-title">WiMotion 1.0 Baseline Presence Classifier</div>
+            <div class="eval-value" id="diag-v1-status" style="font-size:15px; color:var(--accent-green);">LOADED (v2.4)</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.5;">
+              Classifier: HistGradientBoosting<br>
+              Features: 217-dim Temporal-Spectral<br>
+              Artifact: models/presence_model.pkl (657 KB)<br>
+              Real-Time Decision: <span id="diag-v1-live-pred" style="color:var(--text-main); font-weight:600;">CALIBRATED</span>
+            </div>
+          </div>
+          <div class="eval-card">
+            <div class="eval-title">WiMotion 2.0 Spatial Heuristic Engine</div>
+            <div class="eval-value" style="font-size:15px; color:var(--accent-cyan);">ACTIVE (Wi-CaL)</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.5;">
+              Algorithm: 8-Link Sector Perturbation<br>
+              Noise Floor Cutoff: 8.0 Variance<br>
+              Zones: 4 Quadrants (Z1, Z2, Z3, Z4)<br>
+              Real-Time Decision: <span id="diag-v2-heuristic-pred" style="color:var(--text-main); font-weight:600;">MONITORING</span>
+            </div>
+          </div>
+          <div class="eval-card">
+            <div class="eval-title">WiMotion 2.0 Supervised Spatial Model</div>
+            <div class="eval-value" id="diag-v2-supervised-status" style="font-size:15px; color:var(--accent-amber);">TRAINED (Phase 6)</div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.5;">
+              Pipeline: 56-dim Fused Multi-Link<br>
+              Split: GroupShuffleSplit (Zero-Leakage)<br>
+              Artifact: models/spatial_model.pkl (179 KB)<br>
+              Real-Time Decision: <span id="diag-v2-supervised-pred" style="color:var(--text-main); font-weight:600;">ONLINE</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2462,6 +2501,68 @@
           subPresence.textContent = 'Signal offline or insufficient window';
         } else {
           subPresence.textContent = `Max Var: ${maxVar.toFixed(2)}`;
+        }
+      }
+
+      // V1 Machine Learning Presence & Supervised Spatial Telemetry
+      const subV1 = document.getElementById('sub-v1-presence');
+      if (subV1) {
+        const v1P = data.v1_presence || (data.v1_model && data.v1_model.global_presence);
+        const v1Conf = data.v1_confidence !== undefined && data.v1_confidence !== null ? data.v1_confidence : (data.v1_model && data.v1_model.confidence);
+        const pct = (v1Conf !== null && v1Conf !== undefined) ? Math.round(v1Conf * 100) : null;
+
+        if (v1P === 'human_present') {
+          subV1.textContent = pct !== null ? `V1 ML: HUMAN (${pct}%)` : 'V1 ML: HUMAN';
+          subV1.style.color = 'var(--accent-green)';
+        } else if (v1P === 'empty_room') {
+          subV1.textContent = pct !== null ? `V1 ML: EMPTY (${pct}%)` : 'V1 ML: EMPTY';
+          subV1.style.color = 'var(--accent-cyan)';
+        } else if (data.spatial_supervised_zone && data.spatial_supervised_zone !== 'UNKNOWN') {
+          subV1.textContent = `V2 ML: ${data.spatial_supervised_zone}`;
+          subV1.style.color = 'var(--accent-amber)';
+        } else {
+          subV1.textContent = isReplay ? 'V1 ML: STANDBY' : 'V1 ML: CALIBRATED';
+          subV1.style.color = 'var(--text-dim)';
+        }
+      }
+
+      // Diagnostics multi-model indicators
+      const diagV1Pred = document.getElementById('diag-v1-live-pred');
+      if (diagV1Pred) {
+        const v1P = data.v1_presence || (data.v1_model && data.v1_model.global_presence);
+        const v1Conf = data.v1_confidence !== undefined && data.v1_confidence !== null ? data.v1_confidence : (data.v1_model && data.v1_model.confidence);
+        if (v1P && v1P !== 'UNKNOWN' && v1P !== 'UNAVAILABLE') {
+          const pct = v1Conf !== null && v1Conf !== undefined ? ` (${Math.round(v1Conf * 100)}%)` : '';
+          diagV1Pred.textContent = `${v1P.toUpperCase()}${pct}`;
+          diagV1Pred.style.color = v1P === 'human_present' ? 'var(--accent-green)' : 'var(--accent-cyan)';
+        } else {
+          diagV1Pred.textContent = 'STANDBY';
+          diagV1Pred.style.color = 'var(--text-dim)';
+        }
+      }
+
+      const diagV2Heur = document.getElementById('diag-v2-heuristic-pred');
+      if (diagV2Heur) {
+        if (zone && zone !== 'UNKNOWN') {
+          diagV2Heur.textContent = zone === 'CLEAR' ? 'CLEAR (BASELINE)' : `SECTOR ${zone} (Var: ${maxVar.toFixed(1)})`;
+          diagV2Heur.style.color = zone === 'CLEAR' ? 'var(--accent-green)' : 'var(--accent-amber)';
+        } else {
+          diagV2Heur.textContent = 'STANDBY';
+          diagV2Heur.style.color = 'var(--text-dim)';
+        }
+      }
+
+      const diagV2Super = document.getElementById('diag-v2-supervised-pred');
+      if (diagV2Super) {
+        const sZone = data.spatial_supervised_zone || (data.spatial_supervised && data.spatial_supervised.predicted_zone);
+        const sConf = data.spatial_supervised_confidence || (data.spatial_supervised && data.spatial_supervised.confidence);
+        if (sZone && sZone !== 'UNKNOWN') {
+          const pct = sConf !== null && sConf !== undefined ? ` (${Math.round(sConf * 100)}%)` : '';
+          diagV2Super.textContent = `ZONE ${sZone}${pct}`;
+          diagV2Super.style.color = sZone === 'CLEAR' ? 'var(--accent-green)' : 'var(--accent-amber)';
+        } else {
+          diagV2Super.textContent = 'ONLINE (AWAITING WINDOW)';
+          diagV2Super.style.color = 'var(--text-dim)';
         }
       }
 

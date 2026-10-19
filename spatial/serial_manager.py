@@ -40,6 +40,7 @@ class SerialReceiverWorker(threading.Thread):
         self.packet_count = 0
         self.per_tx_counts = Counter()
         self.last_rate_calc = time.time()
+        self.last_packet_time = 0.0
         self.current_rate_hz = 0.0
         self.current_per_tx_rates = {}
         self.last_error = None
@@ -89,6 +90,23 @@ class SerialReceiverWorker(threading.Thread):
                     except Exception:
                         break
 
+                    now = time.time()
+                    # Periodic rate calculation & rate decay (runs even if no chunks received)
+                    dt = now - self.last_rate_calc
+                    if dt >= 1.0:
+                        if self.packet_count > 0:
+                            self.current_rate_hz = self.packet_count / dt
+                            self.current_per_tx_rates = {
+                                tx: round(cnt / dt, 1)
+                                for tx, cnt in self.per_tx_counts.items()
+                            }
+                            self.packet_count = 0
+                            self.per_tx_counts.clear()
+                        else:
+                            self.current_rate_hz = 0.0
+                            self.current_per_tx_rates.clear()
+                        self.last_rate_calc = now
+
                     if not chunk:
                         time.sleep(0.002)
                         continue
@@ -117,20 +135,9 @@ class SerialReceiverWorker(threading.Thread):
                                 record.tx_id = f"MAC_{record.source_mac[-5:].replace(':', '')}"
 
                             # Update aggregate and per-TX counters
+                            self.last_packet_time = now
                             self.packet_count += 1
                             self.per_tx_counts[record.tx_id] += 1
-
-                            now = time.time()
-                            dt = now - self.last_rate_calc
-                            if dt >= 1.0:
-                                self.current_rate_hz = self.packet_count / dt
-                                self.current_per_tx_rates = {
-                                    tx: round(cnt / dt, 1)
-                                    for tx, cnt in self.per_tx_counts.items()
-                                }
-                                self.packet_count = 0
-                                self.per_tx_counts.clear()
-                                self.last_rate_calc = now
 
                             record.rate_hz = self.current_per_tx_rates.get(record.tx_id, None)
                             self.callback(record)
@@ -146,19 +153,31 @@ class SerialReceiverWorker(threading.Thread):
                 print(f"[!] {self.receiver_id} ({self.port}) connection error: {e}. Retrying in 2s...")
                 time.sleep(2.0)
             finally:
-                if self.serial_conn and self.serial_conn.is_open:
+                if self.serial_conn:
                     try:
-                        self.serial_conn.close()
+                        if hasattr(self.serial_conn, "cancel_read"):
+                            self.serial_conn.cancel_read()
                     except Exception:
                         pass
+                    if self.serial_conn.is_open:
+                        try:
+                            self.serial_conn.close()
+                        except Exception:
+                            pass
 
     def stop(self):
         self.running = False
-        if self.serial_conn and self.serial_conn.is_open:
+        if self.serial_conn:
             try:
-                self.serial_conn.close()
+                if hasattr(self.serial_conn, "cancel_read"):
+                    self.serial_conn.cancel_read()
             except Exception:
                 pass
+            if self.serial_conn.is_open:
+                try:
+                    self.serial_conn.close()
+                except Exception:
+                    pass
 
 
 class MultiSerialManager:
@@ -191,7 +210,13 @@ class MultiSerialManager:
 
     def get_health(self) -> Dict[str, Any]:
         health_report = {}
+        now = time.time()
         for rx_id, w in self.workers.items():
+            # If no packets arrived in last 2.0s, rate has decayed to 0
+            if w.last_packet_time > 0 and (now - w.last_packet_time > 2.0):
+                w.current_rate_hz = 0.0
+                w.current_per_tx_rates.clear()
+
             per_rates = dict(w.current_per_tx_rates)
             active_links_count = sum(1 for r in per_rates.values() if r >= 1.0)
             is_open = bool(w.serial_conn and w.serial_conn.is_open)
