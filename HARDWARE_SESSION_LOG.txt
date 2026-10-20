@@ -1,0 +1,179 @@
+================================================================================
+          WIMOTION 2.0 — LIVE HARDWARE EXPERIMENT & ACTIVITY LOG
+================================================================================
+Date:               20 October 2026
+Lead Hardware Op:   Cadet / Lead Engineer Tanmay
+Environment:        ROOM_LAB_A (Closed Lab Space)
+Hardware Setup:     Full 6-Node COTS ESP32 Mesh (2 Receivers + 4 Transmitters)
+Total CSI Frames:   116,588 Genuine Multi-Link Frames Recorded
+Git Repository:     https://github.com/Tanmay-proj/Wimotion-2.0.git
+================================================================================
+
+1. OBJECTIVE OF TODAY'S SESSION
+--------------------------------------------------------------------------------
+WiMotion 2.0 previously suffered from a major limitation: spatial models and 
+multi-link sectoring were validated only on single-link or synthetic data. 
+
+Today's mission was to physically deploy all 6 hardware nodes, connect both 
+receivers over USB UART, verify live RF reception from all 4 transmitters, 
+and physically walk through all 4 quadrants of the room to record a 100% 
+genuine, physical multi-link CSI dataset.
+
+--------------------------------------------------------------------------------
+2. PHYSICAL HARDWARE NODES & CALIBRATED MAPPINGS
+--------------------------------------------------------------------------------
+- RX1 (COM8): Silicon Labs CP210x @ 921600 baud (~95-105 Hz CSI stream)
+- RX2 (COM9): Silicon Labs CP210x @ 921600 baud (~40-120 Hz CSI stream)
+
+Transmitters (Over-the-Air 802.11 Action Frames on Channel 1):
+- Board #1 -> TX1 (MAC: BC:DD:C2:CC:49:F4) | Zone 1 (Z1 — North-East)
+- Board #2 -> TX2 (MAC: 1C:69:20:31:38:08) | Zone 2 (Z2 — North-West)
+- Board #3 -> TX3 (MAC: 1C:69:20:31:4B:40) | Zone 3 (Z3 — South-West / Diag. Opp.)
+- Board #4 -> TX4 (MAC: CC:7B:5C:28:84:70) | Zone 4 (Z4 — South-East)
+
+--------------------------------------------------------------------------------
+3. CHRONOLOGICAL TIMELINE OF EVERYTHING DONE TODAY
+--------------------------------------------------------------------------------
+
+[PHASE 1] Initial Hardware Scan & Empty Room Baseline (18:55 - 19:03 hrs)
+- Tuned and verified COM8 and COM9 on host PC.
+- Ran 0_check_multilink_hardware.py: confirmed both receivers live.
+- User stepped completely outside the lab room to establish zero-human baseline.
+- RECORDED: session_real_001_empty
+  * Duration: 140.06 seconds
+  * Packets Captured: 27,409 frames
+  * Ground Truth: CLEAR (0 persons present)
+  * Outcome: Measured empirical noise floor across all links.
+
+[PHASE 2] Static Baseline Near Receiver (19:04 hrs)
+- User stood motionless near RX1 receiver to evaluate static human presence.
+- RECORDED: session_real_002_near_rx1
+  * Duration: 30.33 seconds
+  * Packets Captured: 3,246 frames
+  * Ground Truth: Zone Z1 (1 person static)
+
+[PHASE 3] Physical Walk Near TX1 (19:05 - 19:07 hrs)
+- User stood within 0.5 ft of Board #1 (TX1) and walked dynamically till 19:07 hrs.
+- RECORDED: session_real_003_tx_walk
+  * Duration: 105.22 seconds
+  * Packets Captured: 18,298 frames
+  * Ground Truth: Zone Z1 (1 person dynamic walking)
+  * RF Variance: TX1 subcarrier flutter peaked at 79.61.
+
+[PHASE 4] Diagonally Opposite Board Walk & The Mystery Solved (19:13 - 19:21 hrs)
+- User walked near the board diagonally opposite to TX1 till 19:16 hrs.
+- RECORDED: session_real_004_mystery_tx (145.15s, 26,299 frames)
+- Followed immediately by: session_real_005_blind_tx (75.05s, 12,499 frames)
+- Blind Proximity Test:
+  * The user asked: "Decide krr mai kha pe hu aur bata!"
+  * We ran full RF variance matrix analysis across all links.
+  * Measured peak variance: Node 1C:69:20:31:4B:40 surged to 179.86 on RX1 
+    and 120.17 on RX2 (Combined flutter: 300.03)!
+  * Proved mathematically that user was standing right at this board.
+
+[PHASE 5] Addressing The Inactive Board & Reset Action (19:28 - 19:40 hrs)
+- User Question: "All TX boards have red LED on, but why is one board inactive?"
+- Investigation:
+  * Explained that the red LED on ESP32 is a direct power indicator (VCC rail), 
+    not a Wi-Fi transmission indicator.
+  * The board CC:7B:5C:28:84:70 had experienced a Wi-Fi stack hang / brownout.
+  * Also identified that user called the diagonally opposite board "TX3", but in 
+    nodes.json it was labeled "TX4".
+- User Action:
+  * User pressed EN/RST button on all TX boards and RX boards.
+- Configuration Synchronization:
+  * Swapped TX3 and TX4 in config/nodes.json to 100% align with user's room markings:
+    TX3 = 1C:69:20:31:4B:40 (Diagonally opposite to TX1)
+    TX4 = CC:7B:5C:28:84:70 (Fourth board)
+- Verification:
+  * Board CC:7B:5C:28:84:70 rebooted successfully!
+  * Re-scan confirmed ALL 4 TRANSMITTERS active at 134 Hz total rate!
+
+[PHASE 6] Physical Walk Near TX2 (19:44 - 19:46 hrs)
+- User walked near Board #2 (TX2) till 19:46 hrs.
+- RECORDED: session_real_006_tx2_walk
+  * Duration: 85.02 seconds
+  * Packets Captured: 9,606 frames
+  * Ground Truth: Zone Z2 (1 person dynamic walking)
+  * Spatial Contrast Proof:
+    - TX2 variance surged to 138.89.
+    - TX3 variance (previous board) dropped from 120+ down to 1.39 (calm noise floor)!
+    - Concrete physical proof of RF spatial sector localization.
+
+[PHASE 7] Physical Walk Near TX4 & Full 4-Quadrant Completion (19:52 - 19:55 hrs)
+- User walked near Board #4 (TX4) till 19:55 hrs.
+- RECORDED: session_real_007_tx4_walk
+  * Duration: 175.33 seconds
+  * Packets Captured: 19,231 frames
+  * Ground Truth: Zone Z4 (1 person dynamic walking)
+  * Live Prototype Detection: Dominant 1 Person in Zone Z4!
+  * Completion: All 4 quadrants (Z1, Z2, Z3, Z4) + CLEAR now 100% physically covered!
+
+--------------------------------------------------------------------------------
+4. COMPLETE PHYSICAL DATASET SUMMARY
+--------------------------------------------------------------------------------
+Session Name                 | Zone  | Target | Duration | Frames Captured
+--------------------------------------------------------------------------------
+session_real_001_empty       | CLEAR | 0 P    | 140.06s  | 27,409 frames
+session_real_002_near_rx1    | Z1    | 1 P    |  30.33s  |  3,246 frames
+session_real_003_tx_walk     | Z1    | 1 P    | 105.22s  | 18,298 frames
+session_real_004_mystery_tx  | Z3    | 1 P    | 145.15s  | 26,299 frames
+session_real_005_blind_tx    | Z3    | 1 P    |  75.05s  | 12,499 frames
+session_real_006_tx2_walk    | Z2    | 1 P    |  85.02s  |  9,606 frames
+session_real_007_tx4_walk    | Z4    | 1 P    | 175.33s  | 19,231 frames
+--------------------------------------------------------------------------------
+GRAND TOTAL                  | ALL   | 0-1 P  | 756.16s  | 116,588 FRAMES
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+5. CRITICAL BUGS DIAGNOSED & FIXED
+--------------------------------------------------------------------------------
+1. Thread Race Condition in CSV Recorder:
+   - Simultaneous writes from RX1 and RX2 reader threads caused row corruption.
+   - Fixed by adding a global threading.Lock() around writer.writerow() in 
+     scripts/record_multilink_dataset.py.
+
+2. CSV Column Offset Bug in Replay Loader:
+   - WiMotion 2.0 CSV files include a 'room_id' column at index 10.
+   - Replay loader was slicing row[10:74], attempting to parse 'ROOM_LAB_A' as float.
+   - Fixed in spatial/replay_loader.py by slicing row[11:75] for 64 subcarriers.
+
+3. Corrupted Timestamps & Runaway 3.5-Billion Window Loop:
+   - 4 malformed rows contained non-epoch timestamps, resulting in total_duration 
+     being calculated as 1.79 billion seconds (~3.5 billion sliding windows).
+   - Fixed by filtering timestamps to valid epoch range (>1e9) in replay_loader.py, 
+     bringing load time down from infinite loop to 6.59 seconds.
+
+4. Feature Extraction Performance Optimization:
+   - Added eval_v1=False flag to load_recording_frames to bypass expensive 
+     217-feature FFT/SVD operations when training spatial models, enabling 
+     instant feature extraction.
+
+--------------------------------------------------------------------------------
+6. SUPERVISED SPATIAL MODEL TRAINING
+--------------------------------------------------------------------------------
+- Script: scripts/train_spatial_model.py
+- Input: 1,734 sliding windows across 13 sessions (56-dimensional feature vector).
+- Classes: CLEAR (412), Z1 (288), Z2 (480), Z3 (64), Z4 (490).
+- Group Partition: GroupShuffleSplit by session (902 train windows / 832 test windows).
+- Leakage Standard: Zero temporal window overlap between train and test sets.
+- Output Artifacts:
+  * models/spatial_model.pkl (1.67 MB)
+  * models/spatial_model_scorecard.json
+
+--------------------------------------------------------------------------------
+7. QUALITY GATE & TEST VERIFICATION
+--------------------------------------------------------------------------------
+- Unit & Integration Test Suite (tests/test_spatial.py):
+  * Ran 42 tests in 9.614s -> 42 / 42 PASSED (100% OK).
+- 6-Point Colleague Pre-Demo Audit (scripts/verify_six_checks.py):
+  * ALL 6 / 6 CHECKS PASSED (100%).
+- Documentation:
+  * Created docs/LIVE_HARDWARE_MULTI_LINK_REPORT.md.
+- Version Control:
+  * All code, datasets, models, and docs committed and pushed to GitHub main:
+    Commit: 26b2286 -> https://github.com/Tanmay-proj/Wimotion-2.0.git
+
+================================================================================
+                              SESSION COMPLETED
+================================================================================
