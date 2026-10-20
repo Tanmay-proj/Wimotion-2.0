@@ -35,7 +35,7 @@ def _extract_csv_timestamps(csv_path: Path) -> Optional[tuple[float, float, int]
         last_ts = None
         count = 0
         with open(csv_path, "r", encoding="utf-8", errors="ignore") as f:
-            reader = csv.reader(f)
+            reader = csv.reader((line.replace('\0', '') for line in f))
             header = next(reader, None)
             for row in reader:
                 if len(row) > 0 and row[0]:
@@ -376,7 +376,7 @@ def generate_demo_session_frames(step_seconds: float = 0.5, total_duration: floa
     }
 
 
-def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_seconds: float = 2.0) -> Optional[Dict[str, Any]]:
+def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_seconds: float = 2.0, eval_v1: bool = True) -> Optional[Dict[str, Any]]:
     """Loads a recording file and converts it into uniform timestamped replay frames."""
     ALIAS_MAP = {
         "session_431": "demo_session",
@@ -471,7 +471,7 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
     records_by_time = []
     malformed_rows = 0
     with open(target_csv, "r", encoding="utf-8", errors="ignore") as f:
-        reader = csv.reader(f)
+        reader = csv.reader((line.replace('\0', '') for line in f))
         header = next(reader, None)
         if not header:
             return None
@@ -482,8 +482,19 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
                 continue
             try:
                 ts = float(row[0])
-                if len(row) >= 74:
-                    # WiMotion 2.0 Multi-Link format
+                if len(row) >= 75:
+                    # WiMotion 2.0 Multi-Link format with room_id (11 metadata columns + 64 subcarriers)
+                    rx = row[1]
+                    tx = row[2]
+                    mac = row[3]
+                    rssi = float(row[4]) if row[4] else -60.0
+                    rate_hz = float(row[5]) if row[5] else 20.0
+                    gt_count = int(row[6]) if row[6] else 0
+                    gt_zone = row[7] if row[7] else "CLEAR"
+                    motion_state = row[9] if row[9] else "UNKNOWN"
+                    amplitudes = [float(x) for x in row[11:75]]
+                elif len(row) == 74:
+                    # WiMotion 2.0 Multi-Link format (10 metadata columns + 64 subcarriers)
                     rx = row[1]
                     tx = row[2]
                     mac = row[3]
@@ -526,22 +537,38 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
     if not records_by_time:
         return None
 
+    # Filter out corrupted timestamps/clock-drift anomalies (e.g. mixed relative and epoch timestamps)
+    epoch_count = sum(1 for item in records_by_time if item[0] > 1e9)
+    if epoch_count > len(records_by_time) * 0.8:
+        records_by_time = [item for item in records_by_time if item[0] > 1e9]
+    elif sum(1 for item in records_by_time if item[0] < 86400.0) > len(records_by_time) * 0.8:
+        records_by_time = [item for item in records_by_time if 0.0 <= item[0] < 86400.0]
+
+    if not records_by_time:
+        return None
+
     records_by_time.sort(key=lambda x: x[0])
     timestamps = [item[0] for item in records_by_time]
     start_ts = timestamps[0]
     end_ts = timestamps[-1]
-    total_duration = max(0.1, end_ts - start_ts)
+    total_duration = min(7200.0, max(0.1, end_ts - start_ts))
 
     model = SpatialBaseline()
-    try:
-        from .v1_adapter import get_v1_adapter
-        v1_adapter = get_v1_adapter()
-    except Exception:
+    if eval_v1:
+        try:
+            from .v1_adapter import get_v1_adapter
+            v1_adapter = get_v1_adapter()
+        except Exception:
+            v1_adapter = None
+    else:
         v1_adapter = None
 
-    try:
-        spatial_adapter = get_supervised_spatial_adapter()
-    except Exception:
+    if eval_v1:
+        try:
+            spatial_adapter = get_supervised_spatial_adapter()
+        except Exception:
+            spatial_adapter = None
+    else:
         spatial_adapter = None
 
     frames = []
@@ -602,11 +629,12 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         "is_demo": False
     }
 
-    try:
-        CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        cache_file.write_text(json.dumps(result_payload), encoding="utf-8")
-    except Exception:
-        pass
+    if eval_v1:
+        try:
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
+            cache_file.write_text(json.dumps(result_payload), encoding="utf-8")
+        except Exception:
+            pass
 
     return result_payload
 

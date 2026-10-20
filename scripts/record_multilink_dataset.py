@@ -9,6 +9,7 @@ import sys
 import time
 import json
 import argparse
+import threading
 from pathlib import Path
 from collections import deque, Counter
 import csv
@@ -66,6 +67,9 @@ def main():
     writer = csv.writer(csv_file)
     writer.writerow(fieldnames)
 
+    # Thread safety lock for concurrent RX1 and RX2 streaming
+    write_lock = threading.Lock()
+
     # Live Prototype Detection Pipeline
     model = SpatialBaseline(variance_threshold=8.0)
     window_buffer = deque(maxlen=80)  # ~2-second rolling buffer
@@ -80,35 +84,36 @@ def main():
 
     def on_record(record: CSIRecord):
         nonlocal total_records
-        window_buffer.append(record)
+        with write_lock:
+            window_buffer.append(record)
 
-        # Dynamic Prototype Decision vs Manual Override
-        if args.zones is not None:
-            active_zones = args.zones
-            active_zone = args.zone if args.zone is not None else (args.zones.split(',')[0] if ',' in args.zones else args.zones)
-            active_count = args.count if args.count is not None else len([z.strip() for z in args.zones.split(',') if z.strip()])
-        else:
-            active_zone = args.zone if args.zone is not None else current_detected_zone
-            active_zones = active_zone
-            active_count = args.count if args.count is not None else current_detected_count
+            # Dynamic Prototype Decision vs Manual Override
+            if args.zones is not None:
+                active_zones = args.zones
+                active_zone = args.zone if args.zone is not None else (args.zones.split(',')[0] if ',' in args.zones else args.zones)
+                active_count = args.count if args.count is not None else len([z.strip() for z in args.zones.split(',') if z.strip()])
+            else:
+                active_zone = args.zone if args.zone is not None else current_detected_zone
+                active_zones = active_zone
+                active_count = args.count if args.count is not None else current_detected_count
 
-        active_motion = args.motion_state if args.motion_state is not None else current_detected_motion
+            active_motion = args.motion_state if args.motion_state is not None else current_detected_motion
 
-        row = [
-            f"{record.timestamp:.4f}",
-            record.receiver_id,
-            record.tx_id or "UNKNOWN",
-            record.source_mac,
-            record.rssi if record.rssi is not None else "",
-            f"{record.rate_hz:.1f}" if record.rate_hz is not None else "",
-            active_count,
-            active_zone,
-            active_zones,
-            active_motion,
-            args.room_id
-        ] + [f"{a:.2f}" for a in record.amplitudes[:64]]
-        writer.writerow(row)
-        total_records += 1
+            row = [
+                f"{record.timestamp:.4f}",
+                record.receiver_id,
+                record.tx_id or "UNKNOWN",
+                record.source_mac,
+                record.rssi if record.rssi is not None else "",
+                f"{record.rate_hz:.1f}" if record.rate_hz is not None else "",
+                active_count,
+                active_zone,
+                active_zones,
+                active_motion,
+                args.room_id
+            ] + [f"{a:.2f}" for a in record.amplitudes[:64]]
+            writer.writerow(row)
+            total_records += 1
 
     manager = MultiSerialManager(config, on_record)
     manager.start_all()

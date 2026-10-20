@@ -1,0 +1,22 @@
+{
+  "session_id": "session_real_005_blind_tx",
+  "display_name": "session_real_005_blind_tx",
+  "source_type": "hardware_recorded_multilink",
+  "provenance": "hardware_recorded_multilink",
+  "format": "CSV_RAW_CSI_64",
+  "room_id": "ROOM_LAB_A",
+  "operator_id": "OC_TANMAY",
+  "ground_truth_count": 1,
+  "ground_truth_zone": "Z3",
+  "ground_truth_zones": "Z3",
+  "motion_state": "WALKING_NEAR_TX3",
+  "duration_seconds": 75.05,
+  "total_records_captured": 12499,
+  "auto_detected": false,
+  "timestamp_start": 1792504141.962443,
+  "timestamp_end": 1792504217.014258,
+  "created_at": "2026-10-20 19:20:17",
+  "notes": "Physical walk validated near TX4 (MAC: 1C:69:20:31:4B:40)",
+  "csv_filename": "multilink_data_session_real_005_blind_tx.csv",
+  "description": "Live hardware multi-link CSI capture. Confirmed physical walk at TX4 node (1C:69:20:31:4B:40). Peak variance: 179.86."
+}

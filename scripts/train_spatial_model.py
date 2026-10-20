@@ -43,7 +43,7 @@ def extract_session_features(session_id: str):
     Extracts 56-dim fused multi-link feature vectors and ground-truth zone labels
     for all valid sliding windows in a session.
     """
-    data = load_recording_frames(session_id)
+    data = load_recording_frames(session_id, eval_v1=False)
     if not data:
         return [], [], []
 
@@ -255,8 +255,8 @@ def main():
     trainable_sessions = []
     for r in recordings:
         sid = r.get("session_id", "")
-        # Include benchmark multi-link sessions, held-out sessions, and synthetic sessions
-        if sid in ["benchmark_session_01", "synthetic_session_01", "public_esp_fi_01", "held_out_empty_01", "held_out_walking_01"] or sid.startswith("session_"):
+        # Include benchmark multi-link sessions and genuine physical hardware sessions
+        if sid in ["benchmark_session_01", "synthetic_session_01", "public_esp_fi_01", "held_out_empty_01", "held_out_walking_01"] or sid.startswith("session_real_"):
             trainable_sessions.append(r)
 
     return train_spatial_pipeline(

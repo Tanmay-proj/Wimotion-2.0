@@ -1,0 +1,22 @@
+{
+  "session_id": "session_real_001_empty",
+  "display_name": "session_real_001_empty",
+  "source_type": "hardware_recorded_multilink",
+  "provenance": "hardware_recorded_multilink",
+  "format": "CSV_RAW_CSI_64",
+  "room_id": "ROOM_LAB_A",
+  "operator_id": "OC_TANMAY",
+  "ground_truth_count": 0,
+  "ground_truth_zone": "CLEAR",
+  "ground_truth_zones": "CLEAR",
+  "motion_state": "EMPTY_ROOM",
+  "duration_seconds": 140.06,
+  "total_records_captured": 27492,
+  "auto_detected": false,
+  "timestamp_start": 1792503032.3933115,
+  "timestamp_end": 1792503172.4504128,
+  "created_at": "2026-10-20 19:02:52",
+  "notes": "Physical empty room baseline capture; room unoccupied; genuine noise floor",
+  "csv_filename": "multilink_data_session_real_001_empty.csv",
+  "description": "Live hardware multi-link CSI capture. Prototype detected 0 person(s) in CLEAR, 140.06s duration."
+}
