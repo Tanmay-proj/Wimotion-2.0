@@ -32,7 +32,7 @@ goto MENU
 
 :TESTS
 echo.
-echo [*] Running Multi-Link Unit Tests (20/20)...
+echo [*] Running Multi-Link Unit Tests (42/42 Tests)...
 py -3.10 -m unittest discover -s tests -v
 echo.
 echo [*] Running 6-Point Colleague Audit Verification Suite...
@@ -69,12 +69,15 @@ goto MENU
 
 :RECORD
 echo.
-echo [*] WiMotion 2.0 Autonomous Session Recording
-echo [*] The prototype will automatically detect Zone and Person Count live on the fly!
+echo [*] WiMotion 2.0 Multi-Link Dataset Recording
+echo [*] Note: For scientific ground truth integrity, specify manual labels!
 echo.
-set /p sess="Enter Session Name (e.g. session_001): "
-set /p dur="Enter Duration in seconds (e.g. 20): "
-py -3.10 scripts/record_multilink_dataset.py --session %sess% --duration %dur%
+set /p sess="Enter Session Name (e.g. session_manual_z1_01): "
+set /p dur="Enter Duration in seconds (e.g. 60): "
+set /p zone="Enter Ground Truth Zone [CLEAR, Z1, Z2, Z3, Z4]: "
+set /p cnt="Enter Ground Truth Person Count [0, 1]: "
+set /p motion="Enter Motion State [EMPTY_ROOM, WALKING, DYNAMIC]: "
+py -3.10 scripts/record_multilink_dataset.py --session %sess% --duration %dur% --zone %zone% --count %cnt% --motion-state %motion%
 pause
 goto MENU
 

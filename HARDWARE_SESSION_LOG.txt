@@ -174,6 +174,24 @@ GRAND TOTAL                  | ALL   | 0-1 P  | 756.16s  | 116,588 FRAMES
   * All code, datasets, models, and docs committed and pushed to GitHub main:
     Commit: 26b2286 -> https://github.com/Tanmay-proj/Wimotion-2.0.git
 
+--------------------------------------------------------------------------------
+8. PHASE B CONTROLLED MULTI-LINK EXPERIMENTAL RECORDINGS
+--------------------------------------------------------------------------------
+- Purpose: Controlled physical captures with verified manual ground truth, 
+  thread-safe CSV writing, and zero timestamp/record drops for clean training.
+- Session Registry:
+  * session_pB_clear_01   | CLEAR | 0 P | 60.37s | 5,576 frames | Verified empty room baseline
+  * session_pB_clear_02   | CLEAR | 0 P | 60.18s | 5,537 frames | Verified empty room repeat
+  * session_pB_z1_walk_01 | Z1    | 1 P | 60.29s | 5,547 frames | Walking near TX1 (NE corner)
+  * session_pB_z1_walk_02 | Z1    | 1 P | 60.31s | 5,616 frames | Repeat walk near TX1 (NE corner)
+  * session_pB_z2_walk_01 | Z2    | 1 P | 60.19s | 6,020 frames | Walking near TX2 (NW corner)
+  * session_pB_z2_walk_02 | Z2    | 1 P | 60.23s | 5,578 frames | Repeat walk near TX2 (NW corner)
+  * session_pB_z3_walk_01 | Z3    | 1 P | 60.19s | 5,541 frames | Walking near TX3 (SW corner)
+  * session_pB_z3_walk_02 | Z3    | 1 P | 60.19s | 5,569 frames | Repeat walk near TX3 (SW corner)
+  * session_pB_z4_walk_01 | Z4    | 1 P | 60.31s | 5,571 frames | Walking near TX4 (SE corner)
+  * session_pB_z4_walk_02 | Z4    | 1 P | 60.13s | 5,831 frames | Repeat walk near TX4 (SE corner)
+- Total Phase B Frames: 56,386 frames (100% strict audit pass, zero count delta).
+
 ================================================================================
                               SESSION COMPLETED
 ================================================================================

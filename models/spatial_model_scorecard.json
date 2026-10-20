@@ -1,6 +1,6 @@
 {
   "model_name": "WiMotion 2.0 Supervised Spatial Classifier",
-  "created_at": "2026-10-20 14:40:45 UTC",
+  "created_at": "2026-10-20 16:01:21 UTC",
   "classifier": "HistGradientBoostingClassifier",
   "feature_dimension": 56,
   "unique_classes": [
@@ -11,27 +11,24 @@
     "Z4"
   ],
   "train_sessions": [
-    "held_out_empty_01",
-    "held_out_walking_01",
-    "public_esp_fi_01",
-    "session_real_001_empty",
-    "session_real_002_near_rx1",
-    "session_real_003_tx_walk",
-    "session_real_003_z1_walk",
-    "session_real_006_tx2_walk",
-    "synthetic_session_01"
+    "session_pB_clear_01",
+    "session_pB_z1_walk_01",
+    "session_pB_z2_walk_01",
+    "session_pB_z3_walk_01",
+    "session_pB_z4_walk_01"
   ],
   "test_sessions": [
-    "benchmark_session_01",
-    "session_real_004_mystery_tx",
-    "session_real_005_blind_tx",
-    "session_real_007_tx4_walk"
+    "session_pB_clear_02",
+    "session_pB_z1_walk_02",
+    "session_pB_z2_walk_02",
+    "session_pB_z3_walk_02",
+    "session_pB_z4_walk_02"
   ],
   "metrics": {
-    "learned_accuracy_pct": 30.53,
-    "learned_weighted_f1_pct": 23.34,
-    "heuristic_baseline_accuracy_pct": 40.02,
-    "heuristic_baseline_f1_pct": 39.14
+    "learned_accuracy_pct": 43.8,
+    "learned_weighted_f1_pct": 44.18,
+    "heuristic_baseline_accuracy_pct": 29.26,
+    "heuristic_baseline_f1_pct": 19.84
   },
   "session_leakage_prevented": true
 }

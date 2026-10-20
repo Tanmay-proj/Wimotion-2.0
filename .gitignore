@@ -16,6 +16,8 @@ ENV/
 data/raw/*.csv
 data/models/*.pkl
 data/cache/
+data/raw_backup_pre_audit/
+*.zip
 
 # OS / Editor artifacts
 .DS_Store

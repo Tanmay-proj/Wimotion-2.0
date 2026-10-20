@@ -101,7 +101,8 @@ def train_spatial_pipeline(
     scorecard_out: Path = DEFAULT_SCORECARD_OUT,
     classifier_type: str = "hist_gradient",
     n_splits: int = 3,
-    test_size: float = 0.25
+    test_size: float = 0.25,
+    split_strategy: str = "take"
 ):
     print("=" * 78)
     print("   WiMotion 2.0 — Supervised Spatial Model Training Pipeline (Phase 6)")
@@ -142,10 +143,19 @@ def train_spatial_pipeline(
     print(f"    Class Distribution: {dict(Counter(y_arr))}")
 
     # Session-Wise Split (Zero-Leakage Group Partitioning)
-    print("\n[*] Partitioning by Session Groups (Preventing Overlapping-Window Leakage)...")
+    print(f"\n[*] Partitioning by Session Groups (Strategy: {split_strategy})...")
     unique_sessions = np.unique(groups_arr)
     
-    if len(unique_sessions) < 2:
+    if split_strategy == "take":
+        train_idx = np.array([i for i, g in enumerate(groups_arr) if g.endswith("_01") or "_01" in g])
+        test_idx = np.array([i for i, g in enumerate(groups_arr) if g.endswith("_02") or "_02" in g])
+        if len(train_idx) == 0 or len(test_idx) == 0:
+            print("[!] Take split not applicable to all sessions, falling back to GroupShuffleSplit...")
+            gss = GroupShuffleSplit(n_splits=1, test_size=test_size, random_state=42)
+            train_idx, test_idx = next(gss.split(X_arr, y_arr, groups=groups_arr))
+        else:
+            print("    -> Natural Take-Based Split: All Take 01 in Train, All Take 02 in Held-Out Test.")
+    elif len(unique_sessions) < 2:
         print("[!] Warning: Only 1 session with valid labels. Falling back to stratified window split.")
         from sklearn.model_selection import StratifiedShuffleSplit
         splitter = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=42)
@@ -247,26 +257,43 @@ def main():
     parser.add_argument("--model-out", type=Path, default=DEFAULT_MODEL_OUT, help="Output path for trained model")
     parser.add_argument("--scorecard-out", type=Path, default=DEFAULT_SCORECARD_OUT, help="Output path for scorecard JSON")
     parser.add_argument("--classifier", type=str, choices=["hist_gradient", "random_forest"], default="hist_gradient")
-    parser.add_argument("--test-size", type=float, default=0.25, help="Fraction of sessions reserved for testing")
+    parser.add_argument("--dataset", type=str, choices=["phase_b", "audited", "all"], default="phase_b",
+                        help="Dataset: 'phase_b' (10 fresh controlled takes), 'audited' (manual_gt_v1), or 'all'")
+    parser.add_argument("--split-strategy", type=str, choices=["take", "group_shuffle"], default="take",
+                        help="Split strategy: 'take' (Take 01 train, Take 02 test) or 'group_shuffle'")
+    parser.add_argument("--test-size", type=float, default=0.25, help="Fraction of sessions reserved for testing (if group_shuffle)")
     args = parser.parse_args()
 
     recordings = list_recordings()
     # Filter sessions suitable for multi-link spatial training
-    trainable_sessions = []
-    for r in recordings:
-        sid = r.get("session_id", "")
-        # Include benchmark multi-link sessions and genuine physical hardware sessions
-        if sid in ["benchmark_session_01", "synthetic_session_01", "public_esp_fi_01", "held_out_empty_01", "held_out_walking_01"] or sid.startswith("session_real_"):
-            trainable_sessions.append(r)
+    if args.dataset == "phase_b":
+        trainable_sessions = [r for r in recordings if r.get("session_id", "").startswith("session_pB_")]
+    elif args.dataset == "audited":
+        manifest_p = ROOT / "data" / "processed" / "manual_gt_v1" / "manifest.csv"
+        if manifest_p.exists():
+            import pandas as pd
+            df_m = pd.read_csv(manifest_p)
+            valid_ids = set(df_m[df_m["audited_status"] == "ELIGIBLE"]["session_id"].tolist())
+            trainable_sessions = [r for r in recordings if r.get("session_id") in valid_ids]
+        else:
+            trainable_sessions = [r for r in recordings if r.get("session_id", "").startswith("session_pB_") or r.get("session_id") in ["session_real_006_tx2_walk", "session_real_007_tx4_walk"]]
+    else:
+        trainable_sessions = []
+        for r in recordings:
+            sid = r.get("session_id", "")
+            if sid in ["benchmark_session_01", "synthetic_session_01", "public_esp_fi_01", "held_out_empty_01", "held_out_walking_01"] or sid.startswith("session_real_") or sid.startswith("session_pB_"):
+                trainable_sessions.append(r)
 
     return train_spatial_pipeline(
         sessions=trainable_sessions,
         model_out=args.model_out,
         scorecard_out=args.scorecard_out,
         classifier_type=args.classifier,
-        test_size=args.test_size
+        test_size=args.test_size,
+        split_strategy=args.split_strategy
     )
 
 
 if __name__ == "__main__":
     sys.exit(main())
+

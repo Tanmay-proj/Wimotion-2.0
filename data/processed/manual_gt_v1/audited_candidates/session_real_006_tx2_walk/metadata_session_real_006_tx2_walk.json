@@ -1,0 +1,22 @@
+{
+  "session_id": "session_real_006_tx2_walk",
+  "display_name": "session_real_006_tx2_walk",
+  "source_type": "hardware_recorded_multilink",
+  "provenance": "hardware_recorded_multilink",
+  "format": "CSV_RAW_CSI_64",
+  "room_id": "ROOM_LAB_A",
+  "operator_id": "OC_TANMAY",
+  "ground_truth_count": 1,
+  "ground_truth_zone": "Z2",
+  "ground_truth_zones": "Z2",
+  "motion_state": "WALKING_NEAR_TX2",
+  "duration_seconds": 85.02,
+  "total_records_captured": 9606,
+  "auto_detected": false,
+  "timestamp_start": 1792505694.7971942,
+  "timestamp_end": 1792505779.814779,
+  "created_at": "2026-10-20 19:46:19",
+  "notes": "Physical walk near TX2 (1C:69:20:31:38:08 / Zone Z2) till 1946hrs",
+  "csv_filename": "multilink_data_session_real_006_tx2_walk.csv",
+  "description": "Live hardware multi-link CSI capture. Prototype detected 1 person(s) in Z2, 85.02s duration."
+}

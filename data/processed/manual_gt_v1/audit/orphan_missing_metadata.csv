@@ -1,0 +1,2 @@
+session_id,status,details,action
+session_real_003_z1_walk,ORPHAN_MISSING_METADATA,"CSV multilink_data_session_real_003_z1_walk.csv (1007 rows, SHA-256: c97e715984e6b04a...) lacks metadata JSON",Quarantine session; do not invent metadata or ground truth

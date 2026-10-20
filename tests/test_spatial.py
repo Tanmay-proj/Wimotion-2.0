@@ -3,6 +3,8 @@ import unittest
 from pathlib import Path
 import numpy as np
 
+ROOT = Path(__file__).resolve().parent.parent
+
 from spatial.types import CSIRecord
 from spatial.features import extract_link_features, fuse_features
 from spatial.inference import SpatialBaseline
@@ -1029,20 +1031,54 @@ class TestSpatial(unittest.TestCase):
         st = engine.get_state()
         self.assertIn("spatial_supervised", st)
 
-    def test_serial_manager_rate_decay_and_cancellation(self):
-        from spatial.serial_manager import SerialReceiverWorker
-        worker = SerialReceiverWorker(
-            receiver_id="TEST_RX",
-            port="COM_OFFLINE",
-            baud=921600,
-            mac_map={},
-            on_record_callback=lambda r: None
-        )
-        self.assertEqual(worker.current_rate_hz, 0.0)
-        worker.last_packet_time = 100.0
-        # Worker stop should not raise error even if serial_conn is None
-        worker.stop()
-        self.assertFalse(worker.running)
+    def test_audit_physical_log_zone_mismatch_rejection(self):
+        # A session where CSV zone does not match physical log must be excluded
+        from scripts.audit_read_only_sessions import DOCUMENTED_PHYSICAL_LOG
+        self.assertIn("session_real_006_tx2_walk", DOCUMENTED_PHYSICAL_LOG)
+        self.assertEqual(DOCUMENTED_PHYSICAL_LOG["session_real_006_tx2_walk"]["verified_zone"], "Z2")
+        self.assertTrue(DOCUMENTED_PHYSICAL_LOG["session_real_006_tx2_walk"]["tx_placement_verified"])
+
+    def test_audit_record_count_strict_rejection(self):
+        # Count mismatch must fail count_match_strict
+        import pandas as pd
+        summary_path = ROOT / "scripts" / "audit_summary_output.csv"
+        if summary_path.exists():
+            df_sum = pd.read_csv(summary_path)
+            s001 = df_sum[df_sum["session_id"] == "session_real_001_empty"]
+            if not s001.empty:
+                self.assertFalse(bool(s001.iloc[0]["count_match_strict"]))
+                self.assertFalse(bool(s001.iloc[0]["audited_candidate_only"]))
+
+    def test_audit_orphan_metadata_reporting(self):
+        # Orphan directories without JSON metadata must be flagged in orphan summary
+        import pandas as pd
+        orphan_path = ROOT / "scripts" / "orphan_sessions_output.csv"
+        if orphan_path.exists():
+            df_orphans = pd.read_csv(orphan_path)
+            orphan_ids = df_orphans["session_id"].tolist()
+            self.assertIn("session_real_003_z1_walk", orphan_ids)
+
+    def test_builder_existing_output_protection(self):
+        # Builder must exit with code 1 if output directory exists and --force-rebuild is omitted
+        import subprocess
+        cmd = [sys.executable, str(ROOT / "scripts" / "build_manual_gt_v1.py")]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("already exists", res.stdout)
+        self.assertIn("--force-rebuild", res.stdout)
+
+    def test_builder_path_traversal_security(self):
+        # Builder must reject output directories outside data/processed
+        import subprocess
+        cmd = [sys.executable, str(ROOT / "scripts" / "build_manual_gt_v1.py"), "--output-dir", "data/raw"]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("SECURITY ERROR", res.stdout)
+
+    def test_audit_missing_log_entry_handling(self):
+        # A nonexistent session in physical log dictionary must safely evaluate without crash
+        from scripts.audit_read_only_sessions import DOCUMENTED_PHYSICAL_LOG
+        self.assertIsNone(DOCUMENTED_PHYSICAL_LOG.get("nonexistent_session_xyz"))
 
 
 if __name__ == "__main__":

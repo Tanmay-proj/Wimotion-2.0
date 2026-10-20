@@ -53,8 +53,11 @@ def main():
     print(f"==============================================================================")
     print(f"    Session Name:     {session_clean}")
     print(f"    Duration:         {args.duration:.1f} seconds")
-    mode_str = 'LIVE PROTOTYPE AUTO-DETECTION (Autonomous)' if is_auto else f'Manual Override ({args.count or (len(args.zones.split(",")) if args.zones else 1)}P in {args.zones or args.zone})'
+    mode_str = 'LIVE PROTOTYPE AUTO-DETECTION (Autonomous - Unverified GT)' if is_auto else f'Manual Ground Truth ({args.count or (len(args.zones.split(",")) if args.zones else 1)}P in {args.zones or args.zone})'
     print(f"    Operating Mode:   {mode_str}")
+    if is_auto:
+        print(f"    [!] SCIENTIFIC WARNING: No --zone provided! Recorded CSV labels are live heuristic guesses.")
+        print(f"    [!] For supervised training, pass: --zone [CLEAR, Z1..Z4] --count [0, 1] --motion-state [WALKING...]")
     print(f"    Output CSV:       {session_log_file.name}")
     print(f"==============================================================================\n")
 
@@ -173,12 +176,14 @@ def main():
         "duration_seconds": actual_duration,
         "total_records_captured": total_records,
         "auto_detected": is_auto,
+        "is_manual_ground_truth": not is_auto,
+        "provenance_note": "Verified manual ground truth" if not is_auto else "Live prototype autonomous heuristic estimation (unverified ground truth)",
         "timestamp_start": start_time,
         "timestamp_end": time.time(),
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
         "notes": args.notes,
         "csv_filename": session_log_file.name,
-        "description": f"Live hardware multi-link CSI capture. Prototype detected {final_count} person(s) in {final_zone}, {actual_duration}s duration."
+        "description": f"Live hardware multi-link CSI capture. {'Manual GT' if not is_auto else 'Prototype detected'} {final_count} person(s) in {final_zone}, {actual_duration}s duration."
     }
     meta_log_file.write_text(json.dumps(metadata_payload, indent=2), encoding="utf-8")
     invalidate_recordings_cache()

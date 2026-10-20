@@ -30,8 +30,8 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 ```
 
 - **Hardware Deployment Reality:**
-  - **Lab Inventory:** **4 physical COTS ESP32-WROOM-32 microcontrollers** (typically deployed as 1 Master RX on `COM3` + 3 TX Beacons in Z1, Z2, Z3, or 2 RX + 2 TX).
-  - **Theoretical Grid:** 2 Receivers (`COM3`, `COM8`) $\times$ 4 Transmitters (TX1..TX4) forming an 8-link distributed mesh. Supported in firmware and software architecture, but theoretical.
+  - **Physical Deployment (Oct 20, 2026):** **6 physical COTS ESP32-WROOM-32 microcontrollers** active simultaneously: 2 Receivers (RX1 on COM9, RX2 on COM8) + 4 Transmitters (TX1 in Z1 `BC:DD:C2:CC:49:F4`, TX2 in Z2 `1C:69:20:31:38:08`, TX3 in Z3 `4C:11:AE:64:9A:05`/`1C:69:20:31:4B:40`, TX4 in Z4 `CC:7B:5C:28:84:70`).
+  - **Full 8-Link Physical Mesh:** Capturing concurrent multi-link CSI across dual USB-UART host receivers (116,588+ real hardware frames captured across 8 recorded sessions; see [Live Hardware Report](docs/LIVE_HARDWARE_MULTI_LINK_REPORT.md)).
 - **Dual-Engine Inference Mode:**
   - **Presence Gating:** Original WiMotion ML Model (`HistGradientBoostingClassifier`, 217 temporal-spectral features, `presence_model.pkl`) via `spatial/v1_adapter.py`. Evaluated on untouched held-out single-link physical captures (`held_out_empty_01` + `held_out_walking_01`, 109 windows: **81.25% Valid Accuracy**, 88.07% Coverage, 71.56% Conservative All-Window Score).
   - **Sector Localization:** Spatial perturbation based on multi-link CSI variance ratio ranking ($argmax$). Heuristic spatial zoning, uncalibrated for absolute human count.
@@ -49,16 +49,16 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Sliding Window Buffer** | ✅ **Implemented** | 2.0s sliding window with 0.5s step (`spatial/window.py`) |
 | **Strict Mode Isolation** | ✅ **Implemented** | Authoritative separation between LIVE hardware, REPLAY lab, and SIMULATION (`spatial/server.py`) |
 | **Unified State Renderer** | ✅ **Implemented** | Consistent single-renderer driving metrics, 8-link mesh, timeline, and radar (`dashboard/observatory_multi.html`) |
-| **Automated Unit Tests** | ✅ **Passing (39/39 in CI)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts (missing model, cross-NumPy unpickling), benchmark generator metadata contract, zero-denominator metric safety, per-link FPR evaluation, spatial model zero-leakage session split, recorder zones schema, and rogue TX suppression resilience (`tests/test_spatial.py`) |
+| **Automated Unit Tests** | ✅ **Passing (47/47 in CI)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts (missing model, cross-NumPy unpickling), benchmark generator metadata contract, zero-denominator metric safety, per-link FPR evaluation, spatial model zero-leakage session split, recorder zones schema, rogue TX suppression resilience, physical log validation, strict count match, and orphan isolation (`tests/test_spatial.py`) |
 | **Colleague Audit Suite** | ✅ **Passing (6/6)** | Hardware coverage integrity, rate conservation, zero-sample link gating (`scripts/verify_six_checks.py`) |
-| **Dataset Provenance Audit** | ✅ **Complete (593 Sessions)** | Comprehensive audit distinguishing 32 genuine physical sessions from 560 activity benchmarks (`docs/DATASET_AUDIT_REPORT.md`) |
+| **Dataset Provenance Audit** | ✅ **Complete (593 Sessions)** | Comprehensive audit distinguishing physical sessions from benchmarks (`docs/DATASET_AUDIT_REPORT.md`) |
 | **V1 Model Adapter** | ✅ **Actively Integrated** | Real 217-feature extraction pipeline & HistGradientBoosting classifier (`presence_model.pkl`) called in Live and Replay (`spatial/v1_adapter.py`) |
 | **Per-Link Evaluation (Phase 5)** | ✅ **Verified Breakdown** | Evaluates V1 presence model independently per physical link, reporting accuracy, coverage, recall, specificity, and false-positive rate (`scripts/evaluate_models.py`) |
 | **Supervised Spatial Model (Phase 6)** | ✅ **Implemented & Benchmarked** | 56-dim multi-link feature space with session-wise splits (GroupShuffleSplit) preventing overlapping-window leakage, benchmarked alongside SpatialBaseline (`scripts/train_spatial_model.py`) |
 | **Public Dataset Adapters** | ✅ **Implemented** | ESP-Fi HAR, RF_ESP32, and WiCAL dataset adapters (`spatial/dataset_adapters/`) |
 | **Controlled Synthetic Augmentation** | ✅ **Implemented** | Physics-informed RF gain & Gaussian multipath perturbation with parent tracking (`spatial/augmentation.py`) |
-| **Hardware Inventory & Standby** | ⚠️ **4 Boards / Safe Standby** | 4 physical ESP32 boards in kit. Host USB-UART defaults to Safe Standby (Disconnected) to prevent Windows DPC Watchdog BSODs until live demo capture. |
-| **Data Sessions & Provenance** | ✅ **Honest Classification** | Single-link physical hardware (`held_out_empty_01`, `held_out_walking_01`), software benchmark (`benchmark_session_01`), unverified import (`public_esp_fi_01`), synthetic augmented (`synthetic_session_01`), scripted demo (`demo_session`). |
+| **Hardware Inventory & Standby** | ✅ **6 Physical Nodes Active** | 6 physical ESP32 boards deployed in room mesh (2 RX + 4 TX). Host USB-UART defaults to Safe Standby when server not in LIVE mode. |
+| **Data Sessions & Provenance** | ✅ **Honest Classification** | Physical hardware captures (`session_real_001` through `007`), software benchmark (`benchmark_session_01`), unverified import (`public_esp_fi_01`), synthetic augmented (`synthetic_session_01`), scripted demo (`session_431`). |
 
 ---
 
@@ -126,6 +126,6 @@ Detailed guides and scientific deliverables are located in the `docs/` directory
 - **Rogue / Unknown Node Protection:**
   Unmapped transmitter IDs are ranked separately and isolated to `UNKNOWN`. They cannot suppress a valid mapped transmitter exceeding the noise threshold.
 - **Hardware Truth:**
-  We own **4 physical ESP32 boards**. The 6-node / 8-link mesh is our theoretical system architecture, demonstrated via software pipeline simulation. Physical trials were conducted in single-link mode.
+  Physical hardware deployment consists of **6 physical ESP32 microcontrollers** (2 Receivers + 4 Transmitters) forming a genuine 8-link distributed mesh, capturing over 116,588 frames across empirical testing sessions (see `docs/LIVE_HARDWARE_MULTI_LINK_REPORT.md` and `HARDWARE_SESSION_LOG.txt`).
 - **Safety Guarantee:**
   Project WiMotion v1.0 (`wimotion/`) remains 100% frozen, intact, and fully operational as an independent baseline.
