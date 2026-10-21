@@ -449,11 +449,30 @@ def build_final_dissertation():
                 table_buffer = []
                 in_table = False
 
-        # Page Break delimiters (--- or <div style="page-break-after: always;"></div>)
+        # Horizontal rules / Page Break delimiters
         if line_stripped in ("---", "***", "___") or "page-break-after" in line_stripped:
-            # If at section transition, section break handles the new page
-            if not (i + 1 < total_lines and ("CHAPTER 1:" in lines[i+1] or "2. CERTIFICATE" in lines[i+1])):
-                doc.add_page_break()
+            # In Section 2 (Front Matter), page breaks are used ONLY before major standalone front-matter sections.
+            # In Section 3 (Chapters), '---' is merely a thematic horizontal divider and MUST NEVER trigger a page break!
+            # (Chapters start on new pages via Heading 1 page_break_before = True)
+            if current_section == 2:
+                next_line = ""
+                for k in range(i + 1, min(i + 6, total_lines)):
+                    if lines[k].strip():
+                        next_line = lines[k].strip()
+                        break
+
+                front_matter_page_breaks = [
+                    "## 3. STUDENT DECLARATION",
+                    "## 4. ACKNOWLEDGEMENTS",
+                    "## 5. ABSTRACT",
+                    "## 7. TABLE OF CONTENTS",
+                    "## 8. LIST OF FIGURES",
+                    "## 9. LIST OF TABLES",
+                    "## 10. LIST OF ABBREVIATIONS"
+                ]
+                if any(sec in next_line for sec in front_matter_page_breaks):
+                    doc.add_page_break()
+
             i += 1
             continue
 

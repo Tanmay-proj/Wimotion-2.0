@@ -108,7 +108,7 @@ Wi-Fi Sensing, Channel State Information (CSI), Human Presence Detection, Spatia
 ## 7. TABLE OF CONTENTS
 
 - **PART I: FRONT MATTER**
-  - 1. Title Page (Sample Institute Template)
+  - 1. Title Page
   - 2. Certificate of Approval
   - 3. Student Declaration
   - 4. Acknowledgements
@@ -1606,6 +1606,11 @@ While the Observatory Dashboard delivers high operational clarity, two technical
 ---
 
 ## 8.1 Testing Strategy and Software Quality Objectives
+
+> [!NOTE]
+> **Explicit Engineering Boundary: Software Test Verification vs. Physical Sensing Accuracy**
+> Passing 56 automated unit tests provides rigorous proof of software pipeline integrity, mathematical feature parity, memory safety, and zero data leakage across ingestion buffers. However, software unit test execution does not equate to physical RF sensing accuracy. The physical sensing accuracy (49.26% gated 5-class accuracy; 52.89% empty-room false alarm rate) is governed by physical electromagnetic propagation, multipath interference, and antenna SNR in the physical environment, as evaluated separately in Chapter 6. Software verification guarantees that the codebase faithfully executes the algorithms without implementation bugs; physical benchmark evaluation measures how well those algorithms perform in real-world propagation conditions.
+
 
 In cyber-physical sensing systems where machine learning models interact with raw serial hardware streams, ad-hoc manual testing is insufficient. Software regressions—such as silent feature schema drifts, buffer race conditions, or unhandled divide-by-zero errors—can subtly corrupt spatial predictions without crashing the process.
 
