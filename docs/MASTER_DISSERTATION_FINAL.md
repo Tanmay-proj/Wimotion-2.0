@@ -27,67 +27,24 @@
                       DS CO-GUIDE: MAJ VAIBHAV KUKRETI
 
                      FACULTY OF ELECTRONICS AND MECHANICAL ENGINEERING
-                  MILITARY COLLEGE OF ELECTRONICS AND MECHANICAL ENGINEERING
-                                  (MCEME)
+                  MILITARY COLLEGE OF TELECOMMUNICATION ENGINEERING
+                                  (MCTE)
                                 OCTOBER 2026
 ```
 
 ---
 
-## 2. CERTIFICATE OF APPROVAL
-
-This is to certify that the dissertation entitled **"Design, Implementation and Empirical Evaluation of a Multi-Link Wi-Fi CSI Sensing System for Indoor Spatial Disturbance Tracking (WiMotion 2.0)"**, submitted by **OC Tanmay Mugale (TES-4312)** and **OC Rishabh Rathore (TES-4316)** in partial fulfillment of the requirements for the award of the degree of Bachelor of Technology in Computer Science and Engineering / Electronics and Communication Engineering, is an authentic record of bonafide research work carried out under our supervision and guidance.
-
-To the best of our knowledge, the matter embodied in this dissertation has not been submitted to any other University / Institute for the award of any Degree or Diploma.
-
-\
-\
-______________________________  
-**Lt Col Rajat Gaur**  
-Project Supervisor / DS Guide  
-Faculty of Electronics and Mechanical Engineering  
-Military College of Electronics and Mechanical Engineering (MCEME)  
-
-\
-\
-______________________________  
-**Maj Vaibhav Kukreti**  
-DS Co-Guide  
-Faculty of Electronics and Mechanical Engineering  
-Military College of Electronics and Mechanical Engineering (MCEME)  
-
----
-
-## 3. STUDENT DECLARATION
-
-We hereby declare that this dissertation entitled **"Design, Implementation and Empirical Evaluation of a Multi-Link Wi-Fi CSI Sensing System for Indoor Spatial Disturbance Tracking (WiMotion 2.0)"** is an authentic record of original research work conducted by us under the supervision of **Lt Col Rajat Gaur (DS Guide)** and **Maj Vaibhav Kukreti (DS Co-Guide)**, Faculty of Electronics and Mechanical Engineering, Military College of Electronics and Mechanical Engineering (MCEME).
-
-We have adhered to all academic integrity norms. All theoretical formulations, source code libraries, hardware standards, and literature cited have been duly referenced. This work has not been previously submitted for any degree, diploma, or certificate at this or any other academic institution.
-
-\
-\
-Date: October 21, 2026  
-Place: Secunderabad  
-
-\
-\
-______________________________          ______________________________  
-**OC Tanmay Mugale (TES-4312)**         **OC Rishabh Rathore (TES-4316)**  
-Cadet Candidate Signature               Cadet Candidate Signature  
-
----
-
-## 4. ACKNOWLEDGEMENTS
+## 2. ACKNOWLEDGEMENTS
 
 We express our deepest gratitude to our project supervisor, **Lt Col Rajat Gaur (DS Guide)**, and **Maj Vaibhav Kukreti (DS Co-Guide)**, for their invaluable guidance, technical insight, and continuous encouragement throughout the evolution of this research from its initial single-link exploratory phases (Project Echo and Shadow) to the complete multi-link spatial sensing architecture of WiMotion 2.0.
 
-We extend sincere thanks to the Head of Faculty, Directing Staff, and officers of the **Military College of Electronics and Mechanical Engineering (MCEME)** for providing the laboratory facilities, computing infrastructure, and academic environment essential to the completion of this project.
+We extend sincere thanks to the Head of Faculty, Directing Staff, and officers of the **Military College of Telecommunication Engineering (MCTE)** for providing the laboratory facilities, computing infrastructure, and academic environment essential to the completion of this project.
 
 Special appreciation is conveyed to our directing staff, laboratory technical staff, peers, and fellow course cadets whose constructive feedback, peer audits, and technical reviews helped refine our experimental methodology, eliminate data leakage, and maintain the highest standards of scientific rigor. Finally, we thank our families and comrades for their steadfast support and understanding during the intensive hardware experimentation and software engineering phases of this dissertation.
 
 ---
 
-## 5. ABSTRACT
+## 3. ABSTRACT
 
 Conventional indoor human monitoring systems relying on optical video cameras or passive infrared (PIR) detectors face acute operational constraints regarding privacy infringement, line-of-sight occlusions, and vulnerability to environmental darkness or smoke. This dissertation presents the design, physical implementation, and empirical evaluation of **WiMotion 2.0**, an opportunistic, device-free radio frequency (RF) indoor spatial sensing system constructed entirely on low-cost Commodity Off-The-Shelf (COTS) Espressif ESP32 microcontrollers (<$4 per node; ~$25–$30 total hardware array).
 
@@ -99,25 +56,16 @@ On unseen held-out physical test takes (Take 02), the supervised Random Forest c
 
 ---
 
-## 6. KEYWORDS
-
-Wi-Fi Sensing, Channel State Information (CSI), Human Presence Detection, Spatial Sensing, ESP32, RF Signal Processing, Machine Learning, Non-Line-of-Sight Sensing, Situational Awareness.
-
----
-
-## 7. TABLE OF CONTENTS
+## 4. TABLE OF CONTENTS
 
 - **PART I: FRONT MATTER**
-  - 1. Title Page
-  - 2. Certificate of Approval
-  - 3. Student Declaration
-  - 4. Acknowledgements
-  - 5. Abstract
-  - 6. Keywords
-  - 7. Table of Contents
-  - 8. List of Figures
-  - 9. List of Tables
-  - 10. List of Abbreviations and Acronyms
+  - 1. Title Page & DS Directing Staff Records
+  - 2. Acknowledgements
+  - 3. Abstract
+  - 4. Table of Contents
+  - 5. List of Figures
+  - 6. List of Tables
+  - 7. List of Abbreviations and Acronyms
 - **CHAPTER 1: INTRODUCTION AND PROJECT MOTIVATION**
   - 1.1 Background and Motivation
   - 1.2 Limitations of Conventional Visual Monitoring
@@ -220,12 +168,10 @@ Wi-Fi Sensing, Channel State Information (CSI), Human Presence Detection, Spatia
   - Appendix F: Full Clean Pre-Demo Checklist Output
   - Appendix G: Evaluation Scorecards, Confusion Matrices and Supporting Plots
   - Appendix H: Additional Dashboard Screenshots
-  - Appendix I: Selected Git Commit and Reproducibility Information
-  - Appendix J: Technical Viva Voce Defense Preparation Guide
 
 ---
 
-## 8. LIST OF FIGURES
+## 5. LIST OF FIGURES
 
 * **Figure 1.1:** Project Echo Prototype Interface and Tactical Radar HUD Display
 * **Figure 1.2:** Project Shadow Neural Model Training and Baseline Fading Convergence Curves
@@ -249,7 +195,7 @@ Wi-Fi Sensing, Channel State Information (CSI), Human Presence Detection, Spatia
 
 ---
 
-## 9. LIST OF TABLES
+## 6. LIST OF TABLES
 
 * **Table 2.1:** Systematic Technical Comparison Between RSSI and Subcarrier-Level CSI
 * **Table 3.1:** Complete Physical Hardware Inventory and Node Assignment
@@ -269,7 +215,7 @@ Wi-Fi Sensing, Channel State Information (CSI), Human Presence Detection, Spatia
 
 ---
 
-## 10. LIST OF ABBREVIATIONS AND ACRONYMS
+## 7. LIST OF ABBREVIATIONS AND ACRONYMS
 
 * **AoA:** Angle of Arrival
 * **AP:** Access Point
@@ -2248,36 +2194,3 @@ Heuristic Baseline Acc:   29.26%
 * **Figure H.3:** Diagnostic metadata drawer displaying model artifact size (1.16 MB) and calibrated gate threshold ($\theta = 1.80$).
 
 ---
-
-## APPENDIX I: Selected Git Commit and Reproducibility Information
-
-* **Primary Repository URL:** `https://github.com/Tanmay-proj/Wimotion-2.0.git`
-* **Verified Passing Git Commits:**
-  - `1643b8eb33cb93e1c1b102fbb51f94d1c38a325d` (Audit closeout & Windows master evaluation)
-  - `524e00593dd855513f56eb793ef16e50bb7f9ec3` (Scorecard commit binding & defense disclosures)
-  - `f9fc651dffad2403666b6c00ffc241ea9ba41804` (Locked master dissertation structure)
-* **One-Click Master Reproducibility Command:**
-  ```bash
-  py -3.10 scripts/run_master_evaluation.py
-  ```
-
----
-
-## APPENDIX J: Technical Viva Voce Defense Preparation Guide
-
-*(Included as an examination study aid covering the 13 core theoretical and defense questions)*
-
-* **Q1: "Why is 5-class gated accuracy 49.26% rather than 95%?"**  
-  *Answer:* 5-class uniform chance is 20.00%. Our 49.26% is 2.5× random chance and evaluated on completely unseen physical takes (Take 02) with zero temporal window leakage.
-* **Q2: "Does the system perform true multi-person counting?"**  
-  *Answer:* No. The HUD count is an active disturbed sector proxy ($\sum \mathbb{I}(\text{link\_energy}_i > \tau)$). Controlled evaluation is single-occupant.
-* **Q3: "Why is Zone 3 recall 14.05% while Zone 4 is 80.99%?"**  
-  *Answer:* Zone 3 is located in the South-West corner, diagonally furthest from RX1 (North-East), experiencing higher path attenuation. Energy gating suppresses weak Z3 walks.
-* **Q4: "How does the system eliminate train-serving skew?"**  
-  *Answer:* Through a single shared canonical function (`spatial/features.py:build_canonical_56dim_feature_vector`) evaluated identically in training, replay, and live inference.
-* **Q5: "How does the energy gate cut false alarms?"**  
-  *Answer:* In idle rooms, decision trees overfit to thermal noise. Scanning Youden's $J$ on training data identified $\theta = 1.80$, cutting false alarms from 98.35% to 52.89%.
-
-
----
-
