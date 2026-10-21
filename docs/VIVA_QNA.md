@@ -70,7 +70,7 @@ This guide contains the most probable questions examiners will ask during projec
 **Answer:**
 > **SAFE CLAIMS TO DEFEND CONFIDENTLY:**
 > - Dual-engine pipeline: ML presence gating (217 features) + multi-link spatial zoning heuristic + 56-dim supervised spatial classifier.
-> - 54/54 automated unit tests and 6/6 pre-demo verification checks passing in CI.
+> - 56/56 automated unit tests and 6/6 pre-demo verification checks passing in CI.
 > - 81.25% valid accuracy on untouched held-out single-link physical hardware captures (Presence detector).
 > - 50.91% accuracy on 5-class held-out physical session takes (Supervised RandomForest classifier), outperforming heuristic baseline (29.26%) and random chance (20.00%). With calibrated energy gating ($\theta = 1.80$), CLEAR false-positive rate is cut from 98.4% to 52.9% (47.1% recall).
 

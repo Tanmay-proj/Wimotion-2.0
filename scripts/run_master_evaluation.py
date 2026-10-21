@@ -3,7 +3,7 @@
 WiMotion 2.0 — Master Evaluation & Reproducibility Suite (Phase 5)
 
 One-click reproducible runner that executes the entire verification pipeline:
-1. Automated Unit Test Discovery (54 tests including feature parity & security containment)
+1. Automated Unit Test Discovery (56 tests including feature parity & security containment)
 2. Colleague 6-Point Audit Suite (zero-sample link gating, single-RX isolation, etc.)
 3. Read-Only Hardware Session & Provenance Audit
 4. Multi-Model Benchmark & Supervised Training with Calibrated CLEAR Gate

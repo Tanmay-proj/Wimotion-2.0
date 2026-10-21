@@ -153,26 +153,30 @@ GRAND TOTAL                  | ALL   | 0-1 P  | 756.16s  | 116,588 FRAMES
 6. SUPERVISED SPATIAL MODEL TRAINING
 --------------------------------------------------------------------------------
 - Script: scripts/train_spatial_model.py
-- Input: 1,734 sliding windows across 13 sessions (56-dimensional feature vector).
-- Classes: CLEAR (412), Z1 (288), Z2 (480), Z3 (64), Z4 (490).
-- Group Partition: GroupShuffleSplit by session (902 train windows / 832 test windows).
-- Leakage Standard: Zero temporal window overlap between train and test sets.
+- Admitted Dataset: 1,209 sliding windows strictly across the 10 Phase B controlled sessions
+  (Legacy exploratory sessions quarantined per read-only audit manifest).
+- Feature Space: 56-dimensional canonical vector (FEATURE_SCHEMA_VERSION = "2.0.0-canonical-56dim").
+- Model Architecture: RandomForestClassifier with Calibrated CLEAR Gate (theta = 1.80).
+- Performance: 50.91% Ungated / 49.26% Gated Held-Out Test Accuracy on Unseen Take 02.
+  (CLEAR false alarm rate reduced from 98.35% to 52.89%; Z4 Recall: 80.99%, Z2: 53.72%, Z1: 50.41%).
 - Output Artifacts:
-  * models/spatial_model.pkl (1.67 MB)
+  * models/spatial_model.pkl (1,158,388 bytes / ~1.16 MB)
   * models/spatial_model_scorecard.json
 
 --------------------------------------------------------------------------------
 7. QUALITY GATE & TEST VERIFICATION
 --------------------------------------------------------------------------------
 - Unit & Integration Test Suite (tests/test_spatial.py):
-  * Ran 42 tests in 9.614s -> 42 / 42 PASSED (100% OK).
+  * Ran 56 tests -> 56 / 56 PASSED (100% OK) in local runner and CI.
 - 6-Point Colleague Pre-Demo Audit (scripts/verify_six_checks.py):
   * ALL 6 / 6 CHECKS PASSED (100%).
+- Master Reproducibility Runner (scripts/run_master_evaluation.py):
+  * End-to-end tests, 6-point audit, read-only session audit, training, and strict SHA-256 verification: ALL 100% PASS.
 - Documentation:
-  * Created docs/LIVE_HARDWARE_MULTI_LINK_REPORT.md.
+  * Created docs/LIVE_HARDWARE_MULTI_LINK_REPORT.md and docs/PHASE_B_HONEST_SCORECARD.md.
 - Version Control:
   * All code, datasets, models, and docs committed and pushed to GitHub main:
-    Commit: 26b2286 -> https://github.com/Tanmay-proj/Wimotion-2.0.git
+    Repo: https://github.com/Tanmay-proj/Wimotion-2.0.git
 
 --------------------------------------------------------------------------------
 8. PHASE B CONTROLLED MULTI-LINK EXPERIMENTAL RECORDINGS

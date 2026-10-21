@@ -24,15 +24,18 @@ All **6 physical ESP32 nodes** (2 Receivers + 4 Transmitters) were physically de
    - `Zone 2` (TX2 Proximity): 85.0s capture (9,606 frames).
    - `Zone 3` (TX3 Proximity): 220.2s capture (38,798 frames).
    - `Zone 4` (TX4 Proximity): 175.3s capture (19,231 frames).
-   - **Total Real CSI Frames**: **116,588 frames** recorded with zero synthetic artifacts.
+   - **Exploratory Campaign (Oct 20 Morning)**: **116,588 frames** recorded across initial discovery trials.
+   - **Phase B Controlled Campaign (Oct 20 Afternoon)**: **56,386 frames** (1,209 sliding windows) recorded across 10 controlled takes with 100% strict label provenance (the sole dataset admitted for supervised training; see `docs/PHASE_B_HONEST_SCORECARD.md`).
+   - **Combined Physical Capture Volume**: **172,974 frames** recorded from real COTS ESP32 silicon in `ROOM_LAB_A`.
 3. **Physical Spatial Tracking Verified by RF Variance**:
    - When the user moved from Zone 3 to Zone 2, `RX2-TX3` link variance collapsed from 120+ down to **1.39** (ambient floor), while `TX2` variance surged to **138.89**.
    - Direct physical confirmation that multipath perturbation strictly correlates with physical user coordinates.
 4. **Supervised Spatial Localization Model Trained**:
-   - 56-dimensional feature fusion model trained with session-level grouping (`GroupShuffleSplit`), guaranteeing **zero temporal window leakage**.
+   - 56-dimensional feature fusion model trained with natural take-based session splitting (Take 01 Train / Take 02 Held-Out Test), guaranteeing **zero temporal window leakage**.
 5. **Full Quality Gate & Test Suite Compliance**:
-   - `tests/test_spatial.py`: **42 / 42 PASS (100%)**.
+   - `tests/test_spatial.py`: **56 / 56 PASS (100%)**.
    - `scripts/verify_six_checks.py`: **6 / 6 PRE-DEMO QUALITY CHECKS PASS (100%)**.
+   - `scripts/run_master_evaluation.py`: **100% PASS** with strict SHA-256 and schema verification.
 
 ---
 
@@ -92,14 +95,16 @@ This measured drop from **120.17 to 1.39** provides incontrovertible empirical e
 
 ## 5. Machine Learning & Spatial Model Training
 
-Using the genuine physical recordings alongside existing verified benchmark sessions, a supervised 56-dimensional spatial classifier was trained:
+Using the 10 strictly audited Phase B physical recordings (100% label match, zero dropped frames), the supervised 56-dimensional spatial classifier was trained:
 
-- **Algorithm**: `HistGradientBoostingClassifier`
-- **Feature Space**: 56 dimensions (48 continuous multi-link metrics + 8 link-validity flags).
-- **Dataset Size**: **1,734 sliding windows** (2.0s duration, 0.5s step).
-- **Classes**: `CLEAR` (412 windows), `Z1` (288 windows), `Z2` (480 windows), `Z3` (64 windows), `Z4` (490 windows).
-- **Validation Protocol**: `GroupShuffleSplit` by session ID (Train: 902 windows, Test: 832 windows). **Zero temporal window leakage**.
-- **Model Artifact**: `models/spatial_model.pkl` (1.67 MB).
+- **Algorithm**: `RandomForestClassifier` with Calibrated CLEAR Gate ($\theta = 1.80$)
+- **Feature Space**: 56 dimensions canonical (48 continuous multi-link metrics + 8 link-validity flags).
+- **Schema Version**: `2.0.0-canonical-56dim`
+- **Dataset Size**: **1,209 sliding windows** across 10 controlled takes (Take 01 Train: 604 windows, Take 02 Held-Out Test: 605 windows).
+- **Classes**: `CLEAR` (242), `Z1` (241), `Z2` (242), `Z3` (242), `Z4` (242) — balanced distribution.
+- **Validation Protocol**: Natural Take Split (Zero-Leakage: all Take 01 in train, all Take 02 in held-out test).
+- **Held-Out Test Accuracy**: **50.91% Ungated / 49.26% Gated** (Baseline Heuristic: 29.26%, Random: 20.00%).
+- **Model Artifact**: `models/spatial_model.pkl` (1,158,388 bytes / ~1.16 MB).
 - **Model Scorecard**: `models/spatial_model_scorecard.json`.
 
 ---

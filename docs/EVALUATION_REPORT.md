@@ -1,6 +1,6 @@
 # WiMotion 2.0 — Scientific Evaluation & Validation Report
 
-**Generated:** 2026-10-18 18:15:00 UTC  
+**Generated:** 2026-10-21 13:45:40 UTC  
 **Methodology:** Rigorous multi-track evaluation separating genuine physical hardware sessions from software-generated benchmarks, unverified public imports, synthetic variants, and scripted presentations.
 
 ## 1. Dual-Engine Architecture Summary
@@ -74,7 +74,7 @@
 4. **Window Overlap & Scope Disclosure**: Sliding windows (2.0s duration, 0.5s step) contain ~75% temporal overlap between consecutive time slices. The reported 81.25% valid held-out accuracy represents measured performance on these two genuine WiMotion v1 benchmark recordings across 96 valid evaluated windows, not an unbounded claim of universal real-world accuracy across arbitrary environments.
 5. **Sample Imbalance Disclosure**: The held-out benchmark contains 44 Empty Room windows and 65 Walking Presence windows (40.4% / 59.6% ratio). It is not perfectly balanced 50/50.
 6. **Training vs. Replay Window Duration**: The original model was trained on 1.0-second sliding windows (`window_duration_sec: 1.0`), while WiMotion 2.0 multi-link live/replay sliding window buffer uses 2.0-second windows with 0.5s step. Resampling interpolates onto uniform grids, but the duration difference is an explicit engineering limitation.
-7. **Physical Hardware Deployment Evolution**: In initial single-link trials and early lab demonstrations, 4 physical ESP32 boards were deployed. On October 20, 2026, a complete 6-node array (2 Receivers + 4 Transmitters) was deployed in the room mesh to record the 10 Phase B controlled benchmark sessions (1,209 windows across 8 concurrent physical links; see [Phase B Honest Scorecard](PHASE_B_HONEST_SCORECARD.md)).
-8. **Phase B Supervised Multi-Link Model (Phase 6)**: The supervised 5-class model trained on Take 01 sessions achieved 47.27% accuracy on held-out Take 02 sessions, outperforming the heuristic baseline (29.26%) and random chance (20.00%). Empty-room false-positive rate remains high (98.35%) without prior hard energy gating, confirming that idle RF variations can be misclassified as active motion sectors.
+7. **Physical Hardware Deployment Evolution**: In initial single-link trials and early lab demonstrations, 4 physical ESP32 boards were deployed. On October 20, 2026, a complete 6-node array (2 Receivers on COM8/COM9 + 4 Transmitters) was deployed in ROOM_LAB_A to record the 10 Phase B controlled benchmark sessions (1,209 windows across 8 concurrent physical links; see docs/PHASE_B_HONEST_SCORECARD.md).
+8. **Phase B Supervised Multi-Link Model**: The supervised 5-class model (RandomForestClassifier) trained on Take 01 sessions achieved 50.91% ungated accuracy and 49.26% gated accuracy on held-out Take 02 sessions, outperforming the heuristic baseline (29.26%) and random chance (20.00%). Calibrated energy gating cut empty-room false alarm rate from 98.35% down to 52.89% (raising CLEAR recall from 1.65% to 47.11%). Z3 recall remains at 14.05% due to long-path geometric RF attenuation.
 9. **Safe Standby Status**: Live serial ingestion on host is maintained in Safe Standby (Disconnected) by default to prevent Windows USB UART driver DPC watchdog timeouts until dedicated hardware ports are plugged in.
-10. **Scripted Demo Role**: The 95-second dual-person scenario (`demo_session`) is strictly a presentation-mode tool for synchronizing with physical room videos; it is **never** presented as empirical hardware verification.
+10. **Scripted Demo Role**: The 95-second dual-person scenario (`demo_session`) is strictly a presentation-mode tool for synchronizing with physical room videos; it is **never** presented as empirical hardware verification.

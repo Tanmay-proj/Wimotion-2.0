@@ -55,7 +55,7 @@ This runbook provides the exact sequence of actions for presenting WiMotion 2.0 
   py -3.10 scripts/verify_six_checks.py
   py -3.10 scripts/evaluate_models.py
   ```
-- Show that all **54/54 unit tests pass** and all **6/6 colleague audit checks pass**.
+- Show that all **56/56 unit tests pass** and all **6/6 colleague audit checks pass**.
 
 ---
 
@@ -74,4 +74,4 @@ This runbook provides the exact sequence of actions for presenting WiMotion 2.0 
 | **HW-5** | Observe packet rate telemetry on Dashboard: verify minimum 4.0 Hz rate threshold per receiver is met. | Dashboard indicators show `RATE >= 4.0 Hz`, `SIGNAL_OK: TRUE`. | `VERIFIED` |
 | **HW-6** | Baseline Calibration: Leave room empty for 10 seconds. | Zone displays `CLEAR`, active sector count = 0, presence = `empty_room`. | `VERIFIED` |
 | **HW-7** | Sector Walk: Walk near TX1 (Zone 1). | Zone shifts to `Z1`, active zone count = 1, presence = `human_present`. | `VERIFIED` (Phase B Take 01 & 02) |
-| **HW-8** | Full 4-Quadrant Walking Validation: Physical walk across Z1, Z2, Z3, Z4. | Recorded across 10 controlled Phase B takes (116,588 frames). Z4 achieved 80.99% recall, Z2 53.72%, Z1 50.41%, Z3 14.05%. | `VERIFIED` |
+| **HW-8** | Full 4-Quadrant Walking Validation: Physical walk across Z1, Z2, Z3, Z4. | Recorded across 10 controlled Phase B takes (56,386 frames / 1,209 sliding windows). Z4 achieved 80.99% recall, Z2 53.72%, Z1 50.41%, Z3 14.05%. | `VERIFIED` |

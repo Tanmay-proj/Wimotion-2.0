@@ -1834,11 +1834,12 @@
           </div>
           <div class="eval-card">
             <div class="eval-title">WiMotion 2.0 Supervised Spatial Model</div>
-            <div class="eval-value" id="diag-v2-supervised-status" style="font-size:15px; color:var(--accent-amber);">TRAINED (Phase 6)</div>
+            <div class="eval-value" id="diag-v2-supervised-status" style="font-size:15px; color:var(--accent-amber);">TRAINED (RandomForest)</div>
             <div style="font-size:11px; color:var(--text-muted); margin-top:6px; line-height:1.5;">
-              Pipeline: 56-dim Fused Multi-Link<br>
-              Split: GroupShuffleSplit (Zero-Leakage)<br>
-              Artifact: models/spatial_model.pkl (179 KB)<br>
+              Pipeline: 56-dim Canonical Feature Space<br>
+              Split: Natural Take Split (Zero-Leakage)<br>
+              Gate Cutoff: Calibrated &theta;=1.80 (Youden J)<br>
+              Artifact: models/spatial_model.pkl (1.16 MB / 1,158,388 bytes)<br>
               Real-Time Decision: <span id="diag-v2-supervised-pred" style="color:var(--text-main); font-weight:600;">ONLINE</span>
             </div>
           </div>

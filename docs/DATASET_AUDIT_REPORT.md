@@ -68,19 +68,21 @@ The remaining 560 sessions follow an exact synthetic / benchmark schema:
 
 ---
 
-## 4. Recommendations for Multi-Link Training & Final Defense
+## 4. WiMotion 2.0 Multi-Link Hardware Dataset Audit (17 Sessions in `data/raw`)
 
-### A. Ground-Truth Presence Classifier (Primary)
-1. Train the primary **Empty Room vs. Human Present** classifier **STRICTLY on Tier 1 Genuine Hardware Sessions**.
-2. Keep session-level partitions intact: 5 Empty + 5 Walking for training, 2 Empty + 3 Walking for validation, 1 Empty for ambient calibration.
-3. This guarantees 100% defendability in viva — no synthetic timestamps, no fabricated accuracy claims.
+Formal read-only audit executed via `scripts/audit_read_only_sessions.py` (summary saved to `scripts/audit_summary_output.csv`):
 
-### B. Multi-Link Combinatorial Spatial Classifier (Secondary Experimental Head)
-1. If training a multi-zone spatial classifier (`models/multilink_spatial_model.pkl`), explicitly label all generated samples as `synthetic_composed`.
-2. Clearly disclose: *'Spatial multi-quadrant data is an experimental combinatorial augmentation built from physical single-link profiles paired with ambient baseline noise.'*
-3. Never claim that synthetic link combinations equate to empirical physical localization.
+| Session Group | Session IDs | Session Count | Physical Frames | Audit Status | Ground Truth Provenance | Admitted to Supervised Training? |
+| :--- | :--- | :---: | :---: | :---: | :--- | :---: |
+| **Phase B Controlled Multi-Link** | `session_pB_clear_01/02`, `session_pB_z1_walk_01/02`, `session_pB_z2_walk_01/02`, `session_pB_z3_walk_01/02`, `session_pB_z4_walk_01/02` | **10** | **56,386** | **PASS (10/10)** | Manual physical log evidence; thread-safe CSV; zero timestamp drops | **YES (Sole Basis for Spatial ML)** |
+| **Legacy Exploratory Multi-Link** | `session_real_001` to `session_real_005` | 5 | 87,751 | **EXCLUDED** | Record count delta (CSV vs meta); non-epoch timestamps; auto-generated label fluctuation | **NO (Quarantined for noise calibration only)** |
+| **Legacy Validated Multi-Link** | `session_real_006_tx2_walk`, `session_real_007_tx4_walk` | 2 | 28,837 | **PASS** | Valid timestamps and strict counts | Reference captures |
+
+### Provenance Rule for Scientific Defense:
+- Total raw frames recorded across all physical multi-link experiments is **172,974 frames** (116,588 legacy exploration + 56,386 controlled Phase B).
+- **Never claim all 172,974 frames were used for supervised training.** Training strictly admits only the 10 Phase B sessions (1,209 windows: 604 train Take 01 / 605 held-out test Take 02) where 100% strict label provenance and zero temporal leakage are mathematically guaranteed.
 
 ---
 
 ## 5. Artifact Audit Verification Complete
-All 597 session files are formally categorized and inventoried. Both the codebase and documentation adhere to zero-leakage, scientifically defendable standards.
+All sessions are formally categorized, quarantined, and inventoried. Both the codebase and documentation adhere to zero-leakage, scientifically defendable standards.

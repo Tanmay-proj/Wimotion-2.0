@@ -110,9 +110,9 @@ weighted avg       0.49      0.49      0.48       605
 
 ## 7. Artifacts & Complete Provenance
 - **Model Binary:** `models/spatial_model.pkl` (1,158,388 bytes / ~1.16 MB)
-- **Model SHA-256:** `2d0c652957670ea374249162754dd4b0408aca02c5e5d45785dcc3316309a4b7` [STRICT MATCH]
+- **Model SHA-256:** `ae65f9b55e4d1ff71b2dfb9182ef43c52c016fe513237466dcd9a3af4cd915a9` [STRICT MATCH]
 - **Feature Schema Version:** `2.0.0-canonical-56dim` [STRICT MATCH]
-- **Git Commit Provenance:** `59c214bc51b9595f163021d50adab1342a375ef9`
+- **Git Commit Provenance:** `453598b77117b57d4acb06ebb78784f0be534e45`
 - **Scorecard JSON:** `models/spatial_model_scorecard.json`
 - **One-Click Master Reproducibility Runner:** `py -3.10 scripts/run_master_evaluation.py`
 

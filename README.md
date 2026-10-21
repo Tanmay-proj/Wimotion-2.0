@@ -31,7 +31,7 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 
 - **Hardware Deployment Reality:**
   - **Physical Deployment (Oct 20, 2026):** **6 physical COTS ESP32-WROOM-32 microcontrollers** active simultaneously: 2 Receivers (RX1 on COM8, RX2 on COM9) + 4 Transmitters (TX1 in Z1 `BC:DD:C2:CC:49:F4`, TX2 in Z2 `1C:69:20:31:38:08`, TX3 in Z3 `1C:69:20:31:4B:40`, TX4 in Z4 `CC:7B:5C:28:84:70`). Uncoordinated ambient beacon frames (`4C:11:AE:64:9A:05`) are strictly demultiplexed as `UNKNOWN` and never assigned to TX3.
-  - **Full 8-Link Physical Mesh:** Capturing concurrent multi-link CSI across dual USB-UART host receivers (116,588+ real hardware frames captured across 8 recorded sessions; see [Live Hardware Report](docs/LIVE_HARDWARE_MULTI_LINK_REPORT.md)).
+  - **Full 8-Link Physical Mesh:** Capturing concurrent multi-link CSI across dual USB-UART host receivers (116,588 frames across initial exploratory trials, plus 56,386 frames across 10 controlled Phase B sessions totaling over 172,000 physical frames; see [Live Hardware Report](docs/LIVE_HARDWARE_MULTI_LINK_REPORT.md) and [Phase B Honest Scorecard](docs/PHASE_B_HONEST_SCORECARD.md)).
 - **Dual-Engine Inference Mode:**
   - **Presence Gating:** Original WiMotion ML Model (`HistGradientBoostingClassifier`, 217 temporal-spectral features, `presence_model.pkl`) via `spatial/v1_adapter.py`. Evaluated on untouched held-out single-link physical captures (`held_out_empty_01` + `held_out_walking_01`, 109 windows: **81.25% Valid Accuracy**, 88.07% Coverage, 71.56% Conservative All-Window Score).
   - **Sector Localization:** Spatial perturbation based on multi-link CSI variance ratio ranking ($argmax$). Heuristic spatial zoning, uncalibrated for absolute human count.
@@ -140,6 +140,6 @@ Detailed guides and scientific deliverables are located in the `docs/` directory
 - **Rogue / Unknown Node Protection:**
   Unmapped transmitter IDs are ranked separately and isolated to `UNKNOWN`. They cannot suppress a valid mapped transmitter exceeding the noise threshold.
 - **Hardware Truth:**
-  Physical hardware deployment consists of **6 physical ESP32 microcontrollers** (2 Receivers + 4 Transmitters) forming a genuine 8-link distributed mesh, capturing over 116,588 frames across empirical testing sessions (see `docs/LIVE_HARDWARE_MULTI_LINK_REPORT.md` and `HARDWARE_SESSION_LOG.txt`).
+  Physical hardware deployment consists of **6 physical ESP32 microcontrollers** (2 Receivers + 4 Transmitters) forming a genuine 8-link distributed mesh, capturing over 172,000 frames across empirical testing campaigns (116,588 exploratory frames + 56,386 controlled Phase B frames; see `docs/LIVE_HARDWARE_MULTI_LINK_REPORT.md`, `docs/PHASE_B_HONEST_SCORECARD.md`, and `HARDWARE_SESSION_LOG.txt`).
 - **Safety Guarantee:**
   Project WiMotion v1.0 (`wimotion/`) remains 100% frozen, intact, and fully operational as an independent baseline.
