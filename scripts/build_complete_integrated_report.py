@@ -662,21 +662,16 @@ def build_integrated_dissertation():
                         if any(w in t.text for w in ['WiMotion', 'Dissertation', 'Sensing', 'Final', 'Page']):
                             t.text = ''
 
-    # Save to target locations
-    target1 = TNM_BASE_PATH
-    target2 = PARENT_DIR / "Project_Report_File.docx"
-
-    print(f"[*] Saving synchronized copy to: {target2}")
-    doc.save(str(target2))
-    print(f"[+] Saved target 2: {target2} ({os.path.getsize(target2):,} bytes)")
+    # Save exclusively to the final report destination: PROJECT_REPORT_FILE(TNM&RSR).docx
+    final_target = TNM_BASE_PATH
 
     try:
-        print(f"[*] Saving finalized integrated dissertation to: {target1}")
-        doc.save(str(target1))
-        print(f"[+] Saved target 1: {target1} ({os.path.getsize(target1):,} bytes)")
+        print(f"[*] Saving finalized integrated dissertation to: {final_target}")
+        doc.save(str(final_target))
+        print(f"[+] Saved final report: {final_target} ({os.path.getsize(final_target):,} bytes)")
     except PermissionError:
         alt_target = PARENT_DIR / "PROJECT_REPORT_FILE(TNM&RSR)_UPDATED.docx"
-        print(f"[!] Note: {target1} is currently open in Microsoft Word!")
+        print(f"[!] Note: {final_target} is currently open in Microsoft Word!")
         print(f"[*] Saving updated copy to: {alt_target}")
         doc.save(str(alt_target))
         print(f"[+] Saved cleanly to: {alt_target} ({os.path.getsize(alt_target):,} bytes)")
