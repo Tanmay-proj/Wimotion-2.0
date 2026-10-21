@@ -580,19 +580,10 @@ def build_final_dissertation():
     if in_table and table_buffer:
         render_table(doc, table_buffer)
 
-    save_targets = [
-        PARENT_DIR / "Project_Report_File.docx",
-        PARENT_DIR / "WiMotion_2.0_Final_Dissertation_Clean.docx",
-        PARENT_DIR / "WiMotion_2.0_Final_Formatting.docx",
-    ]
-    for target in save_targets:
-        try:
-            doc.save(str(target))
-            print(f"[+] Saved successfully to: {target.name} (Size: {os.path.getsize(target):,} bytes)")
-        except PermissionError:
-            print(f"[!] Note: {target.name} is currently open in Word. Skipped overwrite.")
-        except Exception as e:
-            print(f"[!] Error saving to {target.name}: {e}")
+    target = PARENT_DIR / "Project_Report_File.docx"
+    print(f"[*] Saving finalized dissertation exclusively to: {target}")
+    doc.save(str(target))
+    print(f"[+] SUCCESS! Saved exclusively to: {target} (Size: {os.path.getsize(target):,} bytes)")
 
 
 if __name__ == "__main__":
