@@ -84,3 +84,18 @@ This guide contains the most probable questions examiners will ask during projec
 > - Do NOT claim `active_zone_count` is a calibrated count of physical people (it is active RF perturbation sectors).
 > - Do NOT claim 94.74% accuracy was measured on the multi-link system (that was historical 5-fold CV on single-link v1 data).
 
+---
+
+### Q11: "Does WiMotion 2.0 perform true multi-person counting?"
+**Answer:**
+> *"No, and we explicitly disclose this in our documentation. The HUD count is an **Active Disturbed Sector Proxy** ($\sum \mathbb{I}(\text{link\_energy}_i > \tau)$), not a biometric human counter or radar point-cloud tracker. If two individuals walk together in Zone 1, the system registers one active zone. Conversely, if one person walks along the boundary between Z1 and Z2, multipath boundary leakage may momentarily perturb both links, displaying two active zones. Controlled spatial ML benchmark validation was conducted strictly on single-occupant takes (`session_pB_*`)."*
+
+### Q12: "Why does Zone 3 have 14.05% gated recall while Zone 4 achieves 80.99%?"
+**Answer:**
+> *"This is a direct, physically explainable consequence of indoor RF transceiver geometry. Zone 3 is located in the South-West corner of the room, furthest diagonally from Receiver RX1 (North-East corner). The longer path distance results in geometric attenuation of reflected subcarrier perturbations relative to direct path signal and ambient thermal noise. While ungated classification achieves 38.84% recall in Z3, our calibrated energy gate ($\theta=1.80$)—introduced to cut CLEAR false alarms from 98.35% down to 52.89%—filters out low-amplitude Z3 walks. This physical trade-off is precisely why WiMotion 2.0 deploys a dual-engine HUD displaying both heuristic multi-link variance ratio and supervised ML predictions side-by-side."*
+
+### Q13: "How does the system enforce strict model provenance with Git?"
+**Answer:**
+> *"During training, `scripts/train_spatial_model.py` queries `git rev-parse HEAD` and embeds the exact commit hash and feature schema (`2.0.0-canonical-56dim`) directly inside the serialized pickle payload dictionary and `models/spatial_model_scorecard.json`. The master evaluation script (`scripts/run_master_evaluation.py`) performs a cryptographic SHA-256 checksum and schema equality check between the disk binary and the scorecard. If any byte diverges, the runner aborts with exit code 1. This prevents train-serving skew and guarantees zero artifact drift."*
+
+

@@ -23,15 +23,20 @@ This runbook provides the exact sequence of actions for presenting WiMotion 2.0 
 - In the top navigation, click **REPLAY LAB**.
 - In the **Session Library** (left column), select **`Presentation Scenario (95s Multi-Zone)`**.
 - Point out the provenance badge: `SCRIPTED PRESENTATION`.
-- Click **▶ PLAY** to start synchronous playback alongside your recorded real room video.
+- Click **▶ PLAY** to start synchronous playback alongside your recorded room demonstration video.
 - **Explain the sequence as it plays**:
-  - `00:00 - 00:15`: Empty room. Occupancy = 0, no markers.
+  - `00:00 - 00:15`: Empty room. Active Sectors = 0, no markers.
   - `00:15 - 00:30`: Tanmay enters Zone 1. Marker **P1** appears in Zone 1 (NE).
   - `00:30 - 00:45`: Tanmay walks across to Zone 3. Marker **P1** shifts to Zone 3 (SW).
   - `00:45 - 00:55`: Tanmay exits room. Room settles, markers disappear.
-  - `00:55 - 01:10`: Two people enter! **P1** in Zone 2 (NW) and **P2** in Zone 4 (SE). Occupancy = 2.
-  - `01:10 - 01:25`: Both people converge in Zone 1 (NE). Markers **P1** & **P2** visible in Zone 1.
-  - `01:25 - 01:35`: Both exit. Occupancy returns to 0.
+  - `00:55 - 01:10`: Two simulated motion tracks enter: **P1** in Zone 2 (NW) and **P2** in Zone 4 (SE). Active Sectors = 2.
+  - `01:10 - 01:25`: Both simulated tracks converge in Zone 1 (NE). Markers **P1** & **P2** visible in Zone 1.
+  - `01:25 - 01:35`: Both exit. Active Sectors return to 0.
+
+> [!IMPORTANT]
+> **Scripted Demo vs Physical Validation Disclosure:**
+> State clearly to evaluators: *"The 95-second replay is a scripted presentation scenario designed to demonstrate the UI multi-marker rendering engine. In contrast, our empirical spatial ML classifier is trained and evaluated strictly on physical single-occupant controlled sessions (`session_pB_*`). The real-time HUD count represents an Active Disturbed Sector Proxy ($\sum \mathbb{I}(\text{link\_energy}_i > \tau)$), not ground-truth biometric multi-person counting."*
+
 
 ### Step 3: Software Multi-Link Regression & Genuine Single-Link Replay (05:00 - 07:00)
 - Select **`Generated Benchmark: Zone 3 Dynamic (8-Link Simulation)`** in the Session Library.
@@ -62,8 +67,11 @@ This runbook provides the exact sequence of actions for presenting WiMotion 2.0 
 ## 3. Physical Hardware Deployment Checklist
 
 > [!NOTE]
-> **Status: Verified in Lab Deployment (October 20, 2026).**
-> This checklist describes the physical ESP32 setup when nodes are connected to host USB ports.
+> **Status: Bench-Verified in Physical Lab Deployment (October 20-21, 2026).**
+> This checklist describes the physical ESP32 setup when nodes are connected to host USB ports (`COM8` and `COM9`), as recorded in [HARDWARE_SESSION_LOG.txt](HARDWARE_SESSION_LOG.txt).
+> 
+> *For evaluators and reviewers without the 6 physical ESP32 boards plugged into local USB ports:* WiMotion 2.0 provides the fully reproducible **Replay Lab Mode** (`py -3.10 spatial/server.py` with playback from any of the 10 controlled `session_pB_*` recordings). Replay mode feeds the exact recorded CSI packets through the identical live feature extraction, energy gate, and spatial classifier pipeline, allowing complete interactive verification of all system behaviors without requiring physical hardware present.
+
 
 | Step | Action | Expected Result | Status |
 | :--- | :--- | :--- | :---: |

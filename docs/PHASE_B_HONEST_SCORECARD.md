@@ -12,8 +12,10 @@ Following peer review feedback, this evaluation establishes an **unvarnished, ho
 > [!IMPORTANT]
 > **Scientific Caveats & Scope:**
 > 1. **Initial Held-Out Evaluation:** With exactly 2 physical takes per class (Take 01 for Train, Take 02 for Test), this benchmark provides genuine session-level validation, but is sensitive to day/run conditions and is **not** claimed as universal open-world generalization.
-> 2. **Single-Occupant Constraint:** All motion takes contained 1 moving person. Multi-person spatial separation remains untested on this physical benchmark.
-> 3. **Integrity vs Generalization:** The 10/10 audit pass confirms file integrity, zero dropped CSV rows, and non-corrupted timestamps; it does not guarantee high localization accuracy across varied environments.
+> 2. **Sliding Windows vs Independent Experiments:** The 1,209 evaluated windows are 2.0-second sliding windows (0.5s step) extracted across 10 physical recording sessions (5 Train sessions, 5 Held-Out Test sessions). They represent continuous temporal observations of these 10 physical takes, not 1,209 distinct setup environments or recording days.
+> 3. **Single-Occupant Constraint & People Counting Distinction:** All physical motion takes contained 1 moving subject. Real-time HUD "Active Zones / Disturbed Sectors" is strictly an active RF disturbance sector count heuristic proxy ($\sum \mathbb{I}(\text{link\_variance}_i > \tau)$), NOT ground-truth biometric multi-person counting or multi-target radar tracking.
+> 4. **Z3 Multipath Shadowing & CLEAR False-Alarm Suppression:** The model exhibits physically explainable limitations: Zone 3 (SW corner, furthest diagonally from RX1) experiences long-path attenuation yielding 14.05% gated recall (38.84% ungated), while the calibrated energy gate ($\theta=1.80$) successfully suppressed CLEAR false alarms from 98.35% down to 52.89%. WiMotion 2.0 displays both Heuristic and Supervised outputs simultaneously on the HUD specifically to reflect these indoor RF sensing realities.
+> 5. **Integrity vs Generalization:** The 10/10 audit pass confirms file integrity, zero dropped CSV rows, and non-corrupted timestamps; it does not guarantee high localization accuracy across varied environments.
 
 ---
 
@@ -110,10 +112,15 @@ weighted avg       0.49      0.49      0.48       605
 
 ## 7. Artifacts & Complete Provenance
 - **Model Binary:** `models/spatial_model.pkl` (1,158,388 bytes / ~1.16 MB)
-- **Model SHA-256:** `ae65f9b55e4d1ff71b2dfb9182ef43c52c016fe513237466dcd9a3af4cd915a9` [STRICT MATCH]
+- **Model SHA-256:** `786ed5b8439c2fc75a98dd34c510cec830aab3785002192552406d1c7c298a6c` [STRICT MATCH]
 - **Feature Schema Version:** `2.0.0-canonical-56dim` [STRICT MATCH]
-- **Git Commit Provenance:** `453598b77117b57d4acb06ebb78784f0be534e45`
+- **Git Commit Provenance:** `1643b8eb33cb93e1c1b102fbb51f94d1c38a325d` [STRICT MATCH]
 - **Scorecard JSON:** `models/spatial_model_scorecard.json`
 - **One-Click Master Reproducibility Runner:** `py -3.10 scripts/run_master_evaluation.py`
+
+> [!NOTE]
+> **Commit Provenance Lineage:**
+> The model artifact embeds `git rev-parse HEAD` directly into its pickle payload dictionary and JSON scorecard during the master evaluation run. In commit `1643b8e`, the pipeline executed on HEAD `1643b8e` (`1643b8eb33cb93e1c1b102fbb51f94d1c38a325d`), achieving a 100% strict match across disk binary, scorecard JSON, and Git commit provenance.
+
 
 
