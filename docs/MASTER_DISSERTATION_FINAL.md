@@ -101,6 +101,218 @@ The system features an interactive real-time dashboard integrating a 2D polar ra
 
 `Wi-Fi Sensing`, `Channel State Information (CSI)`, `Human Presence Detection`, `Spatial Sensing`, `ESP32`, `RF Signal Processing`, `Machine Learning`, `Indoor Situational Awareness`, `Non-Line-of-Sight Sensing`.
 
+---
+
+## 7. TABLE OF CONTENTS
+
+- **PART I: FRONT MATTER**
+  - 1. Title Page (Sample Institute Template)
+  - 2. Certificate of Approval
+  - 3. Student Declaration
+  - 4. Acknowledgements
+  - 5. Abstract
+  - 6. Keywords
+  - 7. Table of Contents
+  - 8. List of Figures
+  - 9. List of Tables
+  - 10. List of Abbreviations and Acronyms
+- **CHAPTER 1: INTRODUCTION AND PROJECT MOTIVATION**
+  - 1.1 Background and Motivation
+  - 1.2 Limitations of Conventional Visual Monitoring
+  - 1.3 Introduction to Wi-Fi-Based Device-Free Sensing
+  - 1.4 Evolution: Echo → Shadow → WiMotion 1.0 → WiMotion 2.0
+  - 1.5 Problem Statement
+  - 1.6 Research Objectives and Scope of Work
+  - 1.7 Organization of the Dissertation
+- **CHAPTER 2: THEORETICAL FOUNDATIONS AND RF PROPAGATION PHYSICS**
+  - 2.1 Electromagnetic Wave Propagation at 2.4 GHz
+  - 2.2 Reflection, Diffraction, Absorption and Multipath Effects
+  - 2.3 OFDM Transmission and Physical Layer Channel Estimation
+  - 2.4 CSI vs RSSI: Physical and Mathematical Contrast
+  - 2.5 Fresnel Zone Geometry and Spatial Sensitivity Ellipsoids
+  - 2.6 Human Body Interaction and Perturbation Physics
+  - 2.7 Multi-Link Spatial Diversity vs Single-Link Ambiguity
+- **CHAPTER 3: HARDWARE ARCHITECTURE AND EXPERIMENTAL DEPLOYMENT**
+  - 3.1 System Requirements and Hardware Selection
+  - 3.2 ESP32-WROOM-32 and Supporting Components
+  - 3.3 Star Topology Architecture (4 TX → 2 RX)
+  - 3.4 Physical Geometry and 4-Quadrant Testbed Setup (ROOM_LAB_A)
+  - 3.5 Node Assignment, Coordinates, MAC Addresses, and Channels
+  - 3.6 Antenna Configurations and Baseline Separation Analysis
+  - 3.7 RF Operating Parameters
+  - 3.8 Power, USB and Serial-Connection Management
+  - 3.9 Hardware Photographs and Deployment Record
+- **CHAPTER 4: CSI DATA ACQUISITION AND SOFTWARE INGESTION PIPELINE**
+  - 4.1 Software Architecture and Data Flow
+  - 4.2 CSI Acquisition at the Receiver
+  - 4.3 Multithreaded Serial Ingestion and Async Ring Buffers
+  - 4.4 Frame Parsing, Validation, and Robustness
+  - 4.5 Transmitter Demultiplexing by MAC Address
+  - 4.6 Timestamping, Alignment, and Drop Handling
+  - 4.7 2-Second Sliding Window and Temporal Slicing
+  - 4.8 Data Logging Formats
+- **CHAPTER 5: FEATURE ENGINEERING AND SPATIAL REPRESENTATION**
+  - 5.1 Design Philosophy: Zero Train-Serving Skew
+  - 5.2 Raw Subcarrier Preprocessing and Subcarrier Pruning
+  - 5.3 56-Dimensional Canonical Feature Space
+  - 5.4 Feature Mathematical Definitions
+  - 5.5 Normalization, Scaling and Missing-Link Handling
+  - 5.6 Spatial Quadrant Representation and Label Encoding
+  - 5.7 Empirical Energy Gate (Youden J Calibration)
+- **CHAPTER 6: EXPERIMENTAL METHODOLOGY, DATASET AUDIT AND MODEL EVALUATION**
+  - 6.1 Experimental Protocol and Phase B Benchmark Design
+  - 6.2 Data Leakage Prevention and Session-Level Splitting
+  - 6.3 Historical Dataset Audit
+  - 6.4 Baseline Spatial Models and Classifiers Evaluated
+  - 6.5 Hyperparameter Tuning and Cross-Validation
+  - 6.6 Quantitative Results and Detailed Metric Analysis
+  - 6.7 Per-Class Performance and Zone Sensitivity
+  - 6.8 False Alarm Reduction and Empty-Room Calibration
+  - 6.9 Model Artifacts and Verification Hashes
+- **CHAPTER 7: REAL-TIME DASHBOARD, VISUALIZATION AND REPLAY SYSTEM**
+  - 7.1 Dashboard Architecture
+  - 7.2 Backend, WebSocket Communication and Front-End
+  - 7.3 Live Hardware Monitoring Interface
+  - 7.4 Four-Quadrant Spatial Visualization (2D Radar Sweep)
+  - 7.5 Three-Dimensional Room Visualization (Three.js WebGL Engine)
+  - 7.6 Heuristic and Machine-Learning Outputs (Dual-Engine HUD)
+  - 7.7 Active-Sector Indicators Versus Actual People Counting
+  - 7.8 Recorded-Session Replay and Timeline Controls
+  - 7.9 Live, Replay and Simulation Mode Separation
+- **CHAPTER 8: SOFTWARE VERIFICATION, TESTING AND SYSTEM HEALTH**
+  - 8.1 Testing Philosophy
+  - 8.2 Unit and Integration Testing (56 Automated Unit Tests)
+  - 8.3 Data-Rate and Signal-Quality Checks
+  - 8.4 Mode Isolation and Replay Verification
+  - 8.5 Input Validation and Security-Related Checks
+  - 8.6 Continuous Integration and GitHub Actions
+  - 8.7 Independent Colleague 6-Point Verification Suite
+  - 8.8 Production Readiness and Failure Modes
+- **CHAPTER 9: PROPOSED APPLICATIONS IN INTELLIGENCE GATHERING AND SURVEILLANCE**
+  - 9.1 Conceptual Framework: Camera-Independent Indoor Sensing
+  - 9.2 Non-Line-of-Sight and Covert Surveillance
+  - 9.3 Perimeter Intrusion and Multi-Zone Disturbance
+  - 9.4 Tactical and Hostage-Situation Reconnaissance
+  - 9.5 Search-and-Rescue in Degraded Visual Environments
+  - 9.6 Elderly Care, Fall Detection and Smart Building Integration
+  - 9.7 Counter-Surveillance, Jamming Resistance and Physical Limitations
+- **CHAPTER 10: LONG-TERM TECHNOLOGY ROADMAP AND FUTURE WORK**
+  - 10.1 From Quadrant Detection to Continuous Coordinate Localization
+  - 10.2 True Multi-Person Disambiguation and Separation
+  - 10.3 Phase-Sanitization and Angle-of-Arrival (AoA) Processing
+  - 10.4 Higher Frequency Bands: 5 GHz, 6 GHz (Wi-Fi 6E/7) and mmWave
+  - 10.5 Deep Learning and Temporal Sequence Architectures
+  - 10.6 Hardware Miniaturization and Operational Deployment
+- **CHAPTER 11: CONCLUSION AND FINAL REMARKS**
+  - 11.1 Summary of Research Journey
+  - 11.2 Engineering Contributions and Implemented Components
+  - 11.3 Realistic Assessment of Current System Performance
+  - 11.4 Final Perspective on Device-Free RF Sensing
+- **REFERENCES AND APPENDICES**
+  - References (Primary Citations and Scientific Literature)
+  - Appendix A: Hardware Configuration and Device/Link Allocation Tables
+  - Appendix B: Complete 56-Dimensional Canonical Feature Specification
+  - Appendix C: Complete 56-Test Suite Manifest and Passing Log Output
+  - Appendix D: Phase B Ground Truth Generation Pipeline
+  - Appendix E: Independent Colleague Verification Report
+  - Appendix F: Full Clean Pre-Demo Checklist Output
+  - Appendix G: Evaluation Scorecards, Confusion Matrices and Supporting Plots
+  - Appendix H: Additional Dashboard Screenshots
+  - Appendix I: Selected Git Commit and Reproducibility Information
+  - Appendix J: Technical Viva Voce Defense Preparation Guide
+
+---
+
+## 8. LIST OF FIGURES
+
+* **Figure 1.1:** Project Echo Prototype Interface and Tactical Radar HUD Display
+* **Figure 1.2:** Project Shadow Neural Model Training and Baseline Fading Convergence Curves
+* **Figure 3.1:** Panoramic View of ROOM_LAB_A Multi-Link Deployment Testbed
+* **Figure 3.2:** ESP32-WROOM-32 Hardware Microcontroller and CP2102 Serial Bridge Close-Up
+* **Figure 3.3:** Corner Transmitter Deployments (TX1–TX4) on Calibrated Testbed Staging Table
+* **Figure 3.4:** Dual Receiver Station (RX1 & RX2) Mounted on Calibrated 24.5 cm Physical Antenna Baseline
+* **Figure 3.5:** Human Subject Walking Traversal Experiment in Phase B Controlled Sensing Grid
+* **Figure 3.6:** Six-Node Active Distributed Hardware Testbed Assembly
+* **Figure 7.1:** Live Field Hardware Evaluation and Data Acquisition on Laboratory Workstation
+* **Figure 7.2:** WiMotion 2.0 Real-Time Tactical Observatory Dashboard (2D Polar Radar and 3D WebGL Digital Twin)
+* **Figure 7.3:** Replay Lab Interface with Interactive Temporal Scrubber and Session Manifest Navigation
+* **Figure H.1:** Full Tactical Observatory in Live Hardware Mode Showing Active 8-Link Variance Meters
+* **Figure H.2:** Replay Lab Interface Displaying the 95-Second Presentation Scenario and Scrubber Slider
+* **Figure H.3:** Complete ESP32 Hardware Assembly and Node Distribution Testbed
+
+---
+
+## 9. LIST OF TABLES
+
+* **Table 2.1:** Systematic Technical Comparison Between RSSI and Subcarrier-Level CSI
+* **Table 3.1:** Complete Physical Hardware Inventory and Node Assignment
+* **Table 3.2:** Physical Baseline Definitions, Geometric Orientations, and Primary Spatial Quadrants
+* **Table 3.3:** Key RF and Operational Physical-Layer Firmware Parameters
+* **Table 4.1:** Serial Streaming Bandwidth and Processing Budget per Receiver Node
+* **Table 5.1:** Authoritative 56-Dimensional Canonical Feature Vector Specification
+* **Table 6.1:** Comprehensive Historical Dataset Audit Summary
+* **Table 6.2:** Controlled Phase B Physical Benchmark Dataset Manifest
+* **Table 6.3:** Complete Model Performance Comparison on Held-Out Test Set (Take 02)
+* **Table 6.4:** Per-Class Performance Breakdown of Primary Supervised Random Forest Classifier
+* **Table 6.5:** Detailed 5x5 Confusion Matrix of Primary Gated Classifier on Held-Out Test Set
+* **Table 6.6:** Quantitative Impact of Empirical Energy Gating on False Alarm Mitigation
+* **Table 8.1:** Functional Breakdown of the 56 Automated Unit Tests
+* **Table 8.2:** Independent Colleague 6-Point Verification Results
+* **Table A.1:** Physical Baseline Definitions, Geometric Orientations, and Primary Spatial Quadrants
+
+---
+
+## 10. LIST OF ABBREVIATIONS AND ACRONYMS
+
+* **AoA:** Angle of Arrival
+* **AP:** Access Point
+* **CFR:** Channel Frequency Response
+* **CI:** Continuous Integration
+* **CIR:** Channel Impulse Response
+* **COTS:** Commercial Off-The-Shelf
+* **CSI:** Channel State Information
+* **dBm:** Decibels relative to one milliwatt
+* **DFT:** Discrete Fourier Transform
+* **DoF:** Degrees of Freedom
+* **ESP-IDF:** Espressif IoT Development Framework
+* **FIFO:** First-In First-Out
+* **FPS:** Frames Per Second
+* **HT:** High Throughput (802.11n)
+* **HUD:** Heads-Up Display
+* **ID:** Identifier
+* **IFFT:** Inverse Fast Fourier Transform
+* **ISM:** Industrial, Scientific, and Medical (2.4 GHz)
+* **ISR:** Interrupt Service Routine
+* **JSON:** JavaScript Object Notation
+* **LL-LTF:** Legacy Long Training Field
+* **LOS:** Line-of-Sight
+* **MAC:** Medium Access Control
+* **ML:** Machine Learning
+* **mmWave:** Millimeter Wave
+* **NLOS:** Non-Line-of-Sight
+* **OFDM:** Orthogonal Frequency Division Multiplexing
+* **OOB:** Out-of-Band / Out-of-Bag
+* **PCB:** Printed Circuit Board
+* **PHY:** Physical Layer
+* **PIR:** Passive Infrared
+* **RF:** Radio Frequency
+* **RMS:** Root Mean Square
+* **RSSI:** Received Signal Strength Indication
+* **RTOS:** Real-Time Operating System
+* **RX:** Receiver
+* **SDR:** Software-Defined Radio
+* **SHA:** Secure Hash Algorithm
+* **SNR:** Signal-to-Noise Ratio
+* **SoC:** System-on-Chip
+* **SRAM:** Static Random-Access Memory
+* **STBC:** Space-Time Block Coding
+* **SVM:** Support Vector Machine
+* **ToF:** Time of Flight
+* **TX:** Transmitter
+* **UART:** Universal Asynchronous Receiver-Transmitter
+* **USB:** Universal Serial Bus
+* **UWB:** Ultra-Wideband
+* **WLAN:** Wireless Local Area Network
 
 ---
 
@@ -159,9 +371,11 @@ The research and engineering documented in this dissertation represents an itera
    * Investigated the fundamental physics of 64-subcarrier OFDM channel perturbations across a single $1\text{ TX} \to 1\text{ RX}$ ESP32 link.
    * Proved that walking across the direct LOS path produces detectable variance in raw subcarrier amplitudes.
    * *Key Discovery:* Revealed severe single-link blind spots: moving outside the direct LOS Fresnel zone caused signal perturbations to fall below the ambient noise floor.
+   * **[Figure 1.1: Project Echo Prototype Interface and Tactical Radar HUD Display]**
 2. **Phase 2: "Project Shadow" (Multipath Fading & Baseline Drift Investigations):**
    * Investigated environmental baseline drift caused by thermal expansion in ESP32 silicon over extended runtimes.
    * Analyzed static multipath profiles and established early moving-average normalization filters.
+   * **[Figure 1.2: Project Shadow Neural Model Training and Baseline Fading Convergence Curves]**
 3. **Phase 3: "WiMotion 1.0" (Temporal-Spectral Machine Learning Engine):**
    * Replaced ad-hoc thresholding with a 217-dimensional feature extraction pipeline (FFT Doppler bands, wavelets, and higher-order statistical moments).
    * Trained a `HistGradientBoostingClassifier`, achieving **81.25% valid held-out accuracy** on single-link physical captures (`held_out_walking_01` and `held_out_empty_01`).
@@ -644,6 +858,7 @@ A comprehensive photographic audit was captured on October 20–21, 2026, during
 * **[Figure 3.3: Corner Transmitter Installation (TX3 & TX4)]:** Close-up photographs showing South-West and South-East node placements at a calibrated height of 1.2 meters.
 * **[Figure 3.4: Central Dual-Receiver Host Station]:** Macro photograph showing RX1 (`COM8`) and RX2 (`COM9`) connected to the host laptop, highlighting the physical antenna baseline separation ($d = 24.5\text{ cm}$).
 * **[Figure 3.5: Subject Traversal Experiment]:** Photograph of the human subject executing single-occupant controlled walking trials across Quadrant 1 ($Z_1$).
+* **[Figure 3.6: Six-Node Active Distributed Hardware Testbed Assembly]:** Photograph showing the complete assembled multi-link ESP32 hardware testbed configured with dual receivers and distributed transmitters.
 
 ---
 *(End of Chapter 3 — Source: WiMotion 2.0 Hardware Engineering Manifest & HARDWARE_SESSION_LOG.txt)*
