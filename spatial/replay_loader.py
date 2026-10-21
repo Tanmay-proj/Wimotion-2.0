@@ -463,7 +463,9 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         try:
             if cache_file.stat().st_mtime >= target_csv.stat().st_mtime:
                 cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
-                return cached_data
+                sample_frames = cached_data.get("frames", [])
+                if sample_frames and "feature_vector" in sample_frames[0] and len(sample_frames[0]["feature_vector"]) == 56:
+                    return cached_data
         except Exception:
             pass
 
@@ -665,12 +667,13 @@ def evaluate_window_frame(
         model = SpatialBaseline()
 
     features = extract_link_features(window_records)
+    vec, act = fuse_features(features)
     window_rate = len(window_records) / window_seconds if window_seconds > 0 else 0.0
     
     # Rigorous Signal Quality Gate: at least 8 packets, rate >= 4.0 Hz
     signal_ok = (len(window_records) >= 8) and (len(features) >= 1) and (window_rate >= 4.0)
 
-    pred = model.predict(features, len(features), signal_ok)
+    pred = model.predict(features, act, signal_ok)
 
     # Real Original Machine Learning Model Adapter Evaluation (217 features)
     v1_eval = None
@@ -689,7 +692,6 @@ def evaluate_window_frame(
     supervised_eval = None
     if signal_ok and spatial_adapter and getattr(spatial_adapter, "is_available", lambda: False)():
         try:
-            vec, act = fuse_features(features)
             supervised_eval = spatial_adapter.predict(vec, act)
         except Exception as e:
             supervised_eval = {
@@ -752,6 +754,8 @@ def evaluate_window_frame(
         "model_score": max(per_tx_var.values()) if per_tx_var else 0.0,
         "eval_status": eval_status,
         "active_links": active_link_count,
+        "feature_vector": vec.tolist() if vec is not None else [],
+        "link_features": features,
         "link_count": 8,
         "per_tx_variance": per_tx_var,
         "link_details": link_details,

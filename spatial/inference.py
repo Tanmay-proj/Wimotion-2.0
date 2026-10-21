@@ -183,6 +183,21 @@ class SupervisedSpatialAdapter:
 
         try:
             vec_2d = np.asarray(feature_vector, dtype=np.float32).reshape(1, -1)
+            gate_th = self.metadata.get("calibrated_energy_gate_threshold")
+            if gate_th is not None:
+                energy_indices = [k * 6 + 5 for k in range(8)]
+                max_energy = float(np.max(vec_2d[0, energy_indices]))
+                if max_energy < gate_th:
+                    return {
+                        "available": True,
+                        "predicted_zone": "CLEAR",
+                        "confidence": 0.95,
+                        "gated": True,
+                        "classifier": self.metadata.get("classifier_name", "SupervisedClassifier"),
+                        "classes": self.classes,
+                        "gate_threshold": gate_th
+                    }
+
             pred_zone = str(self.model.predict(vec_2d)[0])
             conf = None
             if hasattr(self.model, "predict_proba"):
@@ -193,9 +208,12 @@ class SupervisedSpatialAdapter:
                 "available": True,
                 "predicted_zone": pred_zone,
                 "confidence": conf,
+                "gated": False,
                 "classifier": self.metadata.get("classifier_name", "SupervisedClassifier"),
-                "classes": self.classes
+                "classes": self.classes,
+                "gate_threshold": gate_th
             }
+
         except Exception as e:
             return {
                 "available": False,

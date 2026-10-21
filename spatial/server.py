@@ -141,13 +141,12 @@ if VENDOR_PATH.exists():
     app.mount("/vendor", StaticFiles(directory=str(VENDOR_PATH)), name="vendor")
     app.mount("/dashboard/vendor", StaticFiles(directory=str(VENDOR_PATH)), name="dashboard_vendor")
 
-# Allow CORS for local development, dashboard origin, and file:// protocol
+# Restrict CORS strictly to local dashboard origins and disable credentials
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "null"],
-    allow_origin_regex=r"^.*$",
-    allow_credentials=True,
-    allow_methods=["*"],
+    allow_origins=["http://127.0.0.1:8000", "http://localhost:8000", "http://127.0.0.1:5500", "null"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 

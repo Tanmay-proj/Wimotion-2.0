@@ -121,19 +121,20 @@ To ensure scientific honesty and complete architectural transparency, WiMotion 2
 
 ---
 
-## 5. Physical Hardware Deployment vs. Theoretical Grid
+## 5. Physical Hardware Deployment Evolution
 
-| Specification | Physical Lab Deployment | Theoretical Research Grid |
-| :--- | :--- | :--- |
-| **Total ESP32 Boards** | **4 COTS Microcontrollers** | **6 Microcontrollers** |
-| **Receiver (RX) Nodes** | 1 Master RX (`COM3`) or 2 RX (`COM3`, `COM8`) | 2 RX Nodes (RX1, RX2) |
-| **Transmitter (TX) Nodes** | 3 Beacons (TX1, TX2, TX3) or 2 Beacons | 4 Beacons (TX1, TX2, TX3, TX4) |
-| **Active Spatial Links** | 3 to 4 Links | 8 Links ($2 \text{ RX} \times 4 \text{ TX}$) |
-| **Baud Rate & Mode** | 921,600 baud, 802.11n HT20 promiscuous | 921,600 baud, 802.11n HT20 promiscuous |
-| **Safe Standby Policy** | **Active on Host**: USB-UART ingestion defaults to disconnected standby to prevent Windows CP210x/CH340 driver DPC watchdog timeout BSODs. | Assumes dedicated RTOS or Linux host environment. |
+| Specification | Phase A Lab Demonstrations | Phase B Controlled Benchmark Deployment (Oct 20, 2026) | Full Theoretical Spec |
+| :--- | :--- | :--- | :--- |
+| **Total ESP32 Boards** | **4 COTS Microcontrollers** | **6 COTS Microcontrollers** | **6 Microcontrollers** |
+| **Receiver (RX) Nodes** | 1-2 RX (`COM8` / legacy `COM3`) | 2 RX Nodes (`COM8`, `COM9`) | 2 RX Nodes (RX1, RX2) |
+| **Transmitter (TX) Nodes** | 2-3 Beacons (TX1-TX3) | 4 Beacons (TX1: Z1, TX2: Z2, TX3: Z3, TX4: Z4) | 4 Beacons (TX1 to TX4) |
+| **Active Spatial Links** | 3 to 4 Links (Degraded mesh) | 8 Concurrent Physical Mesh Links | 8 Links ($2 \text{ RX} \times 4 \text{ TX}$) |
+| **Baud Rate & Mode** | 921,600 baud, 802.11n HT20 promiscuous | 921,600 baud, 802.11n HT20 promiscuous | 921,600 baud |
+| **Datasets Captured** | `session_real_001` to `007` | `session_pB_clear_01..02`, `session_pB_z1..z4_walk_01..02` (10 takes) | Continuous streaming |
+| **Safe Standby Policy** | Active on host (prevents USB-UART watchdog timeout BSODs) | Active on host | RTOS / Linux daemon |
 
 > [!NOTE]
-> WiMotion 2.0 software fully supports the complete 6-node 8-link mesh. However, in physical lab presentations where 4 ESP32 boards are connected, the system operates in graceful single-RX or degraded 4-link mode without crashing or synthesizing fake link data.
+> WiMotion 2.0 software gracefully adapts between a full 6-node 8-link mesh and degraded single-RX or 4-link setups without synthesizing fake link data or crashing.
 
 ---
 

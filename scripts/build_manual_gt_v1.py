@@ -23,8 +23,16 @@ def build_processed_dataset(output_dir: Path, force_rebuild: bool = False):
     # Security assertion: Target MUST reside strictly within data/processed
     allowed_root = Path("data/processed").resolve()
     target_resolved = base_dir.resolve()
-    if not str(target_resolved).startswith(str(allowed_root)):
-        print(f"\n[!] SECURITY ERROR: Target directory '{base_dir}' must be inside 'data/processed'!")
+    is_safe = False
+    try:
+        rel = target_resolved.relative_to(allowed_root)
+        if str(rel) != "." and not str(rel).startswith(".."):
+            is_safe = True
+    except ValueError:
+        is_safe = False
+
+    if not is_safe:
+        print(f"\n[!] SECURITY ERROR: Target directory '{base_dir}' must be strictly inside 'data/processed'!")
         print(f"[*] Operation aborted to protect raw data and project integrity.\n")
         sys.exit(1)
 

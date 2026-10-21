@@ -24,3 +24,8 @@ data/raw_backup_pre_audit/
 Thumbs.db
 .vscode/
 .idea/
+.pytest_cache/
+
+# Firmware compilation artifacts
+firmware_src/*/build/
+firmware_src/**/.cache/

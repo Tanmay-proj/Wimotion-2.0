@@ -102,7 +102,7 @@ def fuse_features(features: List[Dict[str, Any]], include_validity_mask: bool = 
 
     for link in LINKS:
         feature = lookup.get(link)
-        if feature is None:
+        if feature is None or feature.get("sample_count", 1) <= 0:
             vector.extend([0.0] * 6)
             mask.append(0.0)
             continue
@@ -110,15 +110,44 @@ def fuse_features(features: List[Dict[str, Any]], include_validity_mask: bool = 
         active_links += 1
         mask.append(1.0)
         vector.extend([
-            feature["mean_amp"],
-            feature["std_amp"],
-            feature["mean_delta"],
-            feature["rms_delta"],
-            feature["p95_delta"],
-            feature["energy"]
+            float(feature.get("mean_amp", 0.0)),
+            float(feature.get("std_amp", 0.0)),
+            float(feature.get("mean_delta", 0.0)),
+            float(feature.get("rms_delta", 0.0)),
+            float(feature.get("p95_delta", 0.0)),
+            float(feature.get("energy", feature.get("csi_variance", 0.0)))
         ])
 
     if include_validity_mask:
         vector.extend(mask)
 
     return np.asarray(vector, dtype=np.float32), active_links
+
+
+def extract_window_feature_vector(records: List[CSIRecord], include_validity_mask: bool = True) -> Tuple[np.ndarray, int, List[Dict[str, Any]]]:
+    """
+    Canonical single-source-of-truth function for multi-link feature extraction.
+    Used identically in live inference, replay evaluation, and training pipelines to guarantee zero train-serving skew.
+    
+    Returns:
+        (fused_56_dim_vector, active_link_count, raw_link_features)
+    """
+    features = extract_link_features(records)
+    vector, active = fuse_features(features, include_validity_mask=include_validity_mask)
+    return vector, active, features
+
+
+FEATURE_SCHEMA_VERSION = "2.0.0-canonical-56dim"
+
+
+def get_feature_names() -> List[str]:
+    """Returns canonical names for all 56 feature dimensions in exact fused order."""
+    names = []
+    metric_names = ["mean_amp", "std_amp", "mean_delta", "rms_delta", "p95_delta", "energy"]
+    for rx, tx in LINKS:
+        for m in metric_names:
+            names.append(f"{rx}_{tx}_{m}")
+    for rx, tx in LINKS:
+        names.append(f"valid_{rx}_{tx}")
+    return names
+

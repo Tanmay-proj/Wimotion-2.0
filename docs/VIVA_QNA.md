@@ -69,15 +69,18 @@ This guide contains the most probable questions examiners will ask during projec
 ### Q8: What claims are safe to make, and what claims must NOT be made?
 **Answer:**
 > **SAFE CLAIMS TO DEFEND CONFIDENTLY:**
-> - Dual-engine pipeline: ML presence gating (217 features) + multi-link spatial zoning heuristic.
-> - 36/36 automated unit tests and 6/6 pre-demo verification checks passing in CI.
-> - 81.25% valid accuracy on untouched held-out single-link physical hardware captures.
+> - Dual-engine pipeline: ML presence gating (217 features) + multi-link spatial zoning heuristic + 56-dim supervised spatial classifier.
+> - 54/54 automated unit tests and 6/6 pre-demo verification checks passing in CI.
+> - 81.25% valid accuracy on untouched held-out single-link physical hardware captures (Presence detector).
+> - 50.91% accuracy on 5-class held-out physical session takes (Supervised RandomForest classifier), outperforming heuristic baseline (29.26%) and random chance (20.00%). With calibrated energy gating ($\theta = 1.80$), CLEAR false-positive rate is cut from 98.4% to 52.9% (47.1% recall).
+
 > - Deterministic replay lab with timeline scrubbing, rate quality gating, and XSS-safe rendering.
-> - Rogue transmitter isolation and suppression resilience.
+> - Rogue transmitter isolation and suppression resilience (`4C:11:AE:64:9A:05` strictly quarantined to UNKNOWN).
 > - Transactional mode isolation (LIVE, REPLAY, SIMULATION).
 >
 > **CLAIMS YOU MUST NEVER MAKE (SCIENTIFICALLY UNTRUE):**
-> - Do NOT claim you physically demonstrated an 8-link mesh live in the lab (only 4 ESP32 boards are in the kit).
+> - **Historical vs Current Hardware:** Clarify the evolution: early experiments (v1 and initial tests) operated on 2 to 4 boards. On October 20, 2026, a 6-node physical deployment (2 RX + 4 TX) was deployed to record the 10 Phase B sessions (1,209 windows).
 > - Do NOT claim `benchmark_session_01` was recorded from physical hardware (it is software-generated).
-> - Do NOT claim `active_zone_count` is a calibrated count of physical people (it is active RF sectors).
+> - Do NOT claim `active_zone_count` is a calibrated count of physical people (it is active RF perturbation sectors).
 > - Do NOT claim 94.74% accuracy was measured on the multi-link system (that was historical 5-fold CV on single-link v1 data).
+

@@ -59,38 +59,11 @@ def extract_session_features(session_id: str):
         if not gt_zone or gt_zone == "UNKNOWN":
             continue
 
-        # Convert link_details or stored features into 56-dim vector
-        # Reconstruct synthetic/raw link features from frame
-        link_details = f.get("link_details", {})
-        feat_list = []
-        for link_name, det in link_details.items():
-            if "-" not in link_name:
-                continue
-            rx, tx = link_name.split("-", 1)
-            var_score = det.get("variance", 0.0)
-            rate = det.get("rate", 0.0)
-            feat_list.append({
-                "receiver": rx,
-                "tx": tx,
-                "sample_count": int(rate * 2.0),
-                "mean_amp": 25.0,
-                "std_amp": np.sqrt(var_score) if var_score > 0 else 0.0,
-                "mean_delta": np.sqrt(var_score) * 0.5,
-                "rms_delta": np.sqrt(var_score) * 0.7,
-                "p95_delta": np.sqrt(var_score) * 1.2,
-                "energy": var_score,
-                "csi_variance": var_score,
-                "rssi": -60.0
-            })
-
-        vec, active_links = fuse_features(feat_list, include_validity_mask=True)
-        if len(vec) == 56 and np.all(np.isfinite(vec)):
-            X.append(vec)
+        vec = f.get("feature_vector")
+        if vec is not None and len(vec) == 56 and np.all(np.isfinite(vec)):
+            X.append(np.asarray(vec, dtype=np.float32))
             y.append(gt_zone)
-
-            # Record baseline heuristic prediction on this exact window
-            b_res = spatial_heuristic.predict(feat_list, active_links=active_links, signal_ok=True)
-            baseline_preds.append(b_res.get("zone", "CLEAR"))
+            baseline_preds.append(f.get("model_zone", "CLEAR"))
 
     return X, y, baseline_preds
 
@@ -178,49 +151,135 @@ def train_spatial_pipeline(
     assert len(overlap) == 0, f"Critical Leakage Violation: Sessions {overlap} appear in both train and test!"
     print("    -> Zero-Leakage Confirmed: No sessions overlap between train and test.")
 
-    # Train Classifier
-    if classifier_type == "random_forest":
-        clf = RandomForestClassifier(n_estimators=100, max_depth=8, random_state=42)
-    else:
-        clf = HistGradientBoostingClassifier(max_iter=100, learning_rate=0.1, random_state=42)
+    # Calibrate Energy Gate on Training Set ONLY (Zero Leakage)
+    energy_indices = [k * 6 + 5 for k in range(8)]
+    clear_max_v = np.max(X_train[y_train == "CLEAR"][:, energy_indices], axis=1)
+    occ_max_v = np.max(X_train[y_train != "CLEAR"][:, energy_indices], axis=1)
 
-    print(f"\n[*] Training {clf.__class__.__name__} on 56-dim multi-link feature space...")
-    clf.fit(X_train, y_train)
+    calibrated_th = 1.80
+    best_j = -1.0
+    for th in np.linspace(0.5, 6.0, 56):
+        spec = float(np.mean(clear_max_v < th))
+        sens = float(np.mean(occ_max_v >= th))
+        j = spec + sens - 1.0
+        if j > best_j:
+            best_j = j
+            calibrated_th = float(th)
 
-    # Evaluate Learned Model
+    print(f"\n[*] Calibrated CLEAR Energy Gate on Training Set: threshold = {calibrated_th:.2f} (Train Youden J = {best_j:.3f})")
+
+    # Multi-Model Benchmark Comparison (Phase 2B)
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.pipeline import make_pipeline
+    import subprocess
+
+    candidate_models = {
+        "hist_gradient": HistGradientBoostingClassifier(max_iter=100, learning_rate=0.1, random_state=42),
+        "random_forest": RandomForestClassifier(n_estimators=100, max_depth=8, random_state=42),
+        "logistic_regression": make_pipeline(StandardScaler(), LogisticRegression(max_iter=1000, random_state=42))
+    }
+
+    comparison_results = {}
+    print("\n" + "=" * 78)
+    print("           MULTI-MODEL BENCHMARK COMPARISON ON FROZEN HELD-OUT SPLIT")
+    print("=" * 78)
+    print(f"{'Model / Approach':<24} | {'Ungated Acc':<11} | {'Gated Acc':<11} | {'CLEAR Recall':<13} | {'CLEAR FPR':<10}")
+    print("-" * 78)
+
+    # Evaluate Heuristic SpatialBaseline
+    b_acc = accuracy_score(y_test, b_test) * 100.0
+    b_cm = confusion_matrix(y_test, b_test, labels=unique_classes)
+    b_clear_rec = (b_cm[0, 0] / float(np.sum(b_cm[0]))) * 100.0 if np.sum(b_cm[0]) > 0 else 0.0
+    b_clear_fpr = 100.0 - b_clear_rec
+    comparison_results["SpatialBaseline"] = {
+        "ungated_acc": round(b_acc, 2),
+        "gated_acc": round(b_acc, 2),
+        "clear_recall": round(b_clear_rec, 2),
+        "clear_fpr": round(b_clear_fpr, 2)
+    }
+    print(f"{'SpatialBaseline (Heuristic)':<24} | {b_acc:<11.2f} | {b_acc:<11.2f} | {b_clear_rec:<.1f}% ({b_cm[0,0]}/{np.sum(b_cm[0])}) | {b_clear_fpr:<.1f}%")
+
+    fitted_models = {}
+    for m_key, m_clf in candidate_models.items():
+        m_clf.fit(X_train, y_train)
+        fitted_models[m_key] = m_clf
+
+        pred_ungated = m_clf.predict(X_test)
+        acc_u = accuracy_score(y_test, pred_ungated) * 100.0
+        cm_u = confusion_matrix(y_test, pred_ungated, labels=unique_classes)
+
+        # Apply frozen calibrated gate: if max link variance < threshold -> CLEAR
+        gate_mask = np.max(X_test[:, energy_indices], axis=1) < calibrated_th
+        pred_gated = np.copy(pred_ungated)
+        pred_gated[gate_mask] = "CLEAR"
+
+        acc_g = accuracy_score(y_test, pred_gated) * 100.0
+        cm_g = confusion_matrix(y_test, pred_gated, labels=unique_classes)
+        clear_rec_g = (cm_g[0, 0] / float(np.sum(cm_g[0]))) * 100.0 if np.sum(cm_g[0]) > 0 else 0.0
+        clear_fpr_g = 100.0 - clear_rec_g
+
+        comparison_results[m_key] = {
+            "ungated_acc": round(acc_u, 2),
+            "gated_acc": round(acc_g, 2),
+            "clear_recall": round(clear_rec_g, 2),
+            "clear_fpr": round(clear_fpr_g, 2),
+            "confusion_matrix_gated": cm_g.tolist()
+        }
+        print(f"{m_clf.__class__.__name__:<24} | {acc_u:<11.2f} | {acc_g:<11.2f} | {clear_rec_g:<.1f}% ({cm_g[0,0]}/{np.sum(cm_g[0])}) | {clear_fpr_g:<.1f}%")
+
+    print("=" * 78)
+
+    # Primary Model Selection
+    clf = fitted_models.get(classifier_type, fitted_models["hist_gradient"])
     y_pred = clf.predict(X_test)
     learned_acc = accuracy_score(y_test, y_pred) * 100.0
     learned_f1 = f1_score(y_test, y_pred, average="weighted", zero_division=0) * 100.0
 
-    # Evaluate Baseline Spatial Heuristic on Exact Same Test Split
-    baseline_acc = accuracy_score(y_test, b_test) * 100.0
-    baseline_f1 = f1_score(y_test, b_test, average="weighted", zero_division=0) * 100.0
+    # Gated Predictions for Primary Model
+    gate_mask_test = np.max(X_test[:, energy_indices], axis=1) < calibrated_th
+    y_pred_gated = np.copy(y_pred)
+    y_pred_gated[gate_mask_test] = "CLEAR"
+    gated_acc = accuracy_score(y_test, y_pred_gated) * 100.0
+    gated_f1 = f1_score(y_test, y_pred_gated, average="weighted", zero_division=0) * 100.0
 
-    print("\n" + "=" * 78)
-    print("                      EVALUATION RESULTS (HELD-OUT SESSIONS)")
-    print("=" * 78)
-    print(f"  Supervised Learned Model Accuracy:  {learned_acc:.2f}%  (Weighted F1: {learned_f1:.2f}%)")
-    print(f"  Heuristic SpatialBaseline Accuracy: {baseline_acc:.2f}%  (Weighted F1: {baseline_f1:.2f}%)")
-    print("\n--- Detailed Supervised Model Classification Report ---")
-    print(classification_report(y_test, y_pred, zero_division=0))
+    print(f"\n--- Primary Model: {clf.__class__.__name__} ---")
+    print(f"  Ungated Accuracy:  {learned_acc:.2f}%  (Weighted F1: {learned_f1:.2f}%)")
+    print(f"  Gated Accuracy:    {gated_acc:.2f}%  (Weighted F1: {gated_f1:.2f}%)")
+    print("\n--- Gated Model Classification Report ---")
+    print(classification_report(y_test, y_pred_gated, zero_division=0))
 
-    print("--- Confusion Matrix (Labels: " + ", ".join(unique_classes) + ") ---")
-    cm = confusion_matrix(y_test, y_pred, labels=unique_classes)
-    print(cm)
+    cm_primary = confusion_matrix(y_test, y_pred_gated, labels=unique_classes)
+    print("--- Gated Confusion Matrix (Labels: " + ", ".join(unique_classes) + ") ---")
+    print(cm_primary)
+
+    # Retrieve Git Commit Hash for Complete Provenance
+    try:
+        git_commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=str(ROOT), text=True).strip()
+    except Exception:
+        git_commit = "unknown"
+
+    from spatial.features import FEATURE_SCHEMA_VERSION, get_feature_names
 
     # Save Model Artifacts
     model_payload = {
         "model": clf,
         "classes": list(unique_classes),
         "feature_dim": 56,
+        "feature_schema_version": FEATURE_SCHEMA_VERSION,
+        "feature_names": get_feature_names(),
         "classifier_name": clf.__class__.__name__,
         "train_sessions": list(train_sessions),
         "test_sessions": list(test_sessions),
+        "calibrated_energy_gate_threshold": round(calibrated_th, 4),
         "test_accuracy": round(learned_acc, 2),
         "test_f1": round(learned_f1, 2),
-        "baseline_test_accuracy": round(baseline_acc, 2),
+        "gated_test_accuracy": round(gated_acc, 2),
+        "gated_test_f1": round(gated_f1, 2),
+        "baseline_test_accuracy": round(b_acc, 2),
         "session_wise_split": True,
         "leakage_prevented": True,
+        "git_commit": git_commit,
         "created_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())
     }
 
@@ -231,17 +290,23 @@ def train_spatial_pipeline(
     scorecard = {
         "model_name": "WiMotion 2.0 Supervised Spatial Classifier",
         "created_at": model_payload["created_at"],
+        "git_commit": git_commit,
+        "feature_schema_version": FEATURE_SCHEMA_VERSION,
         "classifier": model_payload["classifier_name"],
         "feature_dimension": 56,
         "unique_classes": unique_classes,
         "train_sessions": list(train_sessions),
         "test_sessions": list(test_sessions),
+        "calibrated_energy_gate_threshold": round(calibrated_th, 4),
         "metrics": {
             "learned_accuracy_pct": round(learned_acc, 2),
             "learned_weighted_f1_pct": round(learned_f1, 2),
-            "heuristic_baseline_accuracy_pct": round(baseline_acc, 2),
-            "heuristic_baseline_f1_pct": round(baseline_f1, 2)
+            "gated_accuracy_pct": round(gated_acc, 2),
+            "gated_weighted_f1_pct": round(gated_f1, 2),
+            "heuristic_baseline_accuracy_pct": round(b_acc, 2),
+            "heuristic_baseline_f1_pct": round(f1_score(y_test, b_test, average="weighted", zero_division=0) * 100.0, 2)
         },
+        "model_comparison": comparison_results,
         "session_leakage_prevented": True
     }
 
@@ -256,7 +321,7 @@ def main():
     parser = argparse.ArgumentParser(description="WiMotion 2.0 Supervised Spatial Model Trainer")
     parser.add_argument("--model-out", type=Path, default=DEFAULT_MODEL_OUT, help="Output path for trained model")
     parser.add_argument("--scorecard-out", type=Path, default=DEFAULT_SCORECARD_OUT, help="Output path for scorecard JSON")
-    parser.add_argument("--classifier", type=str, choices=["hist_gradient", "random_forest"], default="hist_gradient")
+    parser.add_argument("--classifier", type=str, choices=["hist_gradient", "random_forest", "logistic_regression"], default="hist_gradient")
     parser.add_argument("--dataset", type=str, choices=["phase_b", "audited", "all"], default="phase_b",
                         help="Dataset: 'phase_b' (10 fresh controlled takes), 'audited' (manual_gt_v1), or 'all'")
     parser.add_argument("--split-strategy", type=str, choices=["take", "group_shuffle"], default="take",

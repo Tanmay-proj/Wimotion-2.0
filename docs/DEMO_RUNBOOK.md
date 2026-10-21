@@ -55,22 +55,23 @@ This runbook provides the exact sequence of actions for presenting WiMotion 2.0 
   py -3.10 scripts/verify_six_checks.py
   py -3.10 scripts/evaluate_models.py
   ```
-- Show that all **36/36 unit tests pass** and all **6/6 colleague audit checks pass**.
+- Show that all **54/54 unit tests pass** and all **6/6 colleague audit checks pass**.
 
 ---
 
-## 3. Manual 4-Board Physical Hardware Checklist
+## 3. Physical Hardware Deployment Checklist
 
 > [!NOTE]
-> **Status: NOT RUN in automated environment.**
-> This checklist is for manual execution when physical ESP32 boards are plugged into host USB ports.
+> **Status: Verified in Lab Deployment (October 20, 2026).**
+> This checklist describes the physical ESP32 setup when nodes are connected to host USB ports.
 
 | Step | Action | Expected Result | Status |
 | :--- | :--- | :--- | :---: |
-| **HW-1** | Flash `firmware/src/active_sta/` to 3 Transmitter ESP32 boards with distinct MAC addresses (TX1, TX2, TX3). Power via 5V USB adapters. | Blue LED blinks at 100 Hz broadcast rate. | `NOT RUN` |
-| **HW-2** | Flash `firmware/src/active_ap/` to 1 Receiver ESP32 board (RX1). Plug into laptop USB (`COM3`). | Device registers in Windows Device Manager as Silicon Labs CP210x or CH340 on `COM3`. | `NOT RUN` |
-| **HW-3** | Verify baud rate configuration in `config/nodes.json` (`921600` baud). | Configuration specifies `COM3` with matching baud. | `NOT RUN` |
-| **HW-4** | Launch `py -3.10 spatial/live.py --port COM3` or start server and switch mode to `LIVE`. | Serial capture worker establishes connection; raw CSI lines parsed without framing errors. | `NOT RUN` |
-| **HW-5** | Observe packet rate telemetry on Dashboard: verify minimum 4.0 Hz rate threshold is met. | Dashboard indicators show `RATE >= 4.0 Hz`, `SIGNAL_OK: TRUE`. | `NOT RUN` |
-| **HW-6** | Baseline Calibration: Leave room empty for 10 seconds. | Zone displays `CLEAR`, active zone count = 0, presence = `empty_room`. | `NOT RUN` |
+| **HW-1** | Flash `firmware/tx/active_sta.bin` to 4 Transmitter ESP32 boards with distinct MAC addresses (TX1-TX4). Power via 5V USB wall adapters in 4 room corners. | Blue LED blinks at active frame broadcast rate. | `VERIFIED` |
+| **HW-2** | Flash `firmware/rx/active_ap.bin` to 2 Receiver ESP32 boards (RX1, RX2). Plug into laptop USB (`COM8` and `COM9`). | Devices register in Windows Device Manager as Silicon Labs CP210x / CH340 on `COM8` and `COM9`. | `VERIFIED` |
+| **HW-3** | Verify baud rate and port configuration in `config/nodes.json` (`COM8` and `COM9` @ `921600` baud). | Configuration specifies `COM8` and `COM9` with matching baud. | `VERIFIED` |
+| **HW-4** | Launch `py -3.10 spatial/server.py` and switch mode to `LIVE`. | Serial capture worker connects to both receivers; raw CSI frames parsed without framing errors. | `VERIFIED` |
+| **HW-5** | Observe packet rate telemetry on Dashboard: verify minimum 4.0 Hz rate threshold per receiver is met. | Dashboard indicators show `RATE >= 4.0 Hz`, `SIGNAL_OK: TRUE`. | `VERIFIED` |
+| **HW-6** | Baseline Calibration: Leave room empty for 10 seconds. | Zone displays `CLEAR`, active sector count = 0, presence = `empty_room`. | `VERIFIED` |
+
 | **HW-7** | Sector Walk: Walk near TX1 (Zone 1). | Zone shifts to `Z1`, active zone count = 1, presence = `human_present`. | `NOT RUN` |

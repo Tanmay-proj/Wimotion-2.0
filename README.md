@@ -21,16 +21,16 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
                └─────────►  (8 MESH LINKS)    ◄─────────┘
                          │                    │
                          │   [RX1]    [RX2]   │
-                         │  (COM3)    (COM8)  │
+                         │  (COM8)    (COM9)  │
                ┌─────────► (Laptop at Center) ◄─────────┐
                │         └────────────────────┘         │
                │                                        │
         [TX3: SW Corner] ─────────────────────── [TX4: SE Corner]
-        (CC:7B:5C:28:84:70)                      (1C:69:20:31:4B:40)
+        (1C:69:20:31:4B:40)                      (CC:7B:5C:28:84:70)
 ```
 
 - **Hardware Deployment Reality:**
-  - **Physical Deployment (Oct 20, 2026):** **6 physical COTS ESP32-WROOM-32 microcontrollers** active simultaneously: 2 Receivers (RX1 on COM9, RX2 on COM8) + 4 Transmitters (TX1 in Z1 `BC:DD:C2:CC:49:F4`, TX2 in Z2 `1C:69:20:31:38:08`, TX3 in Z3 `4C:11:AE:64:9A:05`/`1C:69:20:31:4B:40`, TX4 in Z4 `CC:7B:5C:28:84:70`).
+  - **Physical Deployment (Oct 20, 2026):** **6 physical COTS ESP32-WROOM-32 microcontrollers** active simultaneously: 2 Receivers (RX1 on COM8, RX2 on COM9) + 4 Transmitters (TX1 in Z1 `BC:DD:C2:CC:49:F4`, TX2 in Z2 `1C:69:20:31:38:08`, TX3 in Z3 `1C:69:20:31:4B:40`, TX4 in Z4 `CC:7B:5C:28:84:70`). Uncoordinated ambient beacon frames (`4C:11:AE:64:9A:05`) are strictly demultiplexed as `UNKNOWN` and never assigned to TX3.
   - **Full 8-Link Physical Mesh:** Capturing concurrent multi-link CSI across dual USB-UART host receivers (116,588+ real hardware frames captured across 8 recorded sessions; see [Live Hardware Report](docs/LIVE_HARDWARE_MULTI_LINK_REPORT.md)).
 - **Dual-Engine Inference Mode:**
   - **Presence Gating:** Original WiMotion ML Model (`HistGradientBoostingClassifier`, 217 temporal-spectral features, `presence_model.pkl`) via `spatial/v1_adapter.py`. Evaluated on untouched held-out single-link physical captures (`held_out_empty_01` + `held_out_walking_01`, 109 windows: **81.25% Valid Accuracy**, 88.07% Coverage, 71.56% Conservative All-Window Score).
@@ -49,12 +49,12 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Sliding Window Buffer** | ✅ **Implemented** | 2.0s sliding window with 0.5s step (`spatial/window.py`) |
 | **Strict Mode Isolation** | ✅ **Implemented** | Authoritative separation between LIVE hardware, REPLAY lab, and SIMULATION (`spatial/server.py`) |
 | **Unified State Renderer** | ✅ **Implemented** | Consistent single-renderer driving metrics, 8-link mesh, timeline, and radar (`dashboard/observatory_multi.html`) |
-| **Automated Unit Tests** | ✅ **Passing (47/47 in CI)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts (missing model, cross-NumPy unpickling), benchmark generator metadata contract, zero-denominator metric safety, per-link FPR evaluation, spatial model zero-leakage session split, recorder zones schema, rogue TX suppression resilience, physical log validation, strict count match, and orphan isolation (`tests/test_spatial.py`) |
+| **Automated Unit Tests** | ✅ **Passing (54/54 in CI)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts, benchmark generator metadata contract, zero-denominator metric safety, per-link FPR evaluation, spatial model zero-leakage session split, recorder zones schema, rogue TX suppression resilience, physical log validation, strict count match, orphan isolation, train-serving feature parity, missing link masking, short window gating, non-finite amplitude resilience, canonical schema contract, sibling path containment security, and CORS origin restriction (`tests/test_spatial.py`) |
 | **Colleague Audit Suite** | ✅ **Passing (6/6)** | Hardware coverage integrity, rate conservation, zero-sample link gating (`scripts/verify_six_checks.py`) |
 | **Dataset Provenance Audit** | ✅ **Complete (593 Sessions)** | Comprehensive audit distinguishing physical sessions from benchmarks (`docs/DATASET_AUDIT_REPORT.md`) |
 | **V1 Model Adapter** | ✅ **Actively Integrated** | Real 217-feature extraction pipeline & HistGradientBoosting classifier (`presence_model.pkl`) called in Live and Replay (`spatial/v1_adapter.py`) |
 | **Per-Link Evaluation (Phase 5)** | ✅ **Verified Breakdown** | Evaluates V1 presence model independently per physical link, reporting accuracy, coverage, recall, specificity, and false-positive rate (`scripts/evaluate_models.py`) |
-| **Supervised Spatial Model (Phase 6)** | ✅ **Implemented & Benchmarked** | 56-dim multi-link feature space with session-wise splits (GroupShuffleSplit) preventing overlapping-window leakage, benchmarked alongside SpatialBaseline (`scripts/train_spatial_model.py`) |
+| **Supervised Spatial Model (Phase 6)** | ✅ **Implemented & Benchmarked** | 56-dim multi-link feature space with session-wise splits (GroupShuffleSplit) preventing overlapping-window leakage, benchmarked alongside SpatialBaseline, RandomForest, and LogisticRegression (`scripts/train_spatial_model.py`) |
 | **Public Dataset Adapters** | ✅ **Implemented** | ESP-Fi HAR, RF_ESP32, and WiCAL dataset adapters (`spatial/dataset_adapters/`) |
 | **Controlled Synthetic Augmentation** | ✅ **Implemented** | Physics-informed RF gain & Gaussian multipath perturbation with parent tracking (`spatial/augmentation.py`) |
 | **Hardware Inventory & Standby** | ✅ **6 Physical Nodes Active** | 6 physical ESP32 boards deployed in room mesh (2 RX + 4 TX). Host USB-UART defaults to Safe Standby when server not in LIVE mode. |
@@ -64,14 +64,25 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 
 ## 3. Quickstart & Verification
 
-### 1. Run Automated Unit Tests (39 Tests) & 6-Point Audit Suite
+### 1. Master One-Click Reproducibility Runner
+Run the entire end-to-end verification, test, and evaluation suite:
+```bash
+py -3.10 scripts/run_master_evaluation.py
+```
+This executes:
+1. Automated unit test suite (54 tests, 100% pass)
+2. Colleague 6-point verification suite (6 checks, 100% pass)
+3. Read-only hardware session & label provenance audit
+4. Multi-model benchmark training & evaluation with calibrated CLEAR energy gate ($\theta = 1.80$)
+5. Exact model artifact hash & git commit verification
+
+### 2. Run Automated Unit Tests (54 Tests) & 6-Point Audit Suite Individually
 ```bash
 py -3.10 -m unittest discover -s tests -v
 py -3.10 scripts/verify_six_checks.py
 ```
-Both test suites verify all core engineering constraints: single-RX isolation, variance-rate independence, transactional mode rollback, zero telemetry leakage, rate formula equivalence, quality gating, v1 model 217-feature contract, rogue TX suppression resilience, per-link FPR evaluation, and spatial training session-leakage prevention.
 
-### 2. Multi-Model Evaluation & Scientific Evidence
+### 3. Multi-Model Evaluation & Scientific Evidence
 ```bash
 py -3.10 scripts/evaluate_models.py
 ```
@@ -82,17 +93,18 @@ Regenerates `docs/EVALUATION_REPORT.md` across 5 distinct evaluation tracks and 
 - **Track D:** Synthetic Augmentation Experiment (`synthetic_augmented`)
 - **Track E:** Scripted Presentation Scenario (`scripted_presentation`)
 
-### 3. Supervised Spatial Model Training (Zero-Leakage Session Splits)
+### 4. Supervised Spatial Model Training (Zero-Leakage Session Splits)
 ```bash
-py -3.10 scripts/train_spatial_model.py
+py -3.10 scripts/train_spatial_model.py --dataset phase_b --classifier random_forest
 ```
-Trains a supervised classifier on the 56-dimensional multi-link feature space using session-wise splits to prevent temporal leakage, reporting both learned accuracy and baseline heuristic comparison.
+Trains the supervised classifier on the 56-dimensional multi-link feature space using session-wise splits, reporting both learned accuracy, calibrated energy-gated metrics, and baseline comparison.
 
-### 4. Launch Tactical Console & Observatory Dashboard
+### 5. Launch Tactical Console & Observatory Dashboard
 Double-click `run_wimotion_2.0.bat` and select **Option [4]**, or run directly:
 ```bash
 py -3.10 -m uvicorn spatial.server:app --host 127.0.0.1 --port 8000
 ```
+
 The browser will automatically open to [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
 
 ---
@@ -100,11 +112,13 @@ The browser will automatically open to [http://127.0.0.1:8000/](http://127.0.0.1
 ## 4. Final Submission Documentation Pack
 
 Detailed guides and scientific deliverables are located in the `docs/` directory:
-- 📑 [System Architecture & Geometry Specification](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/ARCHITECTURE.md)
-- 📋 [Dataset Audit & Provenance Verification Report](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/DATASET_AUDIT_REPORT.md)
-- 🎯 [Presentation Day Demo Runbook](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/DEMO_RUNBOOK.md)
-- 📊 [Scientific Evaluation & Evidence Report](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/EVALUATION_REPORT.md)
-- 🎓 [Examiner Viva Q&A Guide](file:///E:/WIFI_INTERFEROMETRIC_NEURAL_SENSING/wimotion_2.0/docs/VIVA_QNA.md)
+- 📑 [System Architecture & Geometry Specification](docs/ARCHITECTURE.md)
+- 📋 [Dataset Audit & Provenance Verification Report](docs/DATASET_AUDIT_REPORT.md)
+- 🎯 [Presentation Day Demo Runbook](docs/DEMO_RUNBOOK.md)
+- 📊 [Scientific Evaluation & Evidence Report](docs/EVALUATION_REPORT.md)
+- 🎓 [Examiner Viva Q&A Guide](docs/VIVA_QNA.md)
+- 📈 [Phase B Controlled Scorecard](docs/PHASE_B_HONEST_SCORECARD.md)
+
 
 ---
 

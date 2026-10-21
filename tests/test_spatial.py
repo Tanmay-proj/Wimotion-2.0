@@ -1080,6 +1080,142 @@ class TestSpatial(unittest.TestCase):
         from scripts.audit_read_only_sessions import DOCUMENTED_PHYSICAL_LOG
         self.assertIsNone(DOCUMENTED_PHYSICAL_LOG.get("nonexistent_session_xyz"))
 
+    def test_feature_vector_parity_between_live_and_replay(self):
+        # Canonical feature extractor and evaluate_window_frame must produce identical 56-dim vectors
+        from spatial.features import extract_window_feature_vector
+        from spatial.replay_loader import evaluate_window_frame
+
+        records = []
+        for t in [1.0, 1.05, 1.1]:
+            for r in self.make_records():
+                records.append(
+                    CSIRecord(
+                        timestamp=t,
+                        receiver_id=r.receiver_id,
+                        source_mac=r.source_mac,
+                        rssi=r.rssi,
+                        amplitudes=[float(i + 10) for i in range(64)],
+                        rate_hz=20.0,
+                        tx_id=r.tx_id
+                    )
+                )
+
+        vec_canonical, active_canonical, _ = extract_window_feature_vector(records)
+        frame = evaluate_window_frame(
+            window_records=records,
+            window_seconds=2.0,
+            total_duration=10.0,
+            current_offset=0.0,
+            window_end=1.1,
+            latest_gt_count=0,
+            latest_gt_zone="CLEAR",
+            latest_motion="EMPTY"
+        )
+
+        vec_replay = frame["feature_vector"]
+        self.assertEqual(len(vec_replay), 56)
+        self.assertEqual(len(vec_canonical), 56)
+        np.testing.assert_allclose(vec_canonical, vec_replay, rtol=1e-5, atol=1e-5)
+        self.assertEqual(active_canonical, frame["active_links"])
+
+    def test_builder_sibling_path_containment_rejection(self):
+        # Sibling directory starting with allowed prefix (e.g. data/processed_backup) must be strictly rejected
+        import subprocess
+        cmd = [sys.executable, str(ROOT / "scripts" / "build_manual_gt_v1.py"), "--output-dir", "data/processed_backup"]
+        res = subprocess.run(cmd, capture_output=True, text=True)
+        self.assertEqual(res.returncode, 1)
+        self.assertIn("SECURITY ERROR", res.stdout)
+
+    def test_cors_security_restricted_origins(self):
+        # CORS must not allow arbitrary external wildcard origins
+        from spatial.server import app
+        # Inspect CORS middleware config on FastAPI app
+        cors_middlewares = [m for m in app.user_middleware if "CORSMiddleware" in str(m.cls)]
+        self.assertTrue(len(cors_middlewares) > 0)
+        kwargs = cors_middlewares[0].kwargs
+        self.assertFalse(kwargs.get("allow_credentials", True))
+        origins = kwargs.get("allow_origins", [])
+        self.assertNotIn("*", origins)
+        self.assertIsNone(kwargs.get("allow_origin_regex"))
+
+    def test_feature_parity_missing_links(self):
+        # When only a subset of links is active, both paths must produce identical 56-dim vectors with matching masks
+        from spatial.features import extract_window_feature_vector
+        from spatial.replay_loader import evaluate_window_frame
+
+        # Only RX1-TX1 and RX2-TX3 present
+        records = []
+        for t in [1.0, 1.05, 1.1]:
+            records.append(CSIRecord(t, "RX1", "MAC1", -60, [15.0]*64, 20.0, "TX1"))
+            records.append(CSIRecord(t, "RX2", "MAC2", -55, [25.0]*64, 20.0, "TX3"))
+
+        vec_canonical, active_canonical, _ = extract_window_feature_vector(records)
+        frame = evaluate_window_frame(
+            window_records=records,
+            window_seconds=2.0,
+            total_duration=10.0,
+            current_offset=0.0,
+            window_end=1.1,
+            latest_gt_count=1,
+            latest_gt_zone="Z1",
+            latest_motion="MOTION"
+        )
+        vec_replay = frame["feature_vector"]
+
+        self.assertEqual(active_canonical, 2)
+        self.assertEqual(frame["active_links"], 2)
+        self.assertEqual(len(vec_canonical), 56)
+        self.assertEqual(len(vec_replay), 56)
+        np.testing.assert_allclose(vec_canonical, vec_replay, rtol=1e-5, atol=1e-5)
+
+        # Check mask: RX1-TX1 (index 48) and RX2-TX3 (index 54) must be 1.0, all other 6 must be 0.0
+        mask = vec_canonical[48:]
+        self.assertEqual(sum(mask), 2.0)
+        self.assertEqual(mask[0], 1.0)   # RX1-TX1
+        self.assertEqual(mask[6], 1.0)   # RX2-TX3
+
+    def test_feature_parity_invalid_and_corrupt_amplitudes(self):
+        # Corrupt, negative, or zero amplitudes must still produce completely finite 56-dim vectors (no NaN/Inf)
+        from spatial.features import extract_window_feature_vector
+        records = []
+        for t in [1.0, 1.05, 1.1]:
+            records.append(CSIRecord(t, "RX1", "MAC1", -99, [0.0]*64, 20.0, "TX1"))
+            records.append(CSIRecord(t, "RX2", "MAC2", None, [-10.0]*32 + [1e5]*32, 20.0, "TX2"))
+
+        vec, active, _ = extract_window_feature_vector(records)
+        self.assertEqual(len(vec), 56)
+        self.assertTrue(np.all(np.isfinite(vec)), "Feature vector must contain strictly finite numbers")
+
+    def test_feature_parity_short_window_insufficient_samples(self):
+        # Links with fewer than 3 samples must be safely gated as inactive (zeros and mask=0)
+        from spatial.features import extract_window_feature_vector
+        records = [
+            CSIRecord(1.0, "RX1", "MAC1", -60, [15.0]*64, 20.0, "TX1"),
+            CSIRecord(1.05, "RX1", "MAC1", -60, [15.0]*64, 20.0, "TX1")  # Only 2 samples (< 3)
+        ]
+        vec, active, _ = extract_window_feature_vector(records)
+        self.assertEqual(active, 0, "Link with < 3 samples must not be considered active")
+        self.assertEqual(sum(vec[48:]), 0.0, "All validity flags must be 0.0 for short window")
+
+    def test_feature_schema_names_and_model_contract(self):
+        # Feature names must have exactly 56 canonical names and match model metadata
+        import pickle
+        from spatial.features import get_feature_names, FEATURE_SCHEMA_VERSION
+        names = get_feature_names()
+        self.assertEqual(len(names), 56)
+        self.assertEqual(names[0], "RX1_TX1_mean_amp")
+        self.assertEqual(names[5], "RX1_TX1_energy")
+        self.assertEqual(names[48], "valid_RX1_TX1")
+        self.assertEqual(names[55], "valid_RX2_TX4")
+
+        model_path = ROOT / "models" / "spatial_model.pkl"
+        if model_path.exists():
+            with open(model_path, "rb") as f:
+                data = pickle.load(f)
+            self.assertEqual(data.get("feature_schema_version"), FEATURE_SCHEMA_VERSION)
+            self.assertEqual(len(data.get("feature_names", [])), 56)
+            self.assertIn("calibrated_energy_gate_threshold", data)
+
 
 if __name__ == "__main__":
     unittest.main()
