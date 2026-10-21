@@ -2,30 +2,30 @@
 """
 build_complete_integrated_report.py
 Builds the complete, final, professional dissertation for MCTE:
-1. Section 1: Preserves the official MCTE Academy Cover Page & DS Comments pages
-   from PROJECT_REPORT_FILE(TNM&RSR).docx (elements 0 to 102: title banners, shapes,
-   textboxes with OC Tanmay Mugale TES-4312 & OC Rishabh Rathore TES-4316,
-   DS Guide Lt Col Rajat Gaur, DS Co-Guide Maj Vaibhav Kukreti, and DS Comments).
-2. Sections 2 & 3:
-   - Header is strictly linked to previous across all sections: uses the template's native
-     top-centered page numbers (1, 2, 3...) with NO top-right header text.
-   - Footers are completely empty (no duplicate footer page numbers).
-   - Uniform continuous Arabic page numbering (1, 2, 3...) throughout the entire report.
-   - College name strictly: Military College of Telecommunication Engineering (MCTE).
-   - Certificate of Approval & Student Declaration removed per user request.
-   - Keywords section removed completely from text and Table of Contents per user request.
-   - Appendix I and Appendix J removed completely from text and Table of Contents per user request.
-   - Front matter starts cleanly with Acknowledgements (thanking MCTE, Lt Col Rajat Gaur, Maj Vaibhav Kukreti).
-   - Dynamic Table of Contents field code (F9 to refresh) + formatted structured TOC.
-   - ALL 19 Figure Insertion Boxes (clean dashed boxes with instructions & formal captions).
-   - ALL 15 Markdown Tables with Navy headers and alternate zebra shading.
-   - ALL Code Blocks and ASCII Architecture Diagrams in shaded Consolas monospace boxes.
-   - True Word Heading styles (Heading 1, Heading 2, Heading 3).
-   - Page layout: Subsections flow continuously on pages without artificial page breaks.
-3. Saves to:
-   - E:\WIFI_INTERFEROMETRIC_NEURAL_SENSING\Project_Report_File.docx
-   - E:\WIFI_INTERFEROMETRIC_NEURAL_SENSING\PROJECT_REPORT_FILE(TNM&RSR)_UPDATED.docx
-   - E:\WIFI_INTERFEROMETRIC_NEURAL_SENSING\PROJECT_REPORT_FILE(TNM&RSR).docx (if not locked by Word)
+1. Section 1 (Cover Page & DS Comments, elements 0 to 102):
+   - Preserves official MCTE Academy Cover Page & DS Comments pages from
+     PROJECT_REPORT_FILE(TNM&RSR).docx (title banners, shapes, textboxes with
+     OC Tanmay Mugale TES-4312 & OC Rishabh Rathore TES-4316, DS Guide Lt Col Rajat Gaur,
+     DS Co-Guide Maj Vaibhav Kukreti, and DS Comments).
+2. Section 2 (Front Matter, starting directly on Page 4):
+   - NO duplicate section break (prevents blank Page 4).
+   - Starts immediately with '2. ACKNOWLEDGEMENTS' on Page 4.
+   - Front matter headings ('2. ACKNOWLEDGEMENTS', '3. ABSTRACT', '4. TABLE OF CONTENTS',
+     '5. LIST OF FIGURES', '6. LIST OF TABLES', '7. LIST OF ABBREVIATIONS AND ACRONYMS')
+     are strictly centered and underlined with Navy bold styling.
+   - Table of Contents is cleanly formatted with bulleted and indented entries:
+     '•\t1. Title Page & DS Comments', '•\t2. Acknowledgements', '•\t3. Abstract',
+     bold chapter titles, and 0.40" indented subsections without raw asterisks or dynamic field codes.
+3. Equations:
+   - All 39 display equations ($$...$$) are converted into native Microsoft Word OMML (<m:oMath>)
+     via latex2mathml and MML2OMML.XSL, centered and beautifully rendered.
+   - All inline math expressions ($...$) are sanitized with unicode math symbols (λ, θ, π, μ, σ,
+     ², ³, ×, ≈, →, ₁, ₂, ₃, ₄), completely removing raw LaTeX markup.
+4. Header & Numbering:
+   - Top-centered continuous Arabic page numbers (1, 2, 3...) throughout all pages.
+   - Empty footers and no top-right header text.
+5. Saves exclusively to:
+   - E:\WIFI_INTERFEROMETRIC_NEURAL_SENSING\PROJECT_REPORT_FILE(TNM&RSR).docx
 """
 import os
 import re
@@ -40,6 +40,9 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.oxml import parse_xml, OxmlElement
 from docx.oxml.ns import nsdecls, qn
 
+import latex2mathml.converter
+from lxml import etree
+
 REPO_ROOT = Path(r"e:\WIFI_INTERFEROMETRIC_NEURAL_SENSING\wimotion_2.0")
 PARENT_DIR = Path(r"e:\WIFI_INTERFEROMETRIC_NEURAL_SENSING")
 MD_PATH = REPO_ROOT / "docs" / "MASTER_DISSERTATION_FINAL.md"
@@ -49,6 +52,16 @@ COLOR_NAVY = RGBColor(27, 54, 93)       # #1B365D - Deep Navy
 COLOR_SLATE = RGBColor(51, 65, 85)      # #334155 - Slate Grey
 COLOR_MUTED = RGBColor(100, 116, 139)   # #64748B - Muted Grey
 COLOR_BODY = RGBColor(30, 41, 59)       # #1E293B - Off-Black
+
+# Load XSLT stylesheet for MathML -> OMML
+XSLT_PATH = r"C:\Program Files\Microsoft Office\root\Office16\MML2OMML.XSL"
+try:
+    XSLT_DOC = etree.parse(XSLT_PATH)
+    MML_TRANSFORM = etree.XSLT(XSLT_DOC)
+    MATH_AVAILABLE = True
+except Exception as e:
+    print(f"[!] Warning: MML2OMML.XSL could not be loaded ({e}). Math will fallback to unicode.")
+    MATH_AVAILABLE = False
 
 
 def configure_styles(doc):
@@ -112,19 +125,116 @@ def set_cell_margins(cell, top=100, bottom=100, left=150, right=150):
     tc_pr.append(tc_mar)
 
 
-def add_toc_field(p):
-    fld_char1 = parse_xml(r'<w:fldChar %s w:fldCharType="begin"/>' % nsdecls('w'))
-    instr_text = parse_xml(r'<w:instrText %s xml:space="preserve"> TOC \o "1-3" \h \z \u </w:instrText>' % nsdecls('w'))
-    fld_char2 = parse_xml(r'<w:fldChar %s w:fldCharType="separate"/>' % nsdecls('w'))
-    fld_char3 = parse_xml(r'<w:fldChar %s w:fldCharType="end"/>' % nsdecls('w'))
-    run = p.add_run()
-    run._r.append(fld_char1)
-    run._r.append(instr_text)
-    run._r.append(fld_char2)
-    run._r.append(fld_char3)
+def clean_latex_string(expr):
+    """Fallback text cleaner for math expressions."""
+    replacements = [
+        (r'\\text\{([^}]+)\}', r'\1'),
+        (r'\\mathbf\{([^}]+)\}', r'\1'),
+        (r'\\mathit\{([^}]+)\}', r'\1'),
+        (r'\\mathrm\{([^}]+)\}', r'\1'),
+        (r'\\mathbb\{I\}', 'I'),
+        (r'\\approx', '≈'),
+        (r'\\times', '×'),
+        (r'\\cdot', '·'),
+        (r'\\pm', '±'),
+        (r'\\to', '→'),
+        (r'\\rightarrow', '→'),
+        (r'\\Rightarrow', '⇒'),
+        (r'\\lambda', 'λ'),
+        (r'\\theta', 'θ'),
+        (r'\\pi', 'π'),
+        (r'\\mu', 'μ'),
+        (r'\\sigma', 'σ'),
+        (r'\\Delta', 'Δ'),
+        (r'\\Phi', 'Φ'),
+        (r'\\tau', 'τ'),
+        (r'\\phi', 'φ'),
+        (r'\\le(q)?', '≤'),
+        (r'\\ge(q)?', '≥'),
+        (r'\\neq', '≠'),
+        (r'\\in', '∈'),
+        (r'\\sum', '∑'),
+        (r'\\sqrt\{([^}]+)\}', r'√(\1)'),
+        (r'\\frac\{([^}]+)\}\{([^}]+)\}', r'(\1 / \2)'),
+        (r'\\left\(', '('),
+        (r'\\right\)', ')'),
+        (r'\\left\[', '['),
+        (r'\\right\]', ']'),
+        (r'\\quad', '   '),
+        (r'\\,', ' '),
+        (r'\\;', ' '),
+        (r'\\!', ''),
+        (r'_1', '₁'),
+        (r'_2', '₂'),
+        (r'_3', '₃'),
+        (r'_4', '₄'),
+        (r'_k', 'ₖ'),
+        (r'_t', 'ₜ'),
+        (r'_r', 'ᵣ'),
+        (r'_m', 'ₘ'),
+        (r'_0', '₀'),
+        (r'_i', 'ᵢ'),
+        (r'\^2', '²'),
+        (r'\^3', '³'),
+        (r'\^8', '⁸'),
+        (r'\^9', '⁹'),
+        (r'\{', ''),
+        (r'\}', ''),
+        (r'\\', ''),
+    ]
+    res = expr
+    for pat, repl in replacements:
+        res = re.sub(pat, repl, res)
+    return res.strip()
+
+
+def clean_inline_math(text):
+    """Sanitizes $formula$ expressions inside paragraph text into clean Unicode math."""
+    def _repl(m):
+        raw = m.group(1).strip()
+        return clean_latex_string(raw)
+    return re.sub(r'\$([^\$]+)\$', _repl, text)
+
+
+def render_math_equation(doc, latex_str):
+    """Renders a display equation ($$...$$) as native Word OMML (<m:oMath>)."""
+    eq = latex_str.strip()
+    if eq.startswith("$$"):
+        eq = eq[2:]
+    if eq.endswith("$$"):
+        eq = eq[:-2]
+    eq = eq.strip()
+
+    p = doc.add_paragraph()
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    p.paragraph_format.space_before = Pt(6)
+    p.paragraph_format.space_after = Pt(6)
+
+    rendered_omml = False
+    if MATH_AVAILABLE:
+        try:
+            mml = latex2mathml.converter.convert(eq)
+            mml_tree = etree.fromstring(mml.encode('utf-8'))
+            omml_tree = MML_TRANSFORM(mml_tree)
+            omml_xml = etree.tostring(omml_tree.getroot())
+            omml_elem = parse_xml(omml_xml)
+            p._p.append(omml_elem)
+            rendered_omml = True
+        except Exception as e:
+            rendered_omml = False
+
+    if not rendered_omml:
+        clean_text = clean_latex_string(eq)
+        run = p.add_run(clean_text)
+        run.font.name = "Cambria Math"
+        run.font.size = Pt(11.5)
+        run.italic = True
+        run.font.color.rgb = COLOR_NAVY
 
 
 def add_formatted_text(paragraph, text, font_size=12, default_bold=False, default_italic=False, default_color=COLOR_BODY):
+    """Processes markdown tokens (**bold**, *italic*, `code`) and inline math."""
+    text = clean_inline_math(text)
     tokens = re.split(r'(\*\*.*?\*\*|\*.*?\*|`.*?`)', text)
     for tok in tokens:
         if not tok:
@@ -236,19 +346,22 @@ def render_image_placeholder(doc, line):
 
     parts = caption_text.split(":", 1)
     if len(parts) == 2:
-        r_label = cap_p.add_run(parts[0].strip() + ": ")
+        clean_lbl = clean_inline_math(parts[0].strip()) + ": "
+        r_label = cap_p.add_run(clean_lbl)
         r_label.font.name = "Times New Roman"
         r_label.font.size = Pt(10)
         r_label.bold = True
         r_label.font.color.rgb = COLOR_NAVY
 
-        r_desc = cap_p.add_run(parts[1].strip())
+        clean_desc = clean_inline_math(parts[1].strip())
+        r_desc = cap_p.add_run(clean_desc)
         r_desc.font.name = "Times New Roman"
         r_desc.font.size = Pt(10)
         r_desc.italic = True
         r_desc.font.color.rgb = COLOR_BODY
     else:
-        r_desc = cap_p.add_run(caption_text)
+        clean_desc = clean_inline_math(caption_text)
+        r_desc = cap_p.add_run(clean_desc)
         r_desc.font.name = "Times New Roman"
         r_desc.font.size = Pt(10)
         r_desc.bold = True
@@ -373,7 +486,7 @@ def build_integrated_dissertation():
     table_buffer = []
     in_table = False
     in_front_matter_figure_list = False
-    current_section = 1  # 1 = Cover, 2 = Front Matter, 3 = Chapters
+    current_section = 2  # Section 1 is Cover (index 0). Front matter is Section 2 (index 1).
 
     # Skip lines until "## 2. ACKNOWLEDGEMENTS" in markdown because Cover Page & DS comments are already in base doc
     while i < total_lines:
@@ -381,13 +494,10 @@ def build_integrated_dissertation():
             break
         i += 1
 
-    # Transition to Section 2 (Front Matter)
-    current_section = 2
-    sec_front = doc.add_section()
-    apply_page_margins(sec_front)
-    sec_front.different_first_page_header_footer = False
-    sec_front.header.is_linked_to_previous = True
-    sec_front.footer.is_linked_to_previous = True
+    # NOTE: Do NOT call doc.add_section() here!
+    # Element 102 already contains the sectPr ending Section 0 (Cover & DS comments).
+    # Starting paragraphs directly at element 103 places Acknowledgements directly on Page 4,
+    # completely eliminating the empty Page 4!
 
     front_matter_page_breaks = [
         "## 2. ACKNOWLEDGEMENTS",
@@ -440,6 +550,12 @@ def build_integrated_dissertation():
                 table_buffer = []
                 in_table = False
 
+        # Display Math Equations ($$...$$)
+        if line_stripped.startswith("$$") and line_stripped.endswith("$$") and len(line_stripped) > 2:
+            render_math_equation(doc, line_stripped)
+            i += 1
+            continue
+
         # Horizontal rules / Page Break delimiters
         if line_stripped in ("---", "***", "___") or "page-break-after" in line_stripped:
             if current_section == 2:
@@ -467,19 +583,94 @@ def build_integrated_dissertation():
                 i += 1
                 continue
 
-        # Dynamic Table of Contents Field
-        if line_stripped.startswith("## 4. TABLE OF CONTENTS"):
-            p = doc.add_paragraph(style='Heading 2')
-            run = p.add_run("4. TABLE OF CONTENTS")
+        # Front Matter Headings: Centered and Underlined
+        if any(line_stripped.startswith(prefix) for prefix in [
+            "## 2. ACKNOWLEDGEMENTS",
+            "## 3. ABSTRACT",
+            "## 4. TABLE OF CONTENTS",
+            "## 5. LIST OF FIGURES",
+            "## 6. LIST OF TABLES",
+            "## 7. LIST OF ABBREVIATIONS"
+        ]):
+            h_text = re.sub(r'^##\s*', '', line_stripped).strip()
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(16)
+            p.paragraph_format.space_after = Pt(10)
+            p.paragraph_format.keep_with_next = True
+            run = p.add_run(h_text)
             run.font.name = "Times New Roman"
             run.font.size = Pt(14)
             run.bold = True
-            run.font.color.rgb = COLOR_SLATE
+            run.underline = True
+            run.font.color.rgb = COLOR_NAVY
 
-            toc_box = doc.add_paragraph()
-            toc_box.paragraph_format.line_spacing = 1.25
-            toc_box.paragraph_format.space_after = Pt(10)
-            add_toc_field(toc_box)
+            # If this is Table of Contents, render Tanmay's custom-formatted TOC list
+            if "TABLE OF CONTENTS" in h_text:
+                i += 1
+                # Consume and format all TOC bullet lines until next section break (---)
+                while i < total_lines:
+                    toc_l = lines[i].strip()
+                    if toc_l in ("---", "***", "___") or toc_l.startswith("## 5."):
+                        break
+                    if not toc_l:
+                        i += 1
+                        continue
+
+                    # Skip unwanted items
+                    if any(term in toc_l for term in ["Keywords", "Appendix I:", "Appendix J:", "Certificate of Approval", "Student Declaration"]):
+                        i += 1
+                        continue
+
+                    # Check if chapter / part title or subsection based on raw line indentation
+                    raw_toc_l = lines[i]
+                    is_chapter = False
+                    clean_toc_text = ""
+                    if re.match(r'^\s{2,}[\-\*]', raw_toc_l) or raw_toc_l.startswith('\t'):
+                        # Indented subsection or front matter sub-item
+                        is_chapter = False
+                        clean_toc_text = re.sub(r'^\s*[\-\*]\s*', '', toc_l).strip()
+                    elif toc_l.startswith("- **") or toc_l.startswith("* **"):
+                        is_chapter = True
+                        clean_toc_text = re.sub(r'^[\-\*]\s*\*\*', '', toc_l)
+                        clean_toc_text = re.sub(r'\*\*.*$', '', clean_toc_text).strip()
+                    elif toc_l.startswith("- ") or toc_l.startswith("* "):
+                        is_chapter = True
+                        clean_toc_text = re.sub(r'^[\-\*]\s*', '', toc_l).strip()
+                    else:
+                        is_chapter = False
+                        clean_toc_text = re.sub(r'^\s*[\-\*]\s*', '', toc_l).strip()
+
+                    # Specific rename requested by user: Title Page & DS Comments
+                    if "Title Page" in clean_toc_text:
+                        clean_toc_text = "1. Title Page & DS Comments"
+
+                    clean_toc_text = clean_inline_math(clean_toc_text)
+                    clean_toc_text = clean_toc_text.replace("**", "").replace("*", "")
+
+                    tp = doc.add_paragraph()
+                    tp.paragraph_format.line_spacing = 1.15
+                    if is_chapter:
+                        tp.paragraph_format.left_indent = Inches(0.15)
+                        tp.paragraph_format.space_before = Pt(5)
+                        tp.paragraph_format.space_after = Pt(2)
+                        r = tp.add_run(f"•\t{clean_toc_text}")
+                        r.font.name = "Times New Roman"
+                        r.font.size = Pt(11.5)
+                        r.bold = True
+                        r.font.color.rgb = COLOR_NAVY
+                    else:
+                        tp.paragraph_format.left_indent = Inches(0.40)
+                        tp.paragraph_format.space_before = Pt(1)
+                        tp.paragraph_format.space_after = Pt(1)
+                        r = tp.add_run(f"•\t{clean_toc_text}")
+                        r.font.name = "Times New Roman"
+                        r.font.size = Pt(11.0)
+                        r.bold = False
+                        r.font.color.rgb = COLOR_SLATE
+                    i += 1
+                continue
+
             i += 1
             continue
 
@@ -647,7 +838,7 @@ def build_integrated_dissertation():
         # Clear any text runs in headers and footers
         for p in sec.header.paragraphs:
             for r in p.runs:
-                if any(w in r.text for w in ['WiMotion', 'Dissertation', 'Sensing', 'Final', 'Multi-Link']):
+                if r.text and any(w in r.text for w in ['WiMotion', 'Dissertation', 'Sensing', 'Final', 'Multi-Link']):
                     r.text = ''
         for p in sec.footer.paragraphs:
             for r in p.runs:
@@ -659,22 +850,15 @@ def build_integrated_dissertation():
             if hasattr(part, '_element'):
                 for p in part._element.findall('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}p'):
                     for t in p.findall('.//{http://schemas.openxmlformats.org/wordprocessingml/2006/main}t'):
-                        if any(w in t.text for w in ['WiMotion', 'Dissertation', 'Sensing', 'Final', 'Page']):
+                        if t.text and any(w in t.text for w in ['WiMotion', 'Dissertation', 'Sensing', 'Final', 'Page']):
                             t.text = ''
 
     # Save exclusively to the final report destination: PROJECT_REPORT_FILE(TNM&RSR).docx
     final_target = TNM_BASE_PATH
 
-    try:
-        print(f"[*] Saving finalized integrated dissertation to: {final_target}")
-        doc.save(str(final_target))
-        print(f"[+] Saved final report: {final_target} ({os.path.getsize(final_target):,} bytes)")
-    except PermissionError:
-        alt_target = PARENT_DIR / "PROJECT_REPORT_FILE(TNM&RSR)_UPDATED.docx"
-        print(f"[!] Note: {final_target} is currently open in Microsoft Word!")
-        print(f"[*] Saving updated copy to: {alt_target}")
-        doc.save(str(alt_target))
-        print(f"[+] Saved cleanly to: {alt_target} ({os.path.getsize(alt_target):,} bytes)")
+    print(f"[*] Saving finalized integrated dissertation to: {final_target}")
+    doc.save(str(final_target))
+    print(f"[+] Saved final report: {final_target} ({os.path.getsize(final_target):,} bytes)")
     print("[+] All done successfully!")
 
 

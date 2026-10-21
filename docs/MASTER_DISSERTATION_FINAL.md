@@ -59,7 +59,7 @@ On unseen held-out physical test takes (Take 02), the supervised Random Forest c
 ## 4. TABLE OF CONTENTS
 
 - **PART I: FRONT MATTER**
-  - 1. Title Page & DS Directing Staff Records
+  - 1. Title Page & DS Comments
   - 2. Acknowledgements
   - 3. Abstract
   - 4. Table of Contents
