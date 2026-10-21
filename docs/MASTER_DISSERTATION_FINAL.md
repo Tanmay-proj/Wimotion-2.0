@@ -1362,6 +1362,8 @@ To resolve the false-alarm crisis without introducing test leakage, an empirical
 
 All models were evaluated on the exact same frozen held-out Take 02 partition (605 windows). Results are detailed in Table 6.3:
 
+* **[Figure 6.2: Quantitative Accuracy Comparison Across Model Architectures and Physical Baselines]**
+
 ### Table 6.3: Comparative Benchmark on Held-Out Physical Split (Take 02)
 
 | Model Architecture | Ungated Acc (%) | Gated Acc ($\theta=1.80$) | CLEAR Recall (%) | CLEAR FPR (%) | Delta vs Random Baseline |
@@ -1379,6 +1381,8 @@ Both linear and tree-based machine learning models substantially outperform the 
 ## 6.10 Per-Zone Performance and Error Analysis
 
 A detailed breakdown across individual spatial quadrants reveals significant performance disparities across the four room sectors:
+
+* **[Figure 6.3: Per-Class Spatial Recall Sensitivity Highlighting Zone 4 Peak Sensitivity and Zone 3 Diagonal Path Attenuation]**
 
 ### Table 6.4: Per-Zone Classification Performance (Held-Out Take 02)
 
@@ -1398,6 +1402,8 @@ A detailed breakdown across individual spatial quadrants reveals significant per
 
 ## 6.11 Effect of Energy Gating
 
+* **[Figure 6.4: Impact of Empirical Energy Gating on Empty-Room False Alarm Reduction]**
+
 Applying the calibrated energy gate introduces a fundamental engineering trade-off:
 - **Benefit:** Drastic suppression of empty-room false alarms (from $98.35\%$ down to $52.89\%$), allowing 57 out of 121 empty windows to be correctly recognized as `CLEAR`.
 - **Cost:** A slight penalty on weak, distant walking signals (such as Zone 3), nudging overall accuracy from $50.91\%$ down to $49.26\%$.
@@ -1406,6 +1412,8 @@ Applying the calibrated energy gate introduces a fundamental engineering trade-o
 ---
 
 ## 6.12 Confusion Matrix and Additional Result Plots
+
+* **[Figure 6.1: Detailed 5x5 Confusion Matrix of Primary Gated Random Forest Classifier (Take 02 Held-Out Test Set)]**
 
 Below is the complete 5-class confusion matrix of the primary gated model evaluated on the 605 held-out test windows:
 
@@ -2046,15 +2054,15 @@ As RF sensing matures, robust governance mechanisms must accompany technical dev
 
 Table 10.1 outlines the formal milestone roadmap guiding the long-term evolution of the WiMotion project:
 
-### Table 10.1: WiMotion Long-Term Strategic Research Milestones
+### Table 10.1: Strategic 5-Stage Research Roadmap and Validation Matrix
 
-| Phase | Target Horizon | Core Technical Milestone | Verification Metric |
-| :---: | :---: | :--- | :--- |
-| **Phase 1** | Completed | Multi-link COTS ESP32 prototype; 8 links; calibrated energy gate; 4-quadrant HUD | 49.26% gated 5-class test accuracy; 56/56 unit tests pass |
-| **Phase 2** | 6–12 Months | Dual-antenna ESP32-S3 hardware; conjugate phase unwrapping; micro-Doppler extraction | Respiration rate tracking within $\pm 2$ breaths/min accuracy |
-| **Phase 3** | 12–24 Months | Switched $2 \times 2$ antenna array; Angle-of-Arrival (AoA) implementation; TCN deep learning | Metric coordinate estimation error $< 0.8\text{ meters}$ |
-| **Phase 4** | 24–36 Months | 32-link perimeter array; RF tomographic imaging; multi-person separation research | Simultaneous 2-person quadrant separation |
-| **Phase 5** | 36–60 Months | Standalone battery-powered tactical pucks; heterogeneous radar fusion; field trials | Operational through-wall validation in multi-room buildings |
+| Stage & Timeline | Research Objective | Required Hardware & Dataset | Validation Metric | Major Technical Risk | Success Criterion |
+| :---: | :--- | :--- | :--- | :--- | :--- |
+| **Stage 1 (Completed)** | Distributed Multi-Link Sensing & False-Alarm Calibration | 6x ESP32-WROOM-32 nodes, 8 baselines, Phase B benchmark (10 sessions, 1,209 windows) | 49.26% gated 5-class accuracy; 52.89% CLEAR false-alarm rate (cut from 98.35%) | Clock drift and USB serial driver FIFO buffer overflows | 100% strict session-level zero-leakage split; 56/56 passing unit tests |
+| **Stage 2 (6–12 Mo)** | Measured Room Geometry & Cross-Environment Validation | Multi-room acoustic & metric testbeds; laser-measured node ground truth; 50+ diverse physical sessions | Cross-room domain generalization accuracy; transfer learning loss | Severe multipath decay and room-transfer performance degradation | Consistent quadrant detection across 3 distinct architectural rooms |
+| **Stage 3 (12–24 Mo)** | Phase Sanitization & Antenna Diversity (AoA) | Dual-antenna ESP32-S3 / C6 hardware; ULA switched antenna arrays; complex baseband I/Q capture | Relative phase stability; Angle-of-Arrival angular resolution ($< 10^\circ$) | Phase noise non-linearity and uncalibrated carrier frequency offsets (CFO) | Continuous metric (x,y) coordinate tracking error $< 0.8\text{ meters}$ |
+| **Stage 4 (24–36 Mo)** | Multi-Person Separation & Trajectory Disambiguation | 32-link perimeter mesh ($8\text{ TX} \times 4\text{ RX}$); multi-subject controlled traversal datasets | Multi-target precision/recall; Doppler spectrogram separation | Destructive RF wave superposition and phantom ghost quadrant triggers | Accurate concurrent 2-person quadrant separation without ghost targets |
+| **Stage 5 (36–60 Mo)** | Heterogeneous Fusion & Standoff Operational Trials | Encapsulated battery-powered pucks; steerable mmWave radar fusion; through-wall testbed | Standoff detection range; through-barrier attenuation margin | Severe drywall/concrete RF attenuation and ambient co-channel jamming | Operational non-line-of-sight intruder detection through 15 cm partition walls |
 
 ---
 *(End of Chapter 10 — Strategic Technology Roadmap & Research Plan)*
