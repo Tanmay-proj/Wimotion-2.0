@@ -2,104 +2,106 @@
 
 ---
 
-## 1. TITLE PAGE (Sample Institute Template)
+## 1. TITLE PAGE
 
 ```
                             A DISSERTATION REPORT ON
                  DESIGN, IMPLEMENTATION AND EMPIRICAL EVALUATION 
                      OF A MULTI-LINK WI-FI CSI SENSING SYSTEM 
                    FOR INDOOR SPATIAL DISTURBANCE TRACKING
+                                (WiMotion 2.0)
 
-                                Submitted by
-                               TANMAY MUGALE
-                          (Roll No. / Enrollment ID)
+                                 Submitted by
+                         OC TANMAY MUGALE  (TES-4312)
+                        OC RISHABH RATHORE (TES-4316)
 
                      In partial fulfillment of the requirements
                                for the award of
                              BACHELOR OF TECHNOLOGY
                                        IN
-                        COMPUTER SCIENCE AND ENGINEERING
-                         / ELECTRONICS AND COMMUNICATION
+                        COMPUTER SCIENCE AND ENGINEERING /
+                       ELECTRONICS AND COMMUNICATION ENGINEERING
 
-                               Under Guidance of
-                             [SUPERVISOR NAME]
-                           [SUPERVISOR DESIGNATION]
+                              Under Guidance of
+                         DS GUIDE: LT COL RAJAT GAUR
+                      DS CO-GUIDE: MAJ VAIBHAV KUKRETI
 
-                         DEPARTMENT OF [DEPARTMENT NAME]
-                           [COLLEGE / UNIVERSITY NAME]
-                             [CITY, STATE, PIN CODE]
-                                  OCTOBER 2026
+                     FACULTY OF ELECTRONICS AND MECHANICAL ENGINEERING
+                  MILITARY COLLEGE OF ELECTRONICS AND MECHANICAL ENGINEERING
+                                  (MCEME)
+                                OCTOBER 2026
 ```
 
 ---
 
 ## 2. CERTIFICATE OF APPROVAL
 
-This is to certify that the dissertation entitled **"Design, Implementation and Empirical Evaluation of a Multi-Link Wi-Fi CSI Sensing System for Indoor Spatial Disturbance Tracking"**, submitted by **Tanmay Mugale** in partial fulfillment of the requirements for the award of the degree of Bachelor of Technology in Computer Science and Engineering / Electronics and Communication Engineering, is an authentic record of bonafide research work carried out under my supervision and guidance.
+This is to certify that the dissertation entitled **"Design, Implementation and Empirical Evaluation of a Multi-Link Wi-Fi CSI Sensing System for Indoor Spatial Disturbance Tracking (WiMotion 2.0)"**, submitted by **OC Tanmay Mugale (TES-4312)** and **OC Rishabh Rathore (TES-4316)** in partial fulfillment of the requirements for the award of the degree of Bachelor of Technology in Computer Science and Engineering / Electronics and Communication Engineering, is an authentic record of bonafide research work carried out under our supervision and guidance.
 
-To the best of my knowledge, the matter embodied in this dissertation has not been submitted to any other University / Institute for the award of any Degree or Diploma.
-
-\
-\
-______________________________  
-**[Supervisor / Guide Name]**  
-Project Supervisor  
-Department of [Department Name]  
-[College / University Name]  
+To the best of our knowledge, the matter embodied in this dissertation has not been submitted to any other University / Institute for the award of any Degree or Diploma.
 
 \
 \
 ______________________________  
-**[Head of Department Name]**  
-Head of Department  
-Department of [Department Name]  
-[College / University Name]  
+**Lt Col Rajat Gaur**  
+Project Supervisor / DS Guide  
+Faculty of Electronics and Mechanical Engineering  
+Military College of Electronics and Mechanical Engineering (MCEME)  
+
+\
+\
+______________________________  
+**Maj Vaibhav Kukreti**  
+DS Co-Guide  
+Faculty of Electronics and Mechanical Engineering  
+Military College of Electronics and Mechanical Engineering (MCEME)  
 
 ---
 
 ## 3. STUDENT DECLARATION
 
-I hereby declare that this dissertation entitled **"Design, Implementation and Empirical Evaluation of a Multi-Link Wi-Fi CSI Sensing System for Indoor Spatial Disturbance Tracking"** is an authentic record of original research work conducted by me under the supervision of **[Supervisor Name]**, Department of [Department Name], [Institution Name].
+We hereby declare that this dissertation entitled **"Design, Implementation and Empirical Evaluation of a Multi-Link Wi-Fi CSI Sensing System for Indoor Spatial Disturbance Tracking (WiMotion 2.0)"** is an authentic record of original research work conducted by us under the supervision of **Lt Col Rajat Gaur (DS Guide)** and **Maj Vaibhav Kukreti (DS Co-Guide)**, Faculty of Electronics and Mechanical Engineering, Military College of Electronics and Mechanical Engineering (MCEME).
 
-I have adhered to all academic integrity norms. All theoretical formulations, source code libraries, hardware standards, and literature cited have been duly referenced. This work has not been previously submitted for any degree, diploma, or certificate at this or any other academic institution.
+We have adhered to all academic integrity norms. All theoretical formulations, source code libraries, hardware standards, and literature cited have been duly referenced. This work has not been previously submitted for any degree, diploma, or certificate at this or any other academic institution.
 
 \
 \
 Date: October 21, 2026  
-Place: [City, State]  
+Place: Secunderabad  
 
 \
-______________________________  
-**Tanmay Mugale**  
-Candidate Name & Signature  
+\
+______________________________          ______________________________  
+**OC Tanmay Mugale (TES-4312)**         **OC Rishabh Rathore (TES-4316)**  
+Cadet Candidate Signature               Cadet Candidate Signature  
 
 ---
 
 ## 4. ACKNOWLEDGEMENTS
 
-I express my deepest gratitude to my project supervisor, **[Supervisor Name]**, for their invaluable guidance, technical insight, and continuous encouragement throughout the evolution of this research from its initial single-link exploratory phases (Project Echo and Shadow) to the complete multi-link spatial sensing architecture of WiMotion 2.0.
+We express our deepest gratitude to our project supervisor, **Lt Col Rajat Gaur (DS Guide)**, and **Maj Vaibhav Kukreti (DS Co-Guide)**, for their invaluable guidance, technical insight, and continuous encouragement throughout the evolution of this research from its initial single-link exploratory phases (Project Echo and Shadow) to the complete multi-link spatial sensing architecture of WiMotion 2.0.
 
-I extend sincere thanks to **[Head of Department Name]**, Head of the Department, and the faculty members of [Department Name] for providing the laboratory facilities, computing infrastructure, and academic environment essential to the completion of this project.
+We extend sincere thanks to the Head of Faculty, Directing Staff, and officers of the **Military College of Electronics and Mechanical Engineering (MCEME)** for providing the laboratory facilities, computing infrastructure, and academic environment essential to the completion of this project.
 
-Special appreciation is conveyed to my laboratory technical staff, peers, and fellow researchers whose constructive feedback, peer audits, and discussions helped refine our experimental methodology, eliminate data leakage, and maintain the highest standards of scientific rigor. Finally, I thank my family and friends for their steadfast support and understanding during the intensive hardware experimentation and software engineering phases of this dissertation.
+Special appreciation is conveyed to our directing staff, laboratory technical staff, peers, and fellow course cadets whose constructive feedback, peer audits, and technical reviews helped refine our experimental methodology, eliminate data leakage, and maintain the highest standards of scientific rigor. Finally, we thank our families and comrades for their steadfast support and understanding during the intensive hardware experimentation and software engineering phases of this dissertation.
 
 ---
 
 ## 5. ABSTRACT
 
-Conventional indoor human monitoring systems relying on optical video cameras or passive infrared (PIR) detectors face acute constraints regarding privacy infringement, line-of-sight occlusions, and vulnerability to environmental darkness or smoke. This dissertation presents the design, physical implementation, and empirical evaluation of **WiMotion 2.0**, an opportunistic, device-free radio frequency (RF) indoor spatial sensing system constructed entirely on low-cost Commodity Off-The-Shelf (COTS) Espressif ESP32 microcontrollers.
+Conventional indoor human monitoring systems relying on optical video cameras or passive infrared (PIR) detectors face acute operational constraints regarding privacy infringement, line-of-sight occlusions, and vulnerability to environmental darkness or smoke. This dissertation presents the design, physical implementation, and empirical evaluation of **WiMotion 2.0**, an opportunistic, device-free radio frequency (RF) indoor spatial sensing system constructed entirely on low-cost Commodity Off-The-Shelf (COTS) Espressif ESP32 microcontrollers (<$4 per node; ~$25–$30 total hardware array).
 
-By intercepting Orthogonal Frequency Division Multiplexing (OFDM) Channel State Information (CSI) across 64 subcarriers on standard 2.4 GHz IEEE 802.11n Wi-Fi transmissions, WiMotion 2.0 expands single-link sensing into an 8-link distributed star topology ($4\text{ TX} \to 2\text{ RX}$) across four spatial quadrants ($Z_1, Z_2, Z_3, Z_4$). Operating at an aggregate capture rate of ~400 packets/second, the software ingestion pipeline deploys multi-threaded asynchronous ring buffers, packet-level transmitter MAC demultiplexing, and an authoritative 56-dimensional canonical feature extraction vector that eliminates train-serving skew.
+By intercepting Orthogonal Frequency Division Multiplexing (OFDM) Channel State Information (CSI) across 64 subcarriers on standard 2.4 GHz IEEE 802.11n Wi-Fi transmissions, WiMotion 2.0 expands single-link sensing into an 8-link distributed star topology ($4\text{ TX} \to 2\text{ RX}$) across four spatial quadrants ($Z_1, Z_2, Z_3, Z_4$). Operating at an aggregate broadcast transmission rate of ~400 packets/second across transmitters with dual-receiver serial ingestion at ~100–105 Hz, the software pipeline deploys multi-threaded asynchronous ring buffers, packet-level transmitter MAC demultiplexing, and an authoritative 56-dimensional canonical feature extraction vector that eliminates train-serving skew.
 
-To guarantee scientific reproducibility, a historical data audit quarantined 116,588 frames across early exploratory sessions due to thread-race packet drops, establishing the strictly verified **Phase B benchmark dataset** (56,386 frames / 1,209 sliding windows) with 100% strict take-based zero-leakage partitioning. To resolve a 98.35% empty-room false-alarm rate in unconstrained classifiers, an empirical energy gate ($\theta=1.80$) was calibrated on training data using Youden's $J$-statistic, cutting false alarms down to **52.89%** and raising true empty-room recall from 1.65% to **47.11%**. On unseen held-out physical test takes, the supervised Random Forest classifier achieved **49.26% gated 5-class accuracy** (substantially outperforming the 29.26% heuristic baseline and exceeding the 20.0% random guessing baseline by 2.5 times), with Zone 4 achieving **80.99% recall**. 
+To guarantee scientific reproducibility, a historical data audit quarantined 116,588 frames across early exploratory sessions due to thread-race packet drops, establishing the strictly verified **Phase B benchmark dataset** (56,386 frames / 1,209 sliding windows) with 100% strict take-based zero-leakage partitioning. To address an acute 98.35% empty-room false-alarm rate in unconstrained classifiers, an empirical energy gate ($\theta=1.80$) was calibrated on training data using Youden's $J$-statistic, reducing false alarms to **52.89%** and raising true empty-room recall from 1.65% to **47.11%**. While this reduction demonstrates the efficacy of amplitude thresholding, the remaining 52.89% false alarm rate highlights that ambient RF noise and static multipath drift require multi-link spatial correlation and phase calibration in future work.
 
-The system features an interactive real-time dashboard integrating a 2D polar radar sweep, a 3D Three.js room digital twin, and a dual-engine HUD backed by 56 passing unit tests and cloud CI. Finally, the dissertation explores the potential research applications of RF sensing in camera-independent indoor situational awareness and tactical reconnaissance, establishing a comprehensive technological roadmap for the future of device-free RF sensing.
+On unseen held-out physical test takes (Take 02), the supervised Random Forest classifier achieved a **49.26% gated 5-class accuracy** (substantially outperforming the 29.26% heuristic baseline and exceeding the 20.0% random guessing baseline by nearly 2.5 times), with Zone 4 achieving **80.99% recall** due to proximity to receiver antenna clusters, while Zone 3 exhibited **14.05% recall** due to diagonal multipath attenuation. This performance establishes an empirical feasibility baseline for low-cost RF spatial disturbance sensing. The system features an interactive real-time dashboard integrating a 2D polar radar sweep, a 3D Three.js room digital twin, and a dual-engine HUD backed by 56 automated unit tests and cloud CI. Finally, the dissertation explores potential research applications in camera-independent indoor situational awareness and establishes a grounded, 5-stage technology roadmap for future development.
 
 ---
 
 ## 6. KEYWORDS
 
-`Wi-Fi Sensing`, `Channel State Information (CSI)`, `Human Presence Detection`, `Spatial Sensing`, `ESP32`, `RF Signal Processing`, `Machine Learning`, `Indoor Situational Awareness`, `Non-Line-of-Sight Sensing`.
+Wi-Fi Sensing, Channel State Information (CSI), Human Presence Detection, Spatial Sensing, ESP32, RF Signal Processing, Machine Learning, Non-Line-of-Sight Sensing, Situational Awareness.
 
 ---
 
@@ -434,7 +436,7 @@ To maintain strict scientific integrity, the scope of this project is subject to
 ## 1.8 Expected Engineering Contributions
 
 This dissertation delivers five verified engineering contributions:
-1. **Low-Cost Commodity Multi-Link Prototype:** Demonstrates that a $30 hardware array of 6 standard ESP32 microcontrollers can deliver multi-link spatial disturbance tracking without SDRs.
+1. **Low-Cost Commodity Multi-Link Prototype:** Demonstrates that an ultra-low-cost hardware array (~$25–$30 total BoM; <$4 per ESP32 node) can deliver multi-link spatial disturbance tracking without specialized software-defined radios.
 2. **Audited, Zero-Leakage Benchmark Dataset:** Documents the Phase B dataset (56,386 frames / 1,209 sliding windows) with 100% strict session-level train/test partitioning.
 3. **Calibrated CLEAR Energy Gating Methodology:** Demonstrates an empirical method using Youden's $J$-statistic to cut empty-room false alarms from 98.35% to 52.89% without test set exposure.
 4. **Physical RF Sensitivity Analysis:** Formulates a physical explanation for the observed 81.0% ($Z_4$) versus 14.1% ($Z_3$) recall disparity based on transceiver baseline geometry.
@@ -1379,7 +1381,7 @@ All models were evaluated on the exact same frozen held-out Take 02 partition (6
 | **Logistic Regression (L2 Regularized)** | 49.75% | 49.42% | 45.45% (55/121) | 54.55% | +29.42% |
 | **RandomForestClassifier (Primary)** | **50.91%** | **49.26%** | **47.11% (57/121)** | **52.89%** | **+29.26%** |
 
-Both linear and tree-based machine learning models substantially outperform the heuristic baseline ($29.26\%$) and exceed random chance ($20.0\%$) by **nearly 2.5 times**.
+Both linear and tree-based machine learning models substantially outperform the heuristic baseline ($29.26\%$) and exceed random chance ($20.0\%$) by **nearly 2.5 times**. This 49.26% accuracy establishes an empirical feasibility baseline on ultra-low-cost commodity hardware; it confirms that spatial disturbance can be resolved across coarse quadrants, though it represents a baseline feasibility demonstration rather than an operational localization system.
 
 ---
 
@@ -1412,7 +1414,7 @@ A detailed breakdown across individual spatial quadrants reveals significant per
 Applying the calibrated energy gate introduces a fundamental engineering trade-off:
 - **Benefit:** Drastic suppression of empty-room false alarms (from $98.35\%$ down to $52.89\%$), allowing 57 out of 121 empty windows to be correctly recognized as `CLEAR`.
 - **Cost:** A slight penalty on weak, distant walking signals (such as Zone 3), nudging overall accuracy from $50.91\%$ down to $49.26\%$.
-- **Scientific Conclusion:** In physical security and surveillance, cutting false alarms by half is vastly more critical than a nominal $1.6\%$ overall accuracy delta.
+- **Scientific Conclusion:** The calibrated energy gate achieved a substantial reduction in false alarms (from 98.35% down to 52.89%), demonstrating the viability of amplitude thresholding. However, the remaining 52.89% false alarm rate confirms that single-threshold amplitude gating alone cannot fully resolve environmental multipath drift, underscoring the necessity of multi-link spatial correlation in future work.
 
 ---
 
@@ -1495,7 +1497,7 @@ The top tier of the dashboard provides continuous diagnostic metrics across four
 └───────────────────┴───────────────────┴───────────────────┴────────────────────────────┘
 ```
 
-1. **Card 1: Valid CSI Rate:** Displays the aggregate packet arrival frequency across both receivers, dynamically calculated over the 2.0-second sliding window buffer. Includes real-time indicators for per-receiver rates (`RX1: 51.2 Hz | RX2: 51.2 Hz`).
+1. **Card 1: Valid CSI Rate:** Displays the aggregate serial ingestion rate across both active receivers (`RX1: 51.2 Hz | RX2: 51.2 Hz`, totaling 102.4 Hz across COM8 and COM9). While the four distributed transmitters broadcast an aggregate RF packet rate of ~400 packets/second over the air (~100 pkts/s per TX), each receiver ingests ~50–52 packets/second of synchronized valid frames over its dedicated USB-UART link, providing smooth 102.4 Hz telemetry updates to the sliding window buffer.
 2. **Card 2: Active Links Matrix:** Shows the count of active spatial baselines meeting the freshness threshold ($t_{\text{last}} < 3.0\text{s}$) alongside stale link alerts.
 3. **Card 3: Receiver Hardware Health:** Monitors USB serial connection state across `COM8` and `COM9`, indicating synchronization locks and baud health.
 4. **Card 4: Spatial Classification HUD:** Displays current zone disturbance estimates, maximum link variance score, and model confidence percentages.
@@ -1737,162 +1739,77 @@ A critical scientific distinction must be maintained:
 
 ## 9.1 Introduction and Application Context
 
-While the physical prototype developed in this dissertation (WiMotion 2.0) was constructed and evaluated within an academic laboratory on commodity microcontrollers, the underlying physical principle—exploiting multi-carrier radio frequency perturbations to sense environmental dynamics—possesses profound strategic implications.
+While the physical prototype developed in this dissertation (WiMotion 2.0) was evaluated within a controlled single-room academic laboratory on commodity microcontrollers, the underlying physical principle—exploiting multi-carrier radio frequency perturbations to sense environmental dynamics—possesses profound strategic implications.
 
-Across defense, law enforcement, intelligence gathering, and critical infrastructure protection, acquiring accurate situational awareness inside enclosed structures is an operational necessity. Traditional reconnaissance modalities (such as optical drones, thermal cameras, and active radars) frequently confront physical or operational constraints in contested urban environments. This chapter examines the **potential research applications of Wi-Fi Channel State Information (CSI) sensing**, framing them as long-term exploratory avenues while identifying the rigorous technical boundaries that separate laboratory bench prototypes from deployable operational systems.
-
----
-
-## 9.2 From Human Presence Detection to Indoor Situational Awareness
-
-The transition from binary presence detection (as explored in WiMotion 1.0) to multi-link spatial sectoring (in WiMotion 2.0) marks a conceptual shift toward **device-free indoor situational awareness**:
+Across defense, law enforcement, critical infrastructure protection, and disaster response, acquiring situational awareness inside enclosed structures is an operational necessity. Traditional reconnaissance modalities (such as optical drones, thermal cameras, and active radars) frequently confront physical or operational constraints in contested urban environments. This chapter examines the **potential research applications of Wi-Fi Channel State Information (CSI) sensing**, framing them as long-term exploratory avenues while strictly maintaining the technical boundaries separating laboratory bench prototypes from deployable operational systems.
 
 ```
-[TACTICAL EVOLUTION]
-Binary Motion Alarm   ──►   Spatial Quadrant Mapping   ──►   Tactical Situational Awareness
-("Is the room occupied?")    ("In which quadrant is activity?")  ("Where are occupants moving?")
+[EXPERIMENTAL SCALE vs. OPERATIONAL APPLICATION]
+┌─────────────────────────────────────────┐       ┌─────────────────────────────────────────┐
+│     WIMOTION 2.0 PROTOTYPE (Current)    │       │     FUTURE RESEARCH DOMAINS (Scope)     │
+├─────────────────────────────────────────┤       ├─────────────────────────────────────────┤
+│ - Single-room controlled deployment     │  ──►  │ - Camera-independent occupancy sensing  │
+│ - Single human occupant locomotion      │       │ - Perimeter disturbance & tripwires     │
+│ - Coarse 4-quadrant spatial sectoring   │       │ - Search-and-rescue void sensing        │
+│ - 49.26% gated feasibility accuracy     │       │ - Non-invasive civilian assisted living │
+└─────────────────────────────────────────┘       └─────────────────────────────────────────┘
 ```
 
-In military and security operations, knowing merely that a structure contains motion is insufficient. Operatives require spatial context: Is movement concentrated near the primary entrance corridor, along an exterior window wall, or within an interior storage flank? WiMotion 2.0 demonstrates that multi-link COTS Wi-Fi arrays can provide coarse quadrant-level spatial context ($Z_1..Z_4$) device-free, pointing the way toward low-cost, pervasive room-clearing intelligence.
+---
+
+## 9.2 Camera-Independent Occupancy Sensing and Privacy Compliance
+
+In high-security and privacy-mandated facilities, conventional video surveillance introduces acute operational vulnerabilities:
+- **Physical Occlusion & Environmental Darkness:** Optical cameras fail completely in total darkness, dense smoke, airborne dust, or behind partition walls and closed doors.
+- **Cyber & Optical Interception Risks:** Video streams transmitted over local networks can be intercepted or decrypted, exposing facial features and sensitive displays. Furthermore, lenses are readily blinded by laser dazzlers, aerosol sprays, or physical obstructions.
+
+RF-based CSI sensing provides an inherently **non-visual physical abstraction**. The transceivers exchange raw physical layer frames, and the receiver extracts numerical channel state matrices. Even if intercepted, the data stream contains no facial features, legible documents, or optical silhouettes. This non-optical nature makes CSI sensing an attractive candidate for:
+1. **Classified Facility Monitoring:** Continuous presence verification in sensitive installations where optical cameras are strictly prohibited by security regulations.
+2. **Privacy-Mandated Civilian Spaces:** Monitoring in bedrooms, patient recovery wards, and restrooms for medical immobility or fall detection without violating personal dignity.
 
 ---
 
-## 9.3 Potential for Camera-Independent Occupancy Sensing
+## 9.3 Potential Dual-Use Security and Perimeter Monitoring Applications
 
-In high-security facilities, conventional video surveillance introduces severe operational vulnerabilities:
-- **Information Leakage & Cyber Interception:** IP surveillance camera feeds are vulnerable to electronic interception, unauthorized decryption, and remote exploitation by adversary actors.
-- **Physical Countermeasures:** Optical cameras can be blinded using low-cost handheld laser pointers, aerosol spray paint, dense smoke canisters, or by severing physical network lines.
+In security and perimeter protection, distributed multi-link RF arrays offer the conceptual potential to establish **unattended, invisible disturbance corridors**:
 
-RF-based CSI sensing provides an inherently **non-visual physical abstraction**. The transceivers exchange raw physical layer frames, and the receiver extracts only numerical channel state matrices. Even if an adversary intercepts the raw RF data stream, it contains no human facial features, readable text on computer screens, or optical imagery. This makes CSI sensing an attractive candidate for monitoring secure command posts, classified server rooms, and defense research facilities where optical sensors are banned.
+1. **Virtual Volumetric Tripwires:** By establishing crossing RF baselines along interior hallways or security corridors, an intruder crossing the Fresnel zone alters the multipath channel matrix. Unlike optical laser tripwires, the RF baseline is completely invisible to night-vision devices and infrared optics; unlike seismic geophones, it is immune to distant ground vehicular vibrations.
+2. **Pre-Entry Clearance Intelligence:** Prior to entering an enclosed, visually obstructed room during building-clearing or security checks, exterior non-line-of-sight sensing could theoretically indicate whether a room is in a baseline `CLEAR` state or whether motion is active in entrance versus rear quadrants.
 
----
-
-## 9.4 Potential Applications in Intelligence and Surveillance Research
-
-In electronic intelligence (ELINT) and signals intelligence (SIGINT), gathering reconnaissance without revealing one's own tactical presence is paramount. 
-
-While the current WiMotion 2.0 prototype uses active, dedicated transmitters (which emit standard 2.4 GHz frames), the broader research domain envisions **opportunistic passive reconnaissance**:
-- **Exploiting Native RF Infrastructure:** In modern urban environments, nearly every contested building contains operational Wi-Fi access points, enterprise routers, and Internet-of-Things (IoT) appliances that continuously transmit beacon and management frames.
-- **Concealed Receiver Deployment:** In conceptual intelligence operations, specialized high-gain receiver arrays deployed outside a target perimeter could passively listen to ambient Wi-Fi traffic leaking through windows and walls.
-- By analyzing the CSI perturbation matrices of these third-party frames, surveillance teams could theoretically intercept room occupancy dynamics without deploying active RF transmitters inside the target area.
+*Explicit Technical Boundary:* It must be emphasized that **WiMotion 2.0 has NOT been tested in through-wall tactical breach environments or multi-occupant tactical scenarios**. These concepts represent long-term research motivations rather than current operational claims.
 
 ---
 
-## 9.5 Research Potential in Visually Obstructed Environments
+## 9.4 Search-and-Rescue and Civilian Dual-Use Research
 
-Optical cameras and thermal infrared sensors are fundamentally bounded by the physical law that electromagnetic waves in the visible ($400\text{–}700\text{ nm}$) and thermal infrared ($8\text{–}14\text{ }\mu\text{m}$) spectra cannot penetrate standard architectural wall materials.
-
-In contrast, microwave radiation at 2.4 GHz ($\lambda \approx 12.3\text{ cm}$) exhibits significant penetration capabilities through common non-metallic indoor materials:
-- **Drywall and Plasterboard:** Attenuation is typically low ($1\text{ to }3\text{ dB}$ per standard wall sheet).
-- **Hollow Wooden Doors and Partitions:** Attenuation ranges from $2\text{ to }4\text{ dB}$.
-- **Glass Windows and Acrylic Paneling:** Attenuation is minimal ($1\text{ to }2\text{ dB}$).
-
-This physical permeability establishes the **theoretical research foundation for through-the-wall (TTW) presence sensing**. If transceivers can be positioned adjacent to exterior walls or in adjoining corridors, RF waves traversing the obstructed room scatter off interior moving occupants before propagating back through the partition to receiver antennas.
+Beyond security, device-free RF sensing addresses critical challenges in humanitarian and emergency response:
+- **Collapsed Structure Void Sensing:** Following earthquakes or structural collapses, locating trapped individuals beneath non-metallic debris (drywall, timber, bricks) is critical. While walking produces macroscopic variance, rhythmic human respiration (0.2–0.33 Hz) creates periodic micro-Doppler oscillations. Research literature indicates that with sanitized phase and high-gain antennas, RF sensing could detect vital-sign chest displacements device-free.
+- **Elderly Assisted Living & Smart Buildings:** Continuous non-intrusive fall detection and automated occupancy-driven HVAC/lighting control that operates without requiring elderly occupants to wear pendants or carry battery-powered tags.
 
 ---
 
-## 9.6 Potential Defence Applications in Enclosed Spaces
+## 9.5 Comparative Sensor Trade-Offs and Operational Constraints
 
-In Close-Quarters Battle (CQB), counter-terrorism, and tactical building clearing, entering an uncleared room blind represents the most dangerous phase of an infantry or SWAT operation (often termed the "fatal funnel"):
-
-```
-                                [TACTICAL BREACH CORRIDOR]
-                                             │
-                         ┌───────────────────┴───────────────────┐
-                         ▼                                       ▼
-             [TRADITIONAL OPTICAL CQB]               [CONCEPTUAL RF-SENSING CQB]
-             Blind doorway entry into                 Exterior standoff sensing:
-             potential ambush zones.                 Pre-breach verification of
-             High casualty risk.                     quadrant activity (Z1..Z4).
-```
-
-### Conceptual Research Applications (Unvalidated Operational Scenarios):
-1. **Pre-Breach Clearance Intelligence:** Prior to dynamic door breaching, tactical operators could evaluate whether an enclosed space is in a `CLEAR` baseline state or whether active motion is concentrated in the doorway quadrant ($Z_1$) versus rear corners ($Z_3, Z_4$).
-2. **Hostage Rescue Situational Planning:** In standoff hostage negotiations, non-invasive RF sensing could theoretically monitor whether indoor movement has ceased (indicating sleep or compliance) or shifted to defensive positions, assisting tactical command decision-making.
-
-*Critical Scientific Disclaimer:* It must be explicitly recognized that **WiMotion 2.0 has not been validated in live through-wall tactical breach environments or multi-person hostage scenarios**. These scenarios represent long-term strategic research motivations rather than demonstrated prototype capabilities.
-
----
-
-## 9.7 Potential Applications in Restricted-Area Monitoring
-
-Physical perimeter security at military ammunition depots, radar installations, and nuclear research facilities requires continuous intrusion monitoring across perimeters where trenching optical fiber or installing infrared tripwires is impractical.
-
-A distributed multi-link RF array offers the conceptual potential to establish **invisible virtual volumetric tripwires**:
-- By establishing crossing RF baselines along an interior perimeter corridor, any human intruder stepping across the line-of-sight Fresnel corridor introduces immediate amplitude variance drops.
-- Unlike optical laser beams, the RF corridor is completely invisible to night-vision devices and optical infrared scopes.
-- Unlike ground geophones, the RF sensing array is immune to seismic ground vibrations caused by passing distant heavy vehicles.
-
----
-
-## 9.8 Disaster Response and Search-and-Rescue Research
-
-During natural disasters (such as structural collapses following earthquakes or industrial explosions), locating trapped, unconscious, or incapacitated survivors beneath non-metallic debris is a race against time:
-- Acoustic listening devices fail when ambient noise levels from rescue machinery are high.
-- Search cameras cannot penetrate through dense, tangled rubble lacking open voids.
-
-Research literature in wireless sensing explores the potential of multi-carrier CSI to detect **sub-millimeter chest displacements caused by human respiration**:
-- While walking produces macroscopic envelope fluctuations ($\sigma^2 \ge 1.80$), rhythmic human breathing (12–20 breaths per minute, $0.2\text{–}0.33\text{ Hz}$) introduces subtle, periodic micro-Doppler phase oscillations.
-- If future iterations of WiMotion can integrate phase sanitization and high-sensitivity directional antennas, the technology could contribute to search-and-rescue sensing payloads deployed on tactical terrestrial rovers.
-
----
-
-## 9.9 Civilian, Industrial and Privacy-Sensitive Monitoring
-
-Beyond defense and intelligence operations, camera-independent spatial sensing possesses valuable civilian applications where privacy is mandated:
-
-* **Correctional Facilities & Detention Cells:** Inmate safety monitoring in high-risk detention facilities where installing continuous optical cameras violates human rights mandates or creates maintenance liabilities due to intentional camera vandalization.
-* **Elderly Assisted Living & Fall Detection:** Continuous presence monitoring in private bedrooms and bathrooms to detect medical immobility or traumatic falls without invading personal dignity.
-* **Smart Building HVAC Optimization:** Dynamic heating, ventilation, and air-conditioning control based on active quadrant occupancy rather than static scheduling.
-
----
-
-## 9.10 Comparison with Camera-Based and Other Sensing Approaches
-
-To contextualize where Wi-Fi CSI sensing fits within the broader sensor landscape, Table 9.1 provides a comparative trade-off matrix:
+To establish a defensible perspective, Table 9.1 contextualizes Wi-Fi CSI sensing against established sensor modalities:
 
 ### Table 9.1: Comparative Sensor Modality Trade-Off Matrix
 
-| Evaluation Dimension | Optical Video Cameras | Thermal Infrared Cameras | mmWave / UWB Radars | Passive Infrared (PIR) | Distributed Wi-Fi CSI Sensing |
+| Evaluation Dimension | Optical Cameras | Thermal Infrared | Dedicated mmWave Radar | Passive Infrared (PIR) | Distributed Wi-Fi CSI (WiMotion 2.0) |
 | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Through-Wall Sensing** | Impossible (0%) | Impossible (0%) | High (Dedicated) | Impossible (0%) | **Moderate (Drywall/Wood)** |
+| **Through-Wall Sensing** | Impossible (0%) | Impossible (0%) | High (Dedicated UWB) | Impossible (0%) | **Moderate (Drywall / Timber)** |
 | **Darkness / Smoke Immunity** | Poor | High | High | Moderate | **Complete Immunity** |
-| **Privacy Compliance** | Very Low | Moderate | High | High | **High (Non-Visual)** |
-| **Hardware Capital Cost** | Moderate | High ($500+) | High ($200–$1,000) | Low ($5–$15) | **Very Low ($5–$10 COTS)** |
-| **Physical Tamper Resistance** | Low (Lens cover) | Low (Lens cover) | Moderate | Low (Coverable) | **High (Concealable)** |
-| **Multi-Person Separation** | Very High | High | High | None | **Challenging (Research Stage)** |
-| **Spatial Resolution** | Pixel-Accurate | Sub-Meter | Centimeter-Accurate | Coarse Zone Only | **Quadrant-Level (Metres)** |
+| **Privacy Preservation** | Very Low | Moderate | High | High | **High (Non-Visual Physical Metric)** |
+| **Hardware Capital Cost** | Moderate | High ($500+) | High ($200–$1,000) | Low ($5–$15) | **Ultra-Low (<$4/node; ~$25–$30 array)** |
+| **Multi-Person Separation** | Very High | High | High | None | **Challenging (Unsolved Research)** |
+| **Spatial Resolution** | Pixel-Level | Sub-Meter | Centimeter-Level | Coarse Sector Only | **Quadrant-Level (Metres)** |
 
----
-
-## 9.11 Technical, Ethical, Privacy and Operational Limitations
-
-A balanced dissertation must critically analyze the severe operational hurdles and ethical concerns of RF surveillance:
-
-1. **Vulnerability to RF Jamming & Co-Channel Interference:** Operating in the crowded 2.4 GHz ISM band exposes Wi-Fi sensing to severe interference from microwave ovens, Bluetooth devices, and intentional tactical RF jammers.
-2. **Multipath Environmental Brittleness:** CSI signatures are inherently tied to the physical layout of the room. Rearranging metallic furniture, opening metal doors, or altering room geometry alters the static multipath profile, potentially requiring model re-calibration.
-3. **Dual-Use Ethical Concerns:** While device-free sensing protects privacy when used legitimately (e.g. elderly care), the capability to passively track human presence through walls creates acute privacy risks if exploited for unauthorized domestic surveillance or corporate espionage.
-
----
-
-## 9.12 Application Readiness: What Must Be Demonstrated First
-
-Before Wi-Fi CSI sensing can transition from academic prototypes into deployable defense or surveillance equipment, four critical engineering milestones must be independently validated:
-
-```
-[LABORATORY BENCH PROTOTYPE]                   [OPERATIONAL FIELD SYSTEM]
-Current WiMotion 2.0 State                     Required Operational Milestones
-- Single controlled room (ROOM_LAB_A)    ──►   - Cross-building generalization without retraining
-- Single active human subject            ──►   - Robust multi-person tracking & separation
-- Static furniture baseline              ──►   - Dynamic ambient interference rejection
-- Coarse 4-quadrant classification       ──►   - Centimeter-level metric coordinate estimation
-```
-
-Recognizing this gap reinforces the intellectual maturity of the project: WiMotion 2.0 establishes a foundational, open-source experimental proof-of-concept upon which future operational architectures can be systematically developed.
+### Critical Technical and Operational Limitations:
+1. **Multipath Environmental Dependency:** CSI signatures depend directly on room geometry and metallic boundary placements. Rearranging metallic furniture alters the static multipath profile, necessitating model adaptation.
+2. **Susceptibility to Co-Channel RF Congestion:** Operating on unlicensed 2.4 GHz channels exposes the system to interference from heavy Wi-Fi data traffic, Bluetooth transmissions, and consumer electronics.
+3. **Application Readiness Gap:** Transitioning from single-room quadrant classification (49.26% accuracy) to deployable security equipment requires resolving multi-person superposition, cross-environment transferability, and phase drift calibration.
 
 ---
 *(End of Chapter 9 — Technical Analysis & Strategic Applications Review)*
-
 
 ---
 
@@ -1900,178 +1817,74 @@ Recognizing this gap reinforces the intellectual maturity of the project: WiMoti
 
 ---
 
-## 10.1 Transition from Experimental Prototype to Validated Sensing System
+## 10.1 Structured Evolution: From Bench Prototype to Validated System
 
-The development of WiMotion 2.0 demonstrates that commodity Wi-Fi microcontrollers can capture multi-link spatial RF disturbances and classify quadrant occupancy device-free. However, transitioning from an academic bench prototype to an operationally robust sensing system requires a systematic, multi-phase technology roadmap.
-
-This chapter details the research opportunities, hardware scaling avenues, signal processing enhancements, and machine learning architectures required to advance the field, establishing a realistic blueprint for future development.
+The development of WiMotion 2.0 proves that commodity Wi-Fi microcontrollers can capture multi-link spatial RF perturbations and classify coarse quadrant occupancy device-free. Advancing from this academic proof-of-concept to an operationally robust sensing system requires addressing specific hardware, signal processing, and algorithmic bottlenecks through a structured, multi-phase engineering roadmap:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────────────┐
-│                        WIMOTION STRATEGIC EVOLUTION ROADMAP                            │
+│                        WIMOTION STRUCTURED ENGINEERING ROADMAP                         │
 ├─────────────────────┬──────────────────────────┬───────────────────────────────────────┤
-│ Short-Term (Year 1) │ Medium-Term (Years 2–3)  │ Long-Term (Years 4–5)                 │
+│ Current Bottleneck  │ Proposed Upgrade         │ Target Engineering Benchmark          │
 ├─────────────────────┼──────────────────────────┼───────────────────────────────────────┤
-│ - Wi-Fi 6 Silicon   │ - Switched Antenna Array │ - RF Tomographic Inversion            │
-│   (ESP32-S3/C6)     │   (Angle-of-Arrival AoA) │ - Multi-Sensor Heterogeneous Fusion   │
-│ - Phase Unwrapping  │ - Temporal Deep Learning │ - Standoff Through-The-Wall Operative │
-│   & Sanitization    │   (TCN / BiLSTM)         │   Deployable Beacons                  │
-│ - Multi-Room Data   │ - Unsupervised Domain    │ - Contactless Vital Signs             │
-│   Benchmarking      │   Adaptation (DANN)      │   (Respiration / Cardiac Monitoring)  │
+│ Amplitude-Only Data │ Wi-Fi 6 (ESP32-C6) &     │ Sanitized Phase & Angle-of-Arrival    │
+│ (Phase noise / CFO) │ Conjugate Multiplication │ (AoA angular resolution < 10°)        │
+├─────────────────────┼──────────────────────────┼───────────────────────────────────────┤
+│ Single-Room Bias    │ Domain-Adversarial Neural│ Cross-Room Transfer Accuracy > 65%    │
+│ (Multipath shift)   │ Networks (DANN)          │ without complete model retraining     │
+├─────────────────────┼──────────────────────────┼───────────────────────────────────────┤
+│ Memoryless Windows  │ Temporal Convolutional   │ Gait Trajectory Smoothing &           │
+│ (Window flickers)   │ Networks (TCN / BiLSTM)  │ Prediction Flicker Elimination        │
+├─────────────────────┼──────────────────────────┼───────────────────────────────────────┤
+│ Single Occupant Only│ Subcarrier Doppler BSS   │ Concurrent 2-Person Separation        │
+│ (Superposition)     │ & Multi-Target Clustering│ without ghost quadrant triggers       │
 └─────────────────────┴──────────────────────────┴───────────────────────────────────────┘
 ```
 
 ---
 
-## 10.2 Hardware Reliability and RF Measurement Improvements
+## 10.2 Hardware Scaling and Antenna Diversity
 
-While the ESP32-WROOM-32 served as an effective low-cost entry platform, modern silicon advancements offer substantial opportunities for hardware-level improvements:
+While the ESP32-WROOM-32 served as a viable entry platform, modern silicon advancements offer concrete hardware-level upgrades:
 
 * **Transition to Wi-Fi 6 (IEEE 802.11ax) Silicon (ESP32-C6 / ESP32-S3):**
-  - Next-generation Wi-Fi 6 chips introduce Orthogonal Frequency Division Multiple Access (OFDMA), dividing channels into narrower, denser Resource Units (RUs).
-  - This increases subcarrier density up to 256 subcarriers per 20 MHz channel, quadrupling frequency-domain spectral resolution.
-* **Higher-Resolution Analog-to-Digital Converters (ADCs):**
-  - Upgrading to 12-bit or 14-bit baseband I/Q quantization to capture micro-Doppler signals that currently fall below the 8-bit quantization threshold of the ESP32-WROOM-32.
-* **Temperature-Compensated Crystal Oscillators (TCXO):**
-  - Replacing standard consumer crystal oscillators with temperature-compensated oscillators to eliminate baseline thermal frequency drift during long-duration runs.
+  - Next-generation Wi-Fi 6 microcontrollers introduce Orthogonal Frequency Division Multiple Access (OFDMA), dividing channels into narrower Resource Units (RUs) with up to 256 subcarriers per 20 MHz channel—quadrupling frequency-domain spectral resolution over legacy 802.11n.
+* **Angle-of-Arrival (AoA) Uniform Linear Antenna Arrays (ULA):**
+  - By equipping receivers with dual antennas spaced at half-wavelength intervals ($d = \lambda/2 \approx 6.15\text{ cm}$), the system measures phase difference of arrival:
+    $$\Delta \Phi = \frac{2 \pi}{\lambda} d \sin(\theta) \implies \theta = \arcsin\left( \frac{\lambda \Delta \Phi}{2 \pi d} \right)$$
+  - Applying array processing algorithms (e.g., MUSIC or ESPRIT) will allow direct estimation of the scattered angle $\theta$, elevating coarse quadrant sectoring into continuous coordinate tracking.
 
 ---
 
-## 10.3 Antenna Diversity and Spatial Measurement Techniques
+## 10.3 Signal Processing Enhancements and Machine Learning Architectures
 
-A major physical constraint in the current WiMotion 2.0 deployment is the use of single, omnidirectional PCB trace antennas. Single antennas capture only scalar amplitude envelopes and uncalibrated phase.
-
-### Implementation of Angle-of-Arrival (AoA) Antenna Arrays:
-By equipping receiver nodes with uniform linear antenna arrays (ULA) spaced at half-wavelength intervals ($d = \lambda/2 \approx 6.15\text{ cm}$), the system can measure the phase difference of arrival ($\Delta \Phi$) across antennas:
-
-$$\Delta \Phi = \frac{2 \pi}{\lambda} d \sin(\theta)$$
-
-$$\theta = \arcsin\left( \frac{\lambda \Delta \Phi}{2 \pi d} \right)$$
-
-Using classical array signal processing algorithms—such as **MUltiple SIgnal Classification (MUSIC)** or **Estimation of Signal Parameters via Rotational Invariance Techniques (ESPRIT)**—future receivers can estimate the direct Angle-of-Arrival ($\theta$) of scattered human reflections, transforming quadrant sectoring into precise metric coordinate tracking ($x, y$).
+1. **CSI Phase Sanitization via Conjugate Multiplication:**
+   - By receiving transmissions across two closely spaced antennas on the same receiver, carrier frequency offset ($\Delta f_{\text{CFO}}$) cancels out identically via conjugate multiplication:
+     $$S(f_k, t) = H_1(f_k, t) \cdot H_2^*(f_k, t) = |H_1| |H_2| e^{j(\Phi_1(t) - \Phi_2(t))}$$
+   - This isolates sanitized relative phase ($\Delta \Phi$), providing sensitivity to sub-centimeter displacements necessary for contactless respiration monitoring.
+2. **Sequential Gait Modeling (TCN / BiLSTM):**
+   - Incorporating temporal sequence modeling allows the network to exploit kinematic continuity, smoothing quadrant transitions and suppressing transient single-window misclassifications.
+3. **Cross-Environment Domain Adaptation (DANN):**
+   - Minimizing feature divergence across distinct rooms using adversarial domain classifiers to learn environment-invariant motion features, mitigating the requirement to retrain models for every new room.
 
 ---
 
-## 10.4 Improved CSI Phase Processing and Micro-Motion Research
+## 10.4 Strategic 5-Stage Research Roadmap and Validation Matrix
 
-In the current prototype, raw phase was discarded due to carrier frequency offsets (CFO). However, phase contains significantly higher spatial sensitivity than amplitude alone.
-
-### Phase Sanitization via Conjugate Multiplication:
-If a receiver is equipped with two closely spaced antennas receiving signals from the same transmitter, the carrier frequency offset ($\Delta f_{\text{CFO}}(t)$) is identical across both RF chains. By performing **Conjugate Phase Multiplication**:
-
-$$S(f_k, t) = H_1(f_k, t) \cdot H_2^*(f_k, t) = |H_1| |H_2| e^{j (\Phi_1(t) - \Phi_2(t))}$$
-
-The common time-varying phase noise and CFO terms cancel out, leaving a clean, sanitized relative phase metric ($\Delta \Phi = \Phi_1 - \Phi_2$). 
-
-This sanitized phase enables the extraction of **micro-Doppler chest displacements ($0.5\text{–}1.2\text{ cm}$)**, opening the pathway to contactless human respiration rate tracking and vital signs intelligence.
-
----
-
-## 10.5 Temporal Machine Learning and Cross-Environment Generalization
-
-The Random Forest classifier in WiMotion 2.0 evaluates isolated sliding windows independently, treating consecutive temporal windows as memoryless events.
-
-### Advanced Sequential Architectures:
-1. **Temporal Convolutional Networks (TCN) & Bidirectional LSTMs:** Human locomotion exhibits strong kinematic momentum. Incorporating recurrent sequential architectures allows the model to learn gait trajectories, predicting future quadrant transitions and filtering out transient single-frame prediction flickers.
-2. **Domain Adversarial Neural Networks (DANN):** A critical barrier in wireless sensing is the "environment dependency problem": a model trained in Room A suffers accuracy degradation when deployed in Room B. By training an adversarial feature extractor that minimizes the Jensen-Shannon divergence between feature distributions across different rooms, models can learn **room-invariant motion representations**.
-
----
-
-## 10.6 Scaling Multi-Link Spatial Coverage
-
-The current prototype evaluates 8 links across 4 corner transmitters and 2 central receivers. While sufficient for quadrant sectoring, fine-grained multi-room tracking requires scaling the link grid.
-
-```
-       [8-LINK STAR TOPOLOGY]                 [32-LINK HIGH-DENSITY PERIMETER GRID]
-       (Current Prototype: 4 TX -> 2 RX)      (Future Scaled Architecture: 8 TX x 4 RX)
-       TX2 ──────────── TX1                   TX1 ─── TX2 ─── TX3 ─── TX4
-        │ \            / │                     │  \  / │ \   / │ \   /  │
-        │   \   RX   /   │                     │   \   │   \   │   \    │
-        │     \ │  /     │                     RX1 ─── RX2 ─── RX3 ─── RX4
-        │   /   RX   \   │                     │   /   │   /   │   /    │
-        │ /            \ │                     │  /  \ │ /   \ │ /   \  │
-       TX3 ──────────── TX4                   TX5 ─── TX6 ─── TX7 ─── TX8
-```
-
-Scaling to an $8 \text{ TX} \times 4 \text{ RX}$ architecture generates **32 concurrent spatial baselines**. This dense spatial ray distribution enables **RF Tomographic Imaging (RTI)**: solving the inverse Radon transform over the attenuation matrix to generate coarse 2D heatmaps of human location, analogous to low-resolution medical computed tomography (CT) scans.
-
----
-
-## 10.7 Research into Multi-Person Detection and Counting
-
-Resolving multiple simultaneous human occupants remains one of the most formidable unsolved challenges in device-free RF sensing:
-- When two individuals walk simultaneously in different quadrants, their multipath reflections superimpose linearly at the receiver antenna.
-- The resulting composite variance matrix can confuse simple decision trees, leading to under-counting or ghost quadrant predictions.
-
-### Promising Research Approaches:
-1. **Blind Source Separation (BSS):** Utilizing Independent Component Analysis (ICA) or Non-Negative Matrix Factorization (NMF) on subcarrier Doppler spectrograms to separate distinct gait frequencies corresponding to different individuals.
-2. **Multi-Target Spatial Clustering:** Applying density-based clustering (DBSCAN) over multi-baseline Angle-of-Arrival vectors to track distinct target centroids over time.
-
----
-
-## 10.8 Potential Sensor Fusion with Radar, Thermal and Other Modalities
-
-Wi-Fi CSI sensing should not be viewed in isolation. In high-assurance defense and security operations, maximum reliability is achieved through **heterogeneous sensor fusion**:
-
-```
-                               ┌────────────────────────────────┐
-                               │   HETEROGENEOUS SENSOR FUSION  │
-                               └───────────────┬────────────────┘
-                                               │
-               ┌───────────────────────────────┼───────────────────────────────┐
-               ▼                               ▼                               ▼
-     [BROAD-AREA WI-FI CSI]         [NARROW-BEAM MMWAVE RADAR]     [THERMAL INFRARED ARRAYS]
-    - Room-scale coverage          - Precise metric coordinates   - Direct human heat signature
-    - Low-cost, non-line-of-sight  - High-resolution tracking     - Zero-light confirmation
-```
-
-By fusing broad-area Wi-Fi CSI quadrant triggers with steerable mmWave radar beams, a tactical system can maintain low-power continuous standby, waking up high-power directional radars only when an initial RF disturbance is detected in a specific quadrant.
-
----
-
-## 10.9 Edge Processing, Power Management and Deployment Constraints
-
-Operational field deployment requires transceivers to operate untethered without host laptops or continuous mains power:
-
-* **Edge ML on Microcontrollers:** Quantizing the feature extraction and Random Forest inference pipeline to execute directly on the ESP32's internal Xtensa cores using **TensorFlow Lite for Microcontrollers (TFLM)**, eliminating the host laptop entirely.
-* **Low-Power Sleep Schedules:** Operating transmitters on duty-cycled beacon schedules ($10\text{ ms active} / 90\text{ ms light-sleep}$), extending battery life on standard 18650 lithium-ion cells to multiple weeks.
-* **Tactical Form Factors:** Packaging microcontrollers, rechargeable batteries, and high-gain antennas into disguised, peel-and-stick tactical pucks suitable for rapid standoff deployment on building perimeters.
-
----
-
-## 10.10 Controlled Trials and Independent Performance Validation
-
-To bridge the gap between academic prototypes and field-ready systems, future experimental campaigns must follow rigorous independent validation protocols:
-- **Multi-Building Benchmarking:** Evaluating identical models across steel-reinforced high-rise offices, concrete basements, and residential timber structures to quantify path-loss variance.
-- **Environmental Stress-Testing:** Subjecting transceivers to deliberate RF jamming, co-channel Wi-Fi congestion, and extreme temperature variations ($-10^\circ\text{C}$ to $+50^\circ\text{C}$) to establish hardware operational envelopes.
-
----
-
-## 10.11 Privacy, Security and Responsible Deployment Requirements
-
-As RF sensing matures, robust governance mechanisms must accompany technical development:
-- **Cryptographic Authentication:** Implementing AES-128 cryptographic frame authentication across sensing nodes to prevent adversaries from injecting synthetic CSI perturbation frames.
-- **Compliance with Legal Wiretapping & Privacy Mandates:** Ensuring non-military civilian deployments incorporate hardware-level privacy switches and adhere to GDPR/CCPA regulations regarding non-consensual biometric monitoring.
-
----
-
-## 10.12 Long-Term Vision and Research Milestones
-
-Table 10.1 outlines the formal milestone roadmap guiding the long-term evolution of the WiMotion project:
+Table 10.1 establishes the formal milestone framework guiding long-term development:
 
 ### Table 10.1: Strategic 5-Stage Research Roadmap and Validation Matrix
 
 | Stage & Timeline | Research Objective | Required Hardware & Dataset | Validation Metric | Major Technical Risk | Success Criterion |
 | :---: | :--- | :--- | :--- | :--- | :--- |
 | **Stage 1 (Completed)** | Distributed Multi-Link Sensing & False-Alarm Calibration | 6x ESP32-WROOM-32 nodes, 8 baselines, Phase B benchmark (10 sessions, 1,209 windows) | 49.26% gated 5-class accuracy; 52.89% CLEAR false-alarm rate (cut from 98.35%) | Clock drift and USB serial driver FIFO buffer overflows | 100% strict session-level zero-leakage split; 56/56 passing unit tests |
-| **Stage 2 (6–12 Mo)** | Measured Room Geometry & Cross-Environment Validation | Multi-room acoustic & metric testbeds; laser-measured node ground truth; 50+ diverse physical sessions | Cross-room domain generalization accuracy; transfer learning loss | Severe multipath decay and room-transfer performance degradation | Consistent quadrant detection across 3 distinct architectural rooms |
-| **Stage 3 (12–24 Mo)** | Phase Sanitization & Antenna Diversity (AoA) | Dual-antenna ESP32-S3 / C6 hardware; ULA switched antenna arrays; complex baseband I/Q capture | Relative phase stability; Angle-of-Arrival angular resolution ($< 10^\circ$) | Phase noise non-linearity and uncalibrated carrier frequency offsets (CFO) | Continuous metric (x,y) coordinate tracking error $< 0.8\text{ meters}$ |
+| **Stage 2 (6–12 Mo)** | Measured Room Geometry & Cross-Environment Validation | Multi-room metric testbeds; laser-measured node ground truth; 50+ diverse physical sessions | Cross-room domain generalization accuracy; transfer learning loss | Severe multipath decay and room-transfer performance degradation | Consistent quadrant detection across 3 distinct architectural rooms |
+| **Stage 3 (12–24 Mo)** | Phase Sanitization & Antenna Diversity (AoA) | Dual-antenna ESP32-S3 / C6 hardware; ULA switched antenna arrays; complex baseband I/Q capture | Relative phase stability; Angle-of-Arrival angular resolution ($< 10^\circ$) | Phase noise non-linearity and uncalibrated carrier frequency offsets (CFO) | Continuous metric coordinate tracking error $< 0.8\text{ meters}$ |
 | **Stage 4 (24–36 Mo)** | Multi-Person Separation & Trajectory Disambiguation | 32-link perimeter mesh ($8\text{ TX} \times 4\text{ RX}$); multi-subject controlled traversal datasets | Multi-target precision/recall; Doppler spectrogram separation | Destructive RF wave superposition and phantom ghost quadrant triggers | Accurate concurrent 2-person quadrant separation without ghost targets |
 | **Stage 5 (36–60 Mo)** | Heterogeneous Fusion & Standoff Operational Trials | Encapsulated battery-powered pucks; steerable mmWave radar fusion; through-wall testbed | Standoff detection range; through-barrier attenuation margin | Severe drywall/concrete RF attenuation and ambient co-channel jamming | Operational non-line-of-sight intruder detection through 15 cm partition walls |
 
 ---
 *(End of Chapter 10 — Strategic Technology Roadmap & Research Plan)*
-
 
 ---
 
@@ -2124,7 +1937,7 @@ A rigorous engineering dissertation must explicitly disclose the boundaries of t
 ## 11.5 Potential Significance of the Underlying Concept
 
 Despite these prototype limitations, the underlying scientific paradigm—exploiting ambient Wi-Fi multipath reflections as an environmental sensor—possesses transformative significance:
-- **Democratizing Non-Optical Sensing:** Proving that sub-dollar microcontrollers can perform spatial quadrant disturbance tracking bridges the gap between theoretical academic radar research and practical, mass-deployable cyber-physical systems.
+- **Democratizing Non-Optical Sensing:** Proving that ultra-low-cost commodity microcontrollers (<$4 per node; ~$25–$30 total array) can perform spatial quadrant disturbance tracking bridges the gap between theoretical academic radar research and practical, mass-deployable cyber-physical systems.
 - **Privacy-Preserving Security:** Offering a viable pathway for indoor situational awareness in environments where cameras are legally, ethically, or tactically untenable.
 - **Foundation for Future Tactical Reconnaissance:** Establishing the experimental groundwork for future research into through-the-wall sensing, contactless vital signs monitoring, and passive electronic intelligence.
 
