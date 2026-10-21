@@ -274,33 +274,66 @@ def render_code_block(doc, code_lines):
     sp.paragraph_format.space_after = Pt(6)
 
 
-def render_image_if_matched(doc, line):
-    for fig_key, img_path in IMAGE_ASSETS.items():
-        if fig_key in line and os.path.exists(img_path):
-            ip = doc.add_paragraph()
-            ip.alignment = WD_ALIGN_PARAGRAPH.CENTER
-            ip.paragraph_format.space_before = Pt(14)
-            ip.paragraph_format.space_after = Pt(4)
-            irun = ip.add_run()
-            try:
-                irun.add_picture(str(img_path), width=Inches(5.5))
-                cp = doc.add_paragraph()
-                cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                cp.paragraph_format.space_after = Pt(12)
-                caption_text = re.sub(r'[\*\[\]]', '', line).strip()
-                if caption_text.startswith("- ") or caption_text.startswith("* "):
-                    caption_text = caption_text[2:].strip()
-                crun = cp.add_run(caption_text)
-                crun.font.name = "Times New Roman"
-                crun.font.size = Pt(10)
-                crun.font.color.rgb = COLOR_SLATE
-                crun.bold = True
-                crun.italic = True
-                print(f"[+] Successfully embedded {fig_key}: {img_path.name}")
-                return True
-            except Exception as e:
-                print(f"[!] Warning: Could not embed image {img_path}: {e}")
-    return False
+def render_image_placeholder(doc, line):
+    """
+    Renders an elegant Word placeholder container where Tanmay will insert his photo/screenshot,
+    followed immediately by the formal academic caption.
+    """
+    caption_text = re.sub(r'[\*\[\]]', '', line).strip()
+    if caption_text.startswith("- ") or caption_text.startswith("* "):
+        caption_text = caption_text[2:].strip()
+
+    m_fig = re.search(r'(Figure\s+[0-9A-Za-z\.]+)', caption_text, re.IGNORECASE)
+    fig_tag = m_fig.group(1).upper() if m_fig else "FIGURE"
+
+    # Elegant Placeholder Box
+    tbl = doc.add_table(rows=1, cols=1)
+    tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
+    cell = tbl.cell(0, 0)
+    set_cell_background(cell, "F8FAFC")
+    set_cell_margins(cell, top=260, bottom=260, left=320, right=320)
+
+    borders = parse_xml(
+        f'<w:tblBorders {nsdecls("w")}>'
+        f'<w:top w:val="dashed" w:sz="8" w:space="0" w:color="94A3B8"/>'
+        f'<w:bottom w:val="dashed" w:sz="8" w:space="0" w:color="94A3B8"/>'
+        f'<w:left w:val="dashed" w:sz="8" w:space="0" w:color="94A3B8"/>'
+        f'<w:right w:val="dashed" w:sz="8" w:space="0" w:color="94A3B8"/>'
+        f'</w:tblBorders>'
+    )
+    tbl._tbl.tblPr.append(borders)
+
+    cp = cell.paragraphs[0]
+    cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cp.paragraph_format.line_spacing = 1.2
+    cp.paragraph_format.space_after = Pt(2)
+
+    r1 = cp.add_run(f"📷  [ INSERT {fig_tag} HERE ]\n")
+    r1.font.name = "Times New Roman"
+    r1.font.size = Pt(11)
+    r1.bold = True
+    r1.font.color.rgb = COLOR_NAVY
+
+    r2 = cp.add_run("Suggested Format: High-Resolution Landscape Image (Width: ~5.5 inches)\n(Word Action: Click inside this box ➔ Insert ➔ Pictures ➔ This Device)")
+    r2.font.name = "Times New Roman"
+    r2.font.size = Pt(9.0)
+    r2.italic = True
+    r2.font.color.rgb = COLOR_MUTED
+
+    # Academic caption directly beneath the placeholder box
+    cap_p = doc.add_paragraph()
+    cap_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    cap_p.paragraph_format.space_before = Pt(6)
+    cap_p.paragraph_format.space_after = Pt(14)
+
+    crun = cap_p.add_run(caption_text)
+    crun.font.name = "Times New Roman"
+    crun.font.size = Pt(10)
+    crun.bold = True
+    crun.italic = True
+    crun.font.color.rgb = COLOR_SLATE
+    print(f"[+] Rendered clean placeholder & caption for {fig_tag}")
+    return True
 
 
 def build_final_dissertation():
@@ -430,9 +463,9 @@ def build_final_dissertation():
         elif in_front_matter_figure_list and (line_stripped.startswith("## 9.") or line_stripped == "---"):
             in_front_matter_figure_list = False
 
-        # Figure Embedding (avoid embedding in front matter list of figures)
+        # Figure Placeholders & Captions (avoid embedding in front matter list of figures)
         if not in_front_matter_figure_list and re.match(r'^[\*\-\s]*(\*\*)?\[?Figure\s+[A-Za-z0-9\.]+', line_stripped, re.IGNORECASE):
-            if render_image_if_matched(doc, line_stripped):
+            if render_image_placeholder(doc, line_stripped):
                 i += 1
                 continue
 
@@ -547,10 +580,19 @@ def build_final_dissertation():
     if in_table and table_buffer:
         render_table(doc, table_buffer)
 
-    print(f"[*] Saving finalized dissertation to: {OUTPUT_DOCX}")
-    doc.save(str(OUTPUT_DOCX))
-    print(f"[+] SUCCESS! Generated: {OUTPUT_DOCX}")
-    print(f"[+] Size: {os.path.getsize(OUTPUT_DOCX):,} bytes")
+    save_targets = [
+        PARENT_DIR / "Project_Report_File.docx",
+        PARENT_DIR / "WiMotion_2.0_Final_Dissertation_Clean.docx",
+        PARENT_DIR / "WiMotion_2.0_Final_Formatting.docx",
+    ]
+    for target in save_targets:
+        try:
+            doc.save(str(target))
+            print(f"[+] Saved successfully to: {target.name} (Size: {os.path.getsize(target):,} bytes)")
+        except PermissionError:
+            print(f"[!] Note: {target.name} is currently open in Word. Skipped overwrite.")
+        except Exception as e:
+            print(f"[!] Error saving to {target.name}: {e}")
 
 
 if __name__ == "__main__":

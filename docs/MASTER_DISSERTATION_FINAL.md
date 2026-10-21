@@ -228,17 +228,22 @@ The system features an interactive real-time dashboard integrating a 2D polar ra
 * **Figure 1.1:** Project Echo Prototype Interface and Tactical Radar HUD Display
 * **Figure 1.2:** Project Shadow Neural Model Training and Baseline Fading Convergence Curves
 * **Figure 3.1:** Panoramic View of ROOM_LAB_A Multi-Link Deployment Testbed
-* **Figure 3.2:** ESP32-WROOM-32 Hardware Microcontroller and CP2102 Serial Bridge Close-Up
-* **Figure 3.3:** Corner Transmitter Deployments (TX1–TX4) on Calibrated Testbed Staging Table
-* **Figure 3.4:** Dual Receiver Station (RX1 & RX2) Mounted on Calibrated 24.5 cm Physical Antenna Baseline
+* **Figure 3.2:** Corner Transmitter Installation (TX1 & TX2) Close-Up Photographs
+* **Figure 3.3:** Corner Transmitter Installation (TX3 & TX4) Close-Up Photographs
+* **Figure 3.4:** Central Dual-Receiver Host Station (RX1 & RX2 on Calibrated 24.5 cm Baseline)
 * **Figure 3.5:** Human Subject Walking Traversal Experiment in Phase B Controlled Sensing Grid
 * **Figure 3.6:** Six-Node Active Distributed Hardware Testbed Assembly
-* **Figure 7.1:** Live Field Hardware Evaluation and Data Acquisition on Laboratory Workstation
-* **Figure 7.2:** WiMotion 2.0 Real-Time Tactical Observatory Dashboard (2D Polar Radar and 3D WebGL Digital Twin)
-* **Figure 7.3:** Replay Lab Interface with Interactive Temporal Scrubber and Session Manifest Navigation
+* **Figure 6.1:** Detailed 5×5 Confusion Matrix of Primary Gated Random Forest Classifier (Take 02 Held-Out Test Set)
+* **Figure 6.2:** Quantitative Accuracy Comparison Across Model Architectures and Physical Baselines
+* **Figure 6.3:** Per-Class Spatial Recall Sensitivity Highlighting Zone 4 Peak Sensitivity and Zone 3 Diagonal Path Attenuation
+* **Figure 6.4:** Impact of Empirical Energy Gating on Empty-Room False Alarm Reduction
+* **Figure 7.1:** Screenshot of 2D Polar Radar Sweep During Quadrant 1 Subject Traversal
+* **Figure 7.2:** Screenshot of 3D Perspective Digital Twin Room Showing Detected Subject Marker
+* **Figure 7.3:** Screenshot of Replay Lab Interface Showing Interactive Scrubber and Session Manifest
+* **Figure 8.1:** Screenshot of GitHub Actions Cloud Runner Displaying Green CI Pass Status
 * **Figure H.1:** Full Tactical Observatory in Live Hardware Mode Showing Active 8-Link Variance Meters
 * **Figure H.2:** Replay Lab Interface Displaying the 95-Second Presentation Scenario and Scrubber Slider
-* **Figure H.3:** Complete ESP32 Hardware Assembly and Node Distribution Testbed
+* **Figure H.3:** Diagnostic Metadata Drawer Displaying Model Artifact Size (1.16 MB) and Calibrated Gate Threshold ($\theta = 1.80$)
 
 ---
 
