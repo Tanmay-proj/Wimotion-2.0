@@ -1367,16 +1367,22 @@
           </div>
         </div>
 
-        <!-- Card 4: HEURISTIC ZONE PERTURBATION -->
+        <!-- Card 4: HEURISTIC & SUPERVISED LOCALIZATION -->
         <div class="metric-card">
           <div class="metric-label">
-            <span>HEURISTIC ZONE PERTURBATION</span>
+            <span>HEURISTIC ZONE (BASELINE)</span>
             <span class="badge-tag" id="tag-gate-status">GATE ACTIVE</span>
           </div>
           <div class="metric-value" id="val-presence-state" style="color:var(--accent-cyan)">CLEAR</div>
-          <div class="metric-footer">
-            <span id="sub-presence-score">Max Var: 0.0</span>
-            <span id="sub-v1-presence" style="font-size:10px; color:var(--text-dim);">V1 ML: STANDBY</span>
+          <div class="metric-footer" style="flex-direction:column; gap:3px;">
+            <div style="display:flex; justify-content:space-between; width:100%;">
+              <span id="sub-presence-score">Max Var: 0.0</span>
+              <span id="sub-supervised-zone-pill" style="font-weight:600; color:var(--accent-amber); font-size:11px;">SUPERVISED ML: --</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; width:100%;">
+              <span id="sub-v1-presence" style="font-size:10px; color:var(--text-dim);">V1 ML: STANDBY</span>
+              <span id="sub-count-disclaimer" style="font-size:9px; color:var(--text-dim);" title="Active Perturbation Zones (Heuristic Proxy), not validated independent multi-person count">Active Zones Proxy</span>
+            </div>
           </div>
         </div>
       </section>
@@ -2525,6 +2531,24 @@
           subV1.style.color = 'var(--text-dim)';
         }
       }
+
+      // Update Card 4 Supervised ML indicator
+      const subSuperPill = document.getElementById('sub-supervised-zone-pill');
+      if (subSuperPill) {
+        const sZone = data.supervised_zone || data.spatial_supervised_zone || (data.spatial_supervised && data.spatial_supervised.predicted_zone);
+        const sConf = data.supervised_confidence || data.spatial_supervised_confidence || (data.spatial_supervised && data.spatial_supervised.confidence);
+        const isGated = data.supervised_gated || (data.spatial_supervised && data.spatial_supervised.gated);
+        if (sZone && sZone !== 'UNKNOWN') {
+          const pct = (sConf !== null && sConf !== undefined) ? ` (${Math.round(sConf * 100)}%)` : '';
+          const gateNote = isGated ? ' [GATE]' : '';
+          subSuperPill.textContent = `SUPERVISED: ${sZone}${pct}${gateNote}`;
+          subSuperPill.style.color = sZone === 'CLEAR' ? 'var(--accent-green)' : 'var(--accent-amber)';
+        } else {
+          subSuperPill.textContent = 'SUPERVISED ML: STANDBY';
+          subSuperPill.style.color = 'var(--text-dim)';
+        }
+      }
+
 
       // Diagnostics multi-model indicators
       const diagV1Pred = document.getElementById('diag-v1-live-pred');

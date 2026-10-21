@@ -1217,6 +1217,60 @@ class TestSpatial(unittest.TestCase):
             self.assertIn("calibrated_energy_gate_threshold", data)
 
 
+    def test_replay_cache_schema_version_rejection(self):
+        # Stale cache missing or having mismatched feature_schema_version must be rejected
+        import json
+        from spatial.replay_loader import load_recording_frames
+        from spatial.features import FEATURE_SCHEMA_VERSION
+
+        cache_dir = ROOT / "data" / "cache"
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        dummy_cache = cache_dir / "session_pB_clear_01.json"
+
+        # Backup real cache if exists
+        real_cache_content = dummy_cache.read_text(encoding="utf-8") if dummy_cache.exists() else None
+
+        try:
+            # 1. Write stale cache with legacy schema version
+            stale_payload = {
+                "session_id": "session_pB_clear_01",
+                "feature_schema_version": "1.0.0-legacy-skewed",
+                "total_duration": 1.0,
+                "frames": [{
+                    "feature_vector": [999.0] * 56,
+                    "active_links": 8,
+                    "model_zone": "Z4"
+                }]
+            }
+            dummy_cache.write_text(json.dumps(stale_payload), encoding="utf-8")
+            
+            # Setting mtime newer than CSV
+            raw_csv = ROOT / "data" / "raw" / "session_pB_clear_01" / "multilink_data_CLEAR_0P_EMPTY.csv"
+            if raw_csv.exists():
+                os.utime(dummy_cache, (raw_csv.stat().st_mtime + 10, raw_csv.stat().st_mtime + 10))
+                loaded = load_recording_frames("session_pB_clear_01")
+                self.assertIsNotNone(loaded)
+                # The loaded frames must NOT be the fake stale frame!
+                self.assertNotEqual(loaded["frames"][0]["feature_vector"][0], 999.0)
+                self.assertEqual(loaded.get("feature_schema_version"), FEATURE_SCHEMA_VERSION)
+        finally:
+            # Restore or cleanup
+            if real_cache_content:
+                dummy_cache.write_text(real_cache_content, encoding="utf-8")
+            elif dummy_cache.exists():
+                dummy_cache.unlink()
+
+    def test_live_engine_dual_zone_outputs(self):
+        # LiveSpatialEngine must expose both heuristic_zone and supervised_zone with count disclaimer
+        from spatial.live import LiveSpatialEngine
+        engine = LiveSpatialEngine()
+        state = engine.get_state()
+        self.assertIn("heuristic_zone", state)
+        self.assertIn("count_metric_disclaimer", state)
+        self.assertIn("active_zone_count", state)
+        self.assertIn("spatial_supervised_zone", state)
+
+
 if __name__ == "__main__":
     unittest.main()
 

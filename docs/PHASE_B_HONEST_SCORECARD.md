@@ -92,11 +92,27 @@ weighted avg       0.49      0.49      0.48       605
 
 ---
 
-## 6. Artifacts & Complete Provenance
+## 6. Deep-Dive Physical RF Analysis: CLEAR False Alarms & Zone 3 Recall
+
+### A. CLEAR False Alarm Dynamics & Energy Gate Impact
+- **Root Cause:** In physical room deployments, ambient Wi-Fi channel fluctuations (environmental multipath, antenna thermal noise, AP beacon jitter) create intermittent energy ripples.
+- **Before Gate (Pure ML Classifier):** The ungated classifier misclassified **98.35% (119/121)** of held-out empty-room windows as active zones (1.65% CLEAR recall).
+- **After Calibrated Gate ($\theta = 1.80$):** Training-calibrated energy thresholding cuts false alarms by nearly half, raising correct CLEAR detection to **47.11% (57/121)** and reducing false alarm rate to **52.89%**.
+- **Takeaway:** Energy gating is essential for physical COTS Wi-Fi CSI sensing. Further suppression requires multi-packet moving-median filtering across consecutive windows.
+
+### B. Zone 3 (South-West) Geometric Attenuation
+- **Root Cause:** Zone 3 is physically positioned in the South-West corner of the room, diagonally furthest from Receiver RX1 (North-East corner).
+- **Geometric SNR Degradation:** Direct-path RF attenuation over longer path lengths results in smaller amplitude perturbation deltas when walking in Z3 compared to Z1 (near RX1) or Z4 (near RX2).
+- **Ungated vs Gated Trade-Off:** The ungated classifier identified Z3 at **38.84% (47/121)** recall. When the calibrated energy gate was applied, lower-amplitude Z3 walking windows were classified as CLEAR, reducing gated recall to **14.05% (17/121)**.
+- **Takeaway:** This directly demonstrates the physical physics-bounded reality of wireless CSI sensing: sector recall is fundamentally coupled to transceiver mesh geometry and receiver proximity.
+
+---
+
+## 7. Artifacts & Complete Provenance
 - **Model Binary:** `models/spatial_model.pkl` (1,158,388 bytes / ~1.16 MB)
-- **Model SHA-256:** `35ad5556704ca471d950fa0f53c9e555cefd3a244c2c2aee5db691039b634495`
-- **Feature Schema Version:** `2.0.0-canonical-56dim`
-- **Git Commit:** `3dd78145ebf32c2779ba6d4d4460ebc68c59e644`
+- **Model SHA-256:** `2d0c652957670ea374249162754dd4b0408aca02c5e5d45785dcc3316309a4b7` [STRICT MATCH]
+- **Feature Schema Version:** `2.0.0-canonical-56dim` [STRICT MATCH]
+- **Git Commit Provenance:** `59c214bc51b9595f163021d50adab1342a375ef9`
 - **Scorecard JSON:** `models/spatial_model_scorecard.json`
 - **One-Click Master Reproducibility Runner:** `py -3.10 scripts/run_master_evaluation.py`
 

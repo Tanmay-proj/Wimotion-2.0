@@ -1,8 +1,10 @@
 {
   "model_name": "WiMotion 2.0 Supervised Spatial Classifier",
-  "created_at": "2026-10-21 10:03:07 UTC",
-  "git_commit": "3dd78145ebf32c2779ba6d4d4460ebc68c59e644",
+  "created_at": "2026-10-21 10:26:07 UTC",
+  "git_commit": "59c214bc51b9595f163021d50adab1342a375ef9",
   "feature_schema_version": "2.0.0-canonical-56dim",
+  "model_sha256": "2d0c652957670ea374249162754dd4b0408aca02c5e5d45785dcc3316309a4b7",
+  "model_size_bytes": 1158388,
   "classifier": "RandomForestClassifier",
   "feature_dimension": 56,
   "unique_classes": [

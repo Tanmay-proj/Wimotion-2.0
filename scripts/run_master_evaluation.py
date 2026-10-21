@@ -20,6 +20,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 
 
 def run_step(step_name: str, cmd: list) -> bool:
@@ -42,7 +43,7 @@ def main():
 
     # 1. Automated Unit Test Suite
     ok1 = run_step(
-        "Automated Unit Test Discovery (54 Tests)",
+        "Automated Unit Test Discovery (56 Tests)",
         [sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v"]
     )
     if not ok1:
@@ -72,7 +73,7 @@ def main():
     if not ok4:
         return 1
 
-    # 5. Verify Artifacts
+    # 5. Strict Artifact Hash, Schema, and Provenance Verification
     model_p = ROOT / "models" / "spatial_model.pkl"
     scorecard_p = ROOT / "models" / "spatial_model_scorecard.json"
 
@@ -87,6 +88,41 @@ def main():
     with open(scorecard_p, "r", encoding="utf-8") as f:
         sc = json.load(f)
 
+    # 5a. Assert Model SHA-256 matches scorecard expectation
+    expected_sha = sc.get("model_sha256")
+    if expected_sha and model_sha != expected_sha:
+        print("\n" + "!" * 78)
+        print(f"[!] CRITICAL PROVENANCE ERROR: Model binary SHA-256 mismatch!")
+        print(f"    Actual Binary SHA-256:   {model_sha}")
+        print(f"    Scorecard Stored SHA-256: {expected_sha}")
+        print("!" * 78)
+        return 1
+
+    # 5b. Unpickle model payload and verify schema contract & commit linkage
+    import pickle
+    try:
+        payload = pickle.loads(data)
+    except Exception as e:
+        print(f"[!] Error unpickling model payload: {e}")
+        return 1
+
+    from spatial.features import FEATURE_SCHEMA_VERSION
+    if payload.get("feature_schema_version") != FEATURE_SCHEMA_VERSION:
+        print(f"[!] CRITICAL SCHEMA ERROR: Model feature schema version mismatch!")
+        print(f"    Model Version:     {payload.get('feature_schema_version')}")
+        print(f"    Canonical Version: {FEATURE_SCHEMA_VERSION}")
+        return 1
+
+    if payload.get("git_commit") != sc.get("git_commit"):
+        print(f"[!] CRITICAL PROVENANCE ERROR: Git commit mismatch between binary and scorecard!")
+        print(f"    Binary Commit:    {payload.get('git_commit')}")
+        print(f"    Scorecard Commit: {sc.get('git_commit')}")
+        return 1
+
+    if len(payload.get("feature_names", [])) != 56:
+        print(f"[!] CRITICAL CONTRACT ERROR: Expected 56 feature names, got {len(payload.get('feature_names', []))}")
+        return 1
+
     try:
         git_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=str(ROOT), text=True).strip()
     except Exception:
@@ -97,8 +133,8 @@ def main():
     print("=" * 78)
     print(f"Git Commit SHA-1:         {git_sha}")
     print(f"Model Artifact File:      {model_p.name} ({model_size:,} bytes)")
-    print(f"Model Artifact SHA-256:   {model_sha}")
-    print(f"Feature Schema Version:   {sc.get('feature_schema_version')}")
+    print(f"Model Artifact SHA-256:   {model_sha} [STRICT MATCH]")
+    print(f"Feature Schema Version:   {sc.get('feature_schema_version')} [STRICT MATCH]")
     print(f"Primary Classifier:       {sc.get('classifier')}")
     print(f"Calibrated Gate Cutoff:   theta = {sc.get('calibrated_energy_gate_threshold')}")
     print(f"Ungated Test Accuracy:    {sc['metrics']['learned_accuracy_pct']:.2f}% (Weighted F1: {sc['metrics']['learned_weighted_f1_pct']:.2f}%)")

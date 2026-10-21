@@ -17,6 +17,8 @@ import json
 import time
 import argparse
 import pickle
+import hashlib
+import subprocess
 from pathlib import Path
 from collections import Counter
 import numpy as np
@@ -287,11 +289,17 @@ def train_spatial_pipeline(
         pickle.dump(model_payload, f)
     print(f"\n[+] Trained model saved to: {model_out}")
 
+    model_bytes = model_out.read_bytes()
+    model_sha256 = hashlib.sha256(model_bytes).hexdigest()
+    model_size_bytes = len(model_bytes)
+
     scorecard = {
         "model_name": "WiMotion 2.0 Supervised Spatial Classifier",
         "created_at": model_payload["created_at"],
         "git_commit": git_commit,
         "feature_schema_version": FEATURE_SCHEMA_VERSION,
+        "model_sha256": model_sha256,
+        "model_size_bytes": model_size_bytes,
         "classifier": model_payload["classifier_name"],
         "feature_dimension": 56,
         "unique_classes": unique_classes,

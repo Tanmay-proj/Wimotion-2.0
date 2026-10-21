@@ -6,7 +6,7 @@ from pathlib import Path
 from .types import CSIRecord, SpatialState
 from .config import load_config, NodeConfig
 from .window import MultiLinkWindow
-from .features import extract_link_features, fuse_features
+from .features import extract_link_features, fuse_features, extract_window_feature_vector
 from .inference import SpatialBaseline, get_supervised_spatial_adapter
 from .v1_adapter import V1PresenceModelAdapter
 from .tracker import PersonTracker
@@ -30,8 +30,11 @@ class LiveSpatialEngine:
             "timestamp": time.time(),
             "signal_ok": False,
             "count": 0,
+            "active_zone_count": 0,
+            "count_metric_disclaimer": "Active Perturbation Zones (Heuristic Proxy), not validated independent multi-person count",
             "people": [],
             "zone": "CLEAR",
+            "heuristic_zone": "CLEAR",
             "active_links": 0,
             "link_count": 8,
             "confidence": 0.0,
@@ -44,7 +47,10 @@ class LiveSpatialEngine:
                 "confidence": None
             },
             "spatial_supervised_zone": "UNKNOWN",
-            "spatial_supervised_confidence": None
+            "spatial_supervised_confidence": None,
+            "supervised_zone": "UNKNOWN",
+            "supervised_confidence": None,
+            "supervised_gated": False
         }
         self.lock = threading.Lock()
         self.running = False
@@ -67,8 +73,7 @@ class LiveSpatialEngine:
         ]
         signal_ok = len(all_rates) > 0 and any(r >= self.config.sampling.minimum_hz for r in all_rates)
 
-        features = extract_link_features(records)
-        vector, active = fuse_features(features)
+        vector, active, features = extract_window_feature_vector(records)
 
         pred = self.model.predict(features, active, signal_ok)
         tracked = self.tracker.update(pred["people"])
@@ -103,8 +108,10 @@ class LiveSpatialEngine:
                 "rate_hz": round(agg_rate, 1),
                 "count": pred["count"],
                 "active_zone_count": pred.get("active_zone_count", pred["count"]),
+                "count_metric_disclaimer": "Active Perturbation Zones (Heuristic Proxy), not validated independent multi-person count",
                 "people": tracked,
                 "zone": pred["zone"],
+                "heuristic_zone": pred["zone"],
                 "inference_status": pred.get("inference_status", "ACTIVE" if pred["zone"] != "CLEAR" else "CLEAR"),
                 "active_links": active,
                 "link_count": 8,
@@ -125,7 +132,10 @@ class LiveSpatialEngine:
                     "confidence": None
                 },
                 "spatial_supervised_zone": supervised_eval.get("predicted_zone") if supervised_eval else None,
-                "spatial_supervised_confidence": supervised_eval.get("confidence") if supervised_eval else None
+                "spatial_supervised_confidence": supervised_eval.get("confidence") if supervised_eval else None,
+                "supervised_zone": supervised_eval.get("predicted_zone") if supervised_eval else None,
+                "supervised_confidence": supervised_eval.get("confidence") if supervised_eval else None,
+                "supervised_gated": supervised_eval.get("gated", False) if supervised_eval else False
             }
 
     def start(self):
@@ -155,6 +165,8 @@ class LiveSpatialEngine:
                 st["count"] = 0
                 st["active_zone_count"] = 0
                 st["zone"] = "UNKNOWN"
+                st["heuristic_zone"] = "UNKNOWN"
+                st["supervised_zone"] = "UNKNOWN"
                 st["inference_status"] = "UNAVAILABLE"
                 st["people"] = []
             elif active_rx >= 2:
@@ -167,6 +179,8 @@ class LiveSpatialEngine:
                 st["hardware_connected"] = False
                 st["signal_ok"] = False
                 st["zone"] = "UNKNOWN"
+                st["heuristic_zone"] = "UNKNOWN"
+                st["supervised_zone"] = "UNKNOWN"
                 st["inference_status"] = "UNAVAILABLE"
                 st["mode"] = "HARDWARE STANDBY"
 

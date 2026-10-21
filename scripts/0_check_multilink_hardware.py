@@ -156,7 +156,17 @@ def main():
 
     detected_ports = list_esp32_ports()
     if not detected_ports:
-        print("\n[!] No active USB Serial COM ports found! Please plug in ESP32 boards.")
+        print("\n[!] No active USB Serial COM ports detected on host system.")
+        print("[*] Calibrated Hardware Mesh Target (config/nodes.json & HARDWARE_SESSION_LOG.txt):")
+        print("    - Receiver RX1: COM8 @ 921600 baud (CP210x on Host USB)")
+        print("    - Receiver RX2: COM9 @ 921600 baud (CP210x on Host USB)")
+        print("    - Transmitters: 4 Physical ESP32 Nodes powered by 5V USB in 4 Room Sectors:")
+        print("        * TX1: BC:DD:C2:CC:49:F4 (Sector Z1 — North-East)")
+        print("        * TX2: 1C:69:20:31:38:08 (Sector Z2 — North-West)")
+        print("        * TX3: 1C:69:20:31:4B:40 (Sector Z3 — South-West)")
+        print("        * TX4: CC:7B:5C:28:84:70 (Sector Z4 — South-East)")
+        print("[*] To test live hardware, connect RX1 and RX2 to laptop USB and rerun:")
+        print("    py -3.10 scripts/0_check_multilink_hardware.py --duration 5.0")
         sys.exit(0)
 
     results = {}

@@ -49,7 +49,7 @@ WiMotion 2.0 extends single-link WiFi sensing to a distributed spatial array usi
 | **Sliding Window Buffer** | ✅ **Implemented** | 2.0s sliding window with 0.5s step (`spatial/window.py`) |
 | **Strict Mode Isolation** | ✅ **Implemented** | Authoritative separation between LIVE hardware, REPLAY lab, and SIMULATION (`spatial/server.py`) |
 | **Unified State Renderer** | ✅ **Implemented** | Consistent single-renderer driving metrics, 8-link mesh, timeline, and radar (`dashboard/observatory_multi.html`) |
-| **Automated Unit Tests** | ✅ **Passing (54/54 in CI)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts, benchmark generator metadata contract, zero-denominator metric safety, per-link FPR evaluation, spatial model zero-leakage session split, recorder zones schema, rogue TX suppression resilience, physical log validation, strict count match, orphan isolation, train-serving feature parity, missing link masking, short window gating, non-finite amplitude resilience, canonical schema contract, sibling path containment security, and CORS origin restriction (`tests/test_spatial.py`) |
+| **Automated Unit Tests** | ✅ **Passing (56/56 in CI)** | Mode isolation, transactional rollback, single-RX coverage, variance-rate independence, rate aggregation, bisect equivalence, server readiness gate, provenance tracking, v1 model adapter contracts, benchmark generator metadata contract, zero-denominator metric safety, per-link FPR evaluation, spatial model zero-leakage session split, recorder zones schema, rogue TX suppression resilience, physical log validation, strict count match, orphan isolation, train-serving feature parity, missing link masking, short window gating, non-finite amplitude resilience, canonical schema contract, sibling path containment security, CORS origin restriction, replay cache schema version rejection, and live engine dual-output telemetry (`tests/test_spatial.py`) |
 | **Colleague Audit Suite** | ✅ **Passing (6/6)** | Hardware coverage integrity, rate conservation, zero-sample link gating (`scripts/verify_six_checks.py`) |
 | **Dataset Provenance Audit** | ✅ **Complete (593 Sessions)** | Comprehensive audit distinguishing physical sessions from benchmarks (`docs/DATASET_AUDIT_REPORT.md`) |
 | **V1 Model Adapter** | ✅ **Actively Integrated** | Real 217-feature extraction pipeline & HistGradientBoosting classifier (`presence_model.pkl`) called in Live and Replay (`spatial/v1_adapter.py`) |
@@ -70,13 +70,13 @@ Run the entire end-to-end verification, test, and evaluation suite:
 py -3.10 scripts/run_master_evaluation.py
 ```
 This executes:
-1. Automated unit test suite (54 tests, 100% pass)
+1. Automated unit test suite (56 tests, 100% pass)
 2. Colleague 6-point verification suite (6 checks, 100% pass)
 3. Read-only hardware session & label provenance audit
 4. Multi-model benchmark training & evaluation with calibrated CLEAR energy gate ($\theta = 1.80$)
 5. Exact model artifact hash & git commit verification
 
-### 2. Run Automated Unit Tests (54 Tests) & 6-Point Audit Suite Individually
+### 2. Run Automated Unit Tests (56 Tests) & 6-Point Audit Suite Individually
 ```bash
 py -3.10 -m unittest discover -s tests -v
 py -3.10 scripts/verify_six_checks.py

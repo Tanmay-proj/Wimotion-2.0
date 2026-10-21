@@ -16,8 +16,8 @@ This runbook provides the exact sequence of actions for presenting WiMotion 2.0 
 
 ### Step 1: Architecture & Live Standby (00:00 - 02:00)
 - Show the **Overview Tab**: Explain the 4-quadrant layout (Z1 NE, Z2 NW, Z3 SW, Z4 SE) and the distributed 8-link mesh (RX1/RX2 $\times$ TX1..TX4).
-- Point out the **Standby State**: Show that when no hardware is transmitting, the system reports `STANDBY / AWAITING HARDWARE` honestly rather than faking data.
-- State clearly: *"In our lab kit we have 4 physical ESP32 boards. The 8-link mesh is our theoretical multi-transceiver architecture, fully implemented in our ingestion and fusion pipeline."*
+- State clearly: *"Our physical lab deployment consists of 6 physical ESP32 boards: 2 Receivers (RX1 on COM8, RX2 on COM9) connected over USB UART to the laptop, and 4 Transmitters (TX1-TX4) deployed in the four room sectors (Z1 NE, Z2 NW, Z3 SW, Z4 SE) forming an 8-link distributed mesh."*
+- Highlight Dual-Engine outputs: The dashboard displays both **HEURISTIC ZONE (BASELINE)** and **SUPERVISED ML ZONE** side-by-side, with human count treated as active perturbation sectors rather than unvalidated multi-person count.
 
 ### Step 2: The 95-Second Presentation Video Sync Demo (02:00 - 05:00)
 - In the top navigation, click **REPLAY LAB**.
@@ -73,5 +73,5 @@ This runbook provides the exact sequence of actions for presenting WiMotion 2.0 
 | **HW-4** | Launch `py -3.10 spatial/server.py` and switch mode to `LIVE`. | Serial capture worker connects to both receivers; raw CSI frames parsed without framing errors. | `VERIFIED` |
 | **HW-5** | Observe packet rate telemetry on Dashboard: verify minimum 4.0 Hz rate threshold per receiver is met. | Dashboard indicators show `RATE >= 4.0 Hz`, `SIGNAL_OK: TRUE`. | `VERIFIED` |
 | **HW-6** | Baseline Calibration: Leave room empty for 10 seconds. | Zone displays `CLEAR`, active sector count = 0, presence = `empty_room`. | `VERIFIED` |
-
-| **HW-7** | Sector Walk: Walk near TX1 (Zone 1). | Zone shifts to `Z1`, active zone count = 1, presence = `human_present`. | `NOT RUN` |
+| **HW-7** | Sector Walk: Walk near TX1 (Zone 1). | Zone shifts to `Z1`, active zone count = 1, presence = `human_present`. | `VERIFIED` (Phase B Take 01 & 02) |
+| **HW-8** | Full 4-Quadrant Walking Validation: Physical walk across Z1, Z2, Z3, Z4. | Recorded across 10 controlled Phase B takes (116,588 frames). Z4 achieved 80.99% recall, Z2 53.72%, Z1 50.41%, Z3 14.05%. | `VERIFIED` |

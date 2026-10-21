@@ -10,7 +10,7 @@ from collections import defaultdict
 import numpy as np
 
 from .types import CSIRecord
-from .features import extract_link_features, fuse_features
+from .features import extract_link_features, fuse_features, extract_window_feature_vector, FEATURE_SCHEMA_VERSION
 from .inference import SpatialBaseline, get_supervised_spatial_adapter
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -463,9 +463,11 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         try:
             if cache_file.stat().st_mtime >= target_csv.stat().st_mtime:
                 cached_data = json.loads(cache_file.read_text(encoding="utf-8"))
-                sample_frames = cached_data.get("frames", [])
-                if sample_frames and "feature_vector" in sample_frames[0] and len(sample_frames[0]["feature_vector"]) == 56:
-                    return cached_data
+                # Strict Schema Verification: Reject cache if feature_schema_version is missing or does not match
+                if cached_data.get("feature_schema_version") == FEATURE_SCHEMA_VERSION:
+                    sample_frames = cached_data.get("frames", [])
+                    if sample_frames and "feature_vector" in sample_frames[0] and len(sample_frames[0]["feature_vector"]) == 56:
+                        return cached_data
         except Exception:
             pass
 
@@ -622,6 +624,7 @@ def load_recording_frames(session_id: str, step_seconds: float = 0.5, window_sec
         "display_name": display_name,
         "source_type": source_type,
         "provenance": source_type,
+        "feature_schema_version": FEATURE_SCHEMA_VERSION,
         "malformed_rows": malformed_rows,
         "metadata": target_meta,
         "total_duration": round(total_duration, 2),
@@ -750,6 +753,7 @@ def evaluate_window_frame(
         "gt_count": latest_gt_count,
         "gt_motion": latest_motion,
         "model_zone": pred_zone,
+        "heuristic_zone": pred_zone,
         "model_decision": "HUMAN_PERTURBATION" if pred_zone not in ["CLEAR", "UNKNOWN"] else ("EMPTY_ROOM" if pred_zone == "CLEAR" else "UNAVAILABLE"),
         "model_score": max(per_tx_var.values()) if per_tx_var else 0.0,
         "eval_status": eval_status,
