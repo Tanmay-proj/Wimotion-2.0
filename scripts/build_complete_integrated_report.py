@@ -48,6 +48,131 @@ PARENT_DIR = Path(r"e:\WIFI_INTERFEROMETRIC_NEURAL_SENSING")
 MD_PATH = REPO_ROOT / "docs" / "MASTER_DISSERTATION_FINAL.md"
 TNM_BASE_PATH = PARENT_DIR / "PROJECT_REPORT_FILE(TNM&RSR).docx"
 
+GENERATED_DIAGRAMS_DIR = REPO_ROOT / "docs" / "figures" / "generated_diagrams"
+EXTRACTED_PHOTOS_DIR = REPO_ROOT / "docs" / "figures" / "extracted_photos"
+ASSETS_DIR = REPO_ROOT / "docs" / "assets"
+
+DIAGRAM_DEFINITIONS = [
+    {
+        "matcher": lambda b: "PROJECT ECHO" in b and "PROJECT SHADOW" in b and "WIMOTION 1.0" in b,
+        "filename": "diagram_1_project_evolution.png",
+        "caption_label": "Figure 1.3: ",
+        "caption_desc": "Architectural Evolution Across WiMotion Development Phases (Phases 1 to 4)"
+    },
+    {
+        "matcher": lambda b: "[INCIDENT EM WAVE]" in b,
+        "filename": "diagram_propagation_mechanisms.png",
+        "caption_label": "Figure 2.1: ",
+        "caption_desc": "Four Fundamental Electromagnetic Propagation Mechanisms in Indoor Architectural Environments"
+    },
+    {
+        "matcher": lambda b: "RSSI (Coarse Scalar Measurement)" in b,
+        "filename": "diagram_2_rssi_vs_csi.png",
+        "caption_label": "Figure 2.2: ",
+        "caption_desc": "Structural Comparison Between Scalar RSSI and Orthogonal 64-Subcarrier Channel State Information (CSI)"
+    },
+    {
+        "matcher": lambda b: "1st Fresnel Zone Boundary" in b or "d1 + d2 = D + 1ambda/2" in b or "d1 + d2 = D + lambda/2" in b,
+        "filename": "diagram_3_fresnel_zone_geometry.png",
+        "caption_label": "Figure 2.3: ",
+        "caption_desc": "First Fresnel Zone Ellipsoid Geometry and Operating Boundary Parameters"
+    },
+    {
+        "matcher": lambda b: "[SINGLE-LINK AMBIGUITY]" in b,
+        "filename": "diagram_4_single_vs_multilink.png",
+        "caption_label": "Figure 2.4: ",
+        "caption_desc": "Comparison Between Single-Link Longitudinal Ambiguity and 8-Link Spatial Mesh Intersection"
+    },
+    {
+        "matcher": lambda b: "ESP32-WROOM-32 SoC" in b and "Xtensa LX6 Core 0" in b,
+        "filename": "diagram_esp32_hardware_arch.png",
+        "caption_label": "Figure 3.1: ",
+        "caption_desc": "Hardware Architecture and Baseband CSI Extraction of the ESP32-WROOM-32 Node"
+    },
+    {
+        "matcher": lambda b: "[TX2: Zone 2 (NW)]" in b and "[TX1: Zone 1 (NE)]" in b,
+        "filename": "diagram_5_star_topology_mesh.png",
+        "caption_label": "Figure 3.2: ",
+        "caption_desc": "Star-Topology Multi-Link Sensing Mesh: Distributed Corner Transmitters and Central Dual Receivers"
+    },
+    {
+        "matcher": lambda b: "[TX2: Node NW]" in b and "Northern Wall" in b,
+        "filename": "diagram_room_coordinates_layout.png",
+        "caption_label": "Figure 3.3: ",
+        "caption_desc": "Spatial Coordinate Grid and Quadrant Partitioning of the ROOM_LAB_A Testbed"
+    },
+    {
+        "matcher": lambda b: "[PHYSICAL LAYER]" in b and "COM8 @ 921.6k" in b,
+        "filename": "diagram_7_software_pipeline_architecture.png",
+        "caption_label": "Figure 4.1: ",
+        "caption_desc": "Five-Tier Multithreaded Serial Ingestion and CSI Signal Processing Pipeline Architecture"
+    },
+    {
+        "matcher": lambda b: "[STAGE 1: RAW BUFFER]" in b,
+        "filename": "diagram_8_canonical_feature_pipeline.png",
+        "caption_label": "Figure 5.1: ",
+        "caption_desc": "Four-Stage Canonical Spatial Feature Extraction and Fusion Pipeline"
+    },
+    {
+        "matcher": lambda b: "[FASTAPI APPLICATION SERVER]" in b,
+        "filename": "diagram_9_client_server_visualization.png",
+        "caption_label": "Figure 7.1: ",
+        "caption_desc": "Decoupled Client-Server Software Architecture and Real-Time Telemetry Pipeline"
+    },
+    {
+        "matcher": lambda b: "VALID CSI RATE" in b and "ACTIVE LINKS" in b and "RECEIVER HEALTH" in b,
+        "filename": "diagram_telemetry_hud_cards.png",
+        "caption_label": "Figure 7.2: ",
+        "caption_desc": "Real-Time Diagnostic Telemetry Metric Cards and Hardware Health Indicators"
+    },
+    {
+        "matcher": lambda b: "SAFE STANDBY" in b,
+        "filename": "diagram_10_fsm_state_machine.png",
+        "caption_label": "Figure 7.3: ",
+        "caption_desc": "Finite State Machine (FSM) Transition Model of the WiMotion Replay Lab and Simulation Environment"
+    },
+    {
+        "matcher": lambda b: "[TIER 1: AUTOMATED UNIT TESTS]" in b,
+        "filename": "diagram_11_four_tier_verification.png",
+        "caption_label": "Figure 8.1: ",
+        "caption_desc": "Four-Tier Software Verification, Continuous Integration, and Cryptographic Provenance Hierarchy"
+    },
+    {
+        "matcher": lambda b: "[EXPERIMENTAL SCALE vs. OPERATIONAL APPLICATION]" in b,
+        "filename": "diagram_12_prototype_vs_operational_scope.png",
+        "caption_label": "Figure 9.1: ",
+        "caption_desc": "System Scope Boundary: Laboratory Experimental Prototype vs Operational Border Perimeter Deployment"
+    },
+    {
+        "matcher": lambda b: "WIMOTION STRUCTURED ENGINEERING ROADMAP" in b,
+        "filename": "diagram_13_engineering_roadmap.png",
+        "caption_label": "Figure 10.1: ",
+        "caption_desc": "Four-Stage Engineering Upgrade Roadmap for Next-Generation Wi-Fi Sensing"
+    }
+]
+
+FIGURE_IMAGE_MAP = {
+    "FIGURE 1.1": EXTRACTED_PHOTOS_DIR / "image1.png",
+    "FIGURE 1.2": EXTRACTED_PHOTOS_DIR / "image2.png",
+    "FIGURE 3.1": EXTRACTED_PHOTOS_DIR / "image3.jpg",
+    "FIGURE 3.2": EXTRACTED_PHOTOS_DIR / "image4.jpg",
+    "FIGURE 3.3": EXTRACTED_PHOTOS_DIR / "image5.jpg",
+    "FIGURE 3.4": EXTRACTED_PHOTOS_DIR / "image6.jpg",
+    "FIGURE 3.5": EXTRACTED_PHOTOS_DIR / "image7.jpg",
+    "FIGURE 3.6": EXTRACTED_PHOTOS_DIR / "image8.jpg",
+    "FIGURE 6.1": ASSETS_DIR / "fig_6_1_confusion_matrix.png",
+    "FIGURE 6.2": ASSETS_DIR / "fig_6_2_model_comparison.png",
+    "FIGURE 6.3": ASSETS_DIR / "fig_6_3_per_zone_recall.png",
+    "FIGURE 6.4": ASSETS_DIR / "fig_6_4_false_alarm_reduction.png",
+    "FIGURE 7.1": ASSETS_DIR / "fig_7_1_live_observatory.png",
+    "FIGURE 7.2": ASSETS_DIR / "fig_7_2_replay_lab.png",
+    "FIGURE 7.3": EXTRACTED_PHOTOS_DIR / "image11.png",
+    "FIGURE 8.1": EXTRACTED_PHOTOS_DIR / "image10.png",
+    "FIGURE H.1": EXTRACTED_PHOTOS_DIR / "image10.png",
+    "FIGURE H.2": EXTRACTED_PHOTOS_DIR / "image9.jpg",
+    "FIGURE H.3": EXTRACTED_PHOTOS_DIR / "image8.jpg",
+}
+
 COLOR_NAVY = RGBColor(27, 54, 93)       # #1B365D - Deep Navy
 COLOR_SLATE = RGBColor(51, 65, 85)      # #334155 - Slate Grey
 COLOR_MUTED = RGBColor(100, 116, 139)   # #64748B - Muted Grey
@@ -267,6 +392,44 @@ def add_formatted_text(paragraph, text, font_size=12, default_bold=False, defaul
 
 
 def render_code_block(doc, code_lines):
+    code_text = "\n".join(code_lines)
+
+    # Check if this matches one of the 16 publication technical diagrams
+    matched_diag = None
+    for d in DIAGRAM_DEFINITIONS:
+        if d["matcher"](code_text):
+            matched_diag = d
+            break
+
+    if matched_diag:
+        img_path = GENERATED_DIAGRAMS_DIR / matched_diag["filename"]
+        if img_path.exists():
+            p_img = doc.add_paragraph()
+            p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p_img.paragraph_format.space_before = Pt(8)
+            p_img.paragraph_format.space_after = Pt(2)
+            r_img = p_img.add_run()
+            r_img.add_picture(str(img_path), width=Inches(5.8))
+
+            cap_p = doc.add_paragraph()
+            cap_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            cap_p.paragraph_format.space_before = Pt(3)
+            cap_p.paragraph_format.space_after = Pt(8)
+
+            r_label = cap_p.add_run(matched_diag["caption_label"])
+            r_label.font.name = "Times New Roman"
+            r_label.font.size = Pt(10)
+            r_label.bold = True
+            r_label.font.color.rgb = COLOR_NAVY
+
+            r_desc = cap_p.add_run(matched_diag["caption_desc"])
+            r_desc.font.name = "Times New Roman"
+            r_desc.font.size = Pt(10)
+            r_desc.italic = True
+            r_desc.font.color.rgb = COLOR_BODY
+            return
+
+    # Regular code block or terminal output log
     tbl = doc.add_table(rows=1, cols=1)
     tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     cell = tbl.cell(0, 0)
@@ -288,7 +451,6 @@ def render_code_block(doc, code_lines):
     cp.paragraph_format.space_after = Pt(0)
     cp.alignment = WD_ALIGN_PARAGRAPH.LEFT
 
-    code_text = "\n".join(code_lines)
     run = cp.add_run(code_text)
     run.font.name = "Consolas"
     run.font.size = Pt(8.5)
@@ -306,6 +468,46 @@ def render_image_placeholder(doc, line):
     m_fig = re.search(r'(Figure\s+[0-9A-Za-z\.]+)', caption_text, re.IGNORECASE)
     fig_tag = m_fig.group(1).upper() if m_fig else "FIGURE"
 
+    # Check if a real image file exists for this figure
+    img_file = FIGURE_IMAGE_MAP.get(fig_tag)
+    if img_file and Path(img_file).exists():
+        p_img = doc.add_paragraph()
+        p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p_img.paragraph_format.space_before = Pt(8)
+        p_img.paragraph_format.space_after = Pt(2)
+        r_img = p_img.add_run()
+        r_img.add_picture(str(img_file), width=Inches(5.8))
+
+        cap_p = doc.add_paragraph()
+        cap_p.paragraph_format.space_before = Pt(3)
+        cap_p.paragraph_format.space_after = Pt(8)
+        cap_p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+        parts = caption_text.split(":", 1)
+        if len(parts) == 2:
+            clean_lbl = clean_inline_math(parts[0].strip()) + ": "
+            r_label = cap_p.add_run(clean_lbl)
+            r_label.font.name = "Times New Roman"
+            r_label.font.size = Pt(10)
+            r_label.bold = True
+            r_label.font.color.rgb = COLOR_NAVY
+
+            clean_desc = clean_inline_math(parts[1].strip())
+            r_desc = cap_p.add_run(clean_desc)
+            r_desc.font.name = "Times New Roman"
+            r_desc.font.size = Pt(10)
+            r_desc.italic = True
+            r_desc.font.color.rgb = COLOR_BODY
+        else:
+            clean_desc = clean_inline_math(caption_text)
+            r_desc = cap_p.add_run(clean_desc)
+            r_desc.font.name = "Times New Roman"
+            r_desc.font.size = Pt(10)
+            r_desc.bold = True
+            r_desc.font.color.rgb = COLOR_NAVY
+        return True
+
+    # Otherwise render placeholder table
     tbl = doc.add_table(rows=1, cols=1)
     tbl.alignment = WD_TABLE_ALIGNMENT.CENTER
     cell = tbl.cell(0, 0)
