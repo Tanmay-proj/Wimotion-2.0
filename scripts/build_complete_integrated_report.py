@@ -901,7 +901,17 @@ def build_integrated_dissertation():
             h_text = line_stripped[2:].strip()
             p = doc.add_paragraph(style='Heading 1')
             if current_section == 3 and not line_stripped.startswith("# CHAPTER 1:"):
-                p.paragraph_format.page_break_before = True
+                # If this is REFERENCES following PART II, do NOT force a page break
+                # so that REFERENCES and citations appear immediately on the same page!
+                if "REFERENCES" in h_text and not "PART" in h_text:
+                    p.paragraph_format.page_break_before = False
+                    p.paragraph_format.space_before = Pt(10)
+                    p.paragraph_format.space_after = Pt(14)
+                else:
+                    p.paragraph_format.page_break_before = True
+                    if "PART" in h_text:
+                        p.paragraph_format.space_before = Pt(20)
+                        p.paragraph_format.space_after = Pt(6)
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER if ("PART" in h_text or "REFERENCES" in h_text) else WD_ALIGN_PARAGRAPH.LEFT
             run = p.add_run(h_text)
             run.font.name = "Times New Roman"
